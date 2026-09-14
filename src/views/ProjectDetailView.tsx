@@ -10,6 +10,16 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
     projectId,
   ])
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
+  const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
+  const linkedGoal = useLiveQuery(
+    () => (project?.goalId ? db.goals.get(project.goalId) : undefined),
+    [project?.goalId],
+  )
+  const linkedVision = useLiveQuery(
+    () => (linkedGoal?.visionId ? db.visions.get(linkedGoal.visionId) : undefined),
+    [linkedGoal?.visionId],
+  )
+  const [showPlanning, setShowPlanning] = useState(false)
 
   const [newAction, setNewAction] = useState('')
   const [editingOutcome, setEditingOutcome] = useState(false)
@@ -79,18 +89,80 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
         </p>
       )}
 
-      <select
-        value={project.areaOfFocusId ?? ''}
-        onChange={(e) => updateProject(projectId, { areaOfFocusId: e.target.value || undefined })}
-        className="mb-6 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300"
-      >
-        <option value="">No Area of Focus</option>
-        {areas?.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
+      <div className="mb-2 flex flex-wrap gap-2">
+        <select
+          value={project.areaOfFocusId ?? ''}
+          onChange={(e) =>
+            updateProject(projectId, { areaOfFocusId: e.target.value || undefined, goalId: undefined })
+          }
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300"
+        >
+          <option value="">No Area of Focus</option>
+          {areas?.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+
+        {project.areaOfFocusId && (
+          <select
+            value={project.goalId ?? ''}
+            onChange={(e) => updateProject(projectId, { goalId: e.target.value || undefined })}
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300"
+          >
+            <option value="">No Goal</option>
+            {goals
+              ?.filter((g) => g.areaOfFocusId === project.areaOfFocusId)
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+          </select>
+        )}
+      </div>
+
+      {(linkedGoal || linkedVision) && (
+        <div className="mb-4 flex flex-wrap items-center gap-1 text-xs text-neutral-500">
+          <span>↳ ladders up to:</span>
+          {linkedGoal && <span className="text-amber-300">🎯 {linkedGoal.title}</span>}
+          {linkedVision && <span className="text-neutral-400">→ 🔭 {linkedVision.statement.slice(0, 40)}…</span>}
+        </div>
+      )}
+
+      {project.planning && (project.planning.purpose || project.planning.brainstorm || project.planning.organized) && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowPlanning((v) => !v)}
+            className="text-xs text-neutral-500 hover:text-neutral-300"
+          >
+            {showPlanning ? '▾' : '▸'} Natural Planning notes
+          </button>
+          {showPlanning && (
+            <div className="mt-2 flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 text-sm">
+              {project.planning.purpose && (
+                <div>
+                  <div className="text-xs text-neutral-500">Purpose</div>
+                  <p className="text-neutral-300">{project.planning.purpose}</p>
+                </div>
+              )}
+              {project.planning.brainstorm && (
+                <div>
+                  <div className="text-xs text-neutral-500">Brainstorm</div>
+                  <p className="whitespace-pre-wrap text-neutral-400">{project.planning.brainstorm}</p>
+                </div>
+              )}
+              {project.planning.organized && (
+                <div>
+                  <div className="text-xs text-neutral-500">Organized</div>
+                  <p className="whitespace-pre-wrap text-neutral-300">{project.planning.organized}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <form
         onSubmit={(e) => {

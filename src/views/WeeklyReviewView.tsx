@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
+import { getLastBackupAt } from '../db/backup'
 import type { WeeklyReview, WeeklyReviewChecklistItem } from '../db/types'
 
 const TEMPLATE: Omit<WeeklyReviewChecklistItem, 'done'>[] = [
@@ -58,6 +59,15 @@ export function WeeklyReviewView() {
   const checklist = review?.checklist ?? TEMPLATE.map((t) => ({ ...t, done: false }))
   const doneCount = checklist.filter((c) => c.done).length
 
+  const activeProjects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const areas = useLiveQuery(() => db.areasOfFocus.toArray())
+  const orphanedProjects = activeProjects?.filter((p) => !p.areaOfFocusId && !p.goalId) ?? []
+  const neglectedAreas =
+    areas?.filter((a) => !activeProjects?.some((p) => p.areaOfFocusId === a.id)) ?? []
+
+  const lastBackupAt = getLastBackupAt()
+  const daysSinceBackup = lastBackupAt ? Math.floor((Date.now() - lastBackupAt) / (1000 * 60 * 60 * 24)) : null
+
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Weekly Review</h1>
@@ -75,6 +85,28 @@ export function WeeklyReviewView() {
         {doneCount} / {checklist.length} complete this week
         {review?.completedAt && <span className="ml-2 text-emerald-400">— review complete ✓</span>}
       </div>
+
+      {(orphanedProjects.length > 0 || neglectedAreas.length > 0 || daysSinceBackup === null || daysSinceBackup > 14) && (
+        <div className="mb-6 flex flex-col gap-2 rounded-lg border border-amber-900/50 bg-amber-950/20 p-4 text-sm">
+          {orphanedProjects.length > 0 && (
+            <div className="text-amber-300">
+              ⚠ {orphanedProjects.length} active project{orphanedProjects.length > 1 ? 's' : ''} not linked to
+              any Area of Focus or Goal: {orphanedProjects.map((p) => p.title).join(', ')}
+            </div>
+          )}
+          {neglectedAreas.length > 0 && (
+            <div className="text-amber-300">
+              ⚠ No active projects in: {neglectedAreas.map((a) => a.name).join(', ')}
+            </div>
+          )}
+          {(daysSinceBackup === null || daysSinceBackup > 14) && (
+            <div className="text-amber-300">
+              ⚠ {daysSinceBackup === null ? "You've never backed up" : `Last backup was ${daysSinceBackup} days ago`}
+              — everything is stored only in this browser.
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col divide-y divide-neutral-900">
         {checklist.map((c) => (

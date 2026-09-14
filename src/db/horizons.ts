@@ -1,0 +1,63 @@
+import { v4 as uuid } from 'uuid'
+import { db } from './db'
+import type { Goal, Vision } from './types'
+
+export const PURPOSE_ID = 'singleton'
+
+export async function updatePurpose(changes: { statement?: string; principles?: string[] }) {
+  await db.purposes.update(PURPOSE_ID, { ...changes, updatedAt: Date.now() })
+}
+
+export async function createVision(opts: { statement: string; areaOfFocusId?: string }) {
+  const vision: Vision = {
+    id: uuid(),
+    statement: opts.statement,
+    areaOfFocusId: opts.areaOfFocusId,
+    createdAt: Date.now(),
+  }
+  await db.visions.add(vision)
+  return vision
+}
+
+export async function updateVision(id: string, changes: Partial<Vision>) {
+  await db.visions.update(id, changes)
+}
+
+export async function deleteVision(id: string) {
+  await db.transaction('rw', db.visions, db.goals, async () => {
+    await db.goals.where('visionId').equals(id).modify({ visionId: undefined })
+    await db.visions.delete(id)
+  })
+}
+
+export async function createGoal(opts: {
+  title: string
+  description?: string
+  targetDate?: number
+  areaOfFocusId: string
+  visionId?: string
+}) {
+  const goal: Goal = {
+    id: uuid(),
+    title: opts.title,
+    description: opts.description,
+    targetDate: opts.targetDate,
+    areaOfFocusId: opts.areaOfFocusId,
+    visionId: opts.visionId,
+    status: 'active',
+    createdAt: Date.now(),
+  }
+  await db.goals.add(goal)
+  return goal
+}
+
+export async function updateGoal(id: string, changes: Partial<Goal>) {
+  await db.goals.update(id, changes)
+}
+
+export async function deleteGoal(id: string) {
+  await db.transaction('rw', db.goals, db.projects, async () => {
+    await db.projects.where('goalId').equals(id).modify({ goalId: undefined })
+    await db.goals.delete(id)
+  })
+}

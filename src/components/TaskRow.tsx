@@ -31,6 +31,7 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
 
       <div className="min-w-0 flex-1">
         <div className={`truncate text-sm ${done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>
+          {action.recurringTemplateId && <span title="Recurring">🔁 </span>}
           {action.title}
         </div>
         <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-neutral-500">

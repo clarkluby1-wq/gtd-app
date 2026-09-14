@@ -33,6 +33,19 @@ export async function sendToSomeday(actionId: string) {
   await db.actions.update(actionId, { status: 'someday', clarifiedAt: Date.now() })
 }
 
+/** Clarify into reference material: file it away and remove it from the inbox. */
+export async function clarifyAsReference(actionId: string, opts: { title: string; content?: string }) {
+  await db.transaction('rw', db.actions, db.references, async () => {
+    await db.references.add({
+      id: uuid(),
+      title: opts.title,
+      content: opts.content,
+      createdAt: Date.now(),
+    })
+    await db.actions.delete(actionId)
+  })
+}
+
 /** Clarify into a single next action with a context (and optional metadata). */
 export async function clarifyAsNextAction(
   actionId: string,
@@ -72,7 +85,14 @@ export async function clarifyAsWaitingFor(actionId: string, waitingOn: string) {
  */
 export async function clarifyAsProject(
   actionId: string,
-  opts: { title: string; outcome: string; areaOfFocusId?: string; firstActionTitle: string; contextId?: string },
+  opts: {
+    title: string
+    outcome: string
+    areaOfFocusId?: string
+    goalId?: string
+    firstActionTitle: string
+    contextId?: string
+  },
 ) {
   const now = Date.now()
   const project: Project = {
@@ -81,6 +101,7 @@ export async function clarifyAsProject(
     outcome: opts.outcome,
     status: 'active',
     areaOfFocusId: opts.areaOfFocusId,
+    goalId: opts.goalId,
     createdAt: now,
   }
   await db.projects.add(project)
@@ -101,6 +122,36 @@ export async function clarifyAsProject(
   await db.actions.delete(actionId)
 
   return { project, firstAction }
+}
+
+/** Create a project directly (not from an inbox item) — used by Quick Create and the NPM Deep Plan workspace. */
+export async function createProject(opts: {
+  title: string
+  outcome: string
+  areaOfFocusId?: string
+  goalId?: string
+  planning?: Project['planning']
+  firstActionTitles?: string[]
+}) {
+  const now = Date.now()
+  const project: Project = {
+    id: uuid(),
+    title: opts.title,
+    outcome: opts.outcome,
+    status: 'active',
+    areaOfFocusId: opts.areaOfFocusId,
+    goalId: opts.goalId,
+    planning: opts.planning,
+    createdAt: now,
+  }
+  await db.projects.add(project)
+
+  for (const title of opts.firstActionTitles ?? []) {
+    if (!title.trim()) continue
+    await addActionToProject(project.id, title.trim())
+  }
+
+  return project
 }
 
 export async function completeAction(actionId: string) {

@@ -2,12 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
+import { DeepPlanModal } from '../components/DeepPlanModal'
 import type { Project } from '../db/types'
 
 export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }) {
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').sortBy('createdAt'))
   const allActions = useLiveQuery(() => db.actions.toArray())
   const [creating, setCreating] = useState(false)
+  const [deepPlanning, setDeepPlanning] = useState(false)
   const [title, setTitle] = useState('')
   const [outcome, setOutcome] = useState('')
 
@@ -37,12 +39,21 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-neutral-100">Projects</h1>
-        <button
-          onClick={() => setCreating((v) => !v)}
-          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
-        >
-          + New Project
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setDeepPlanning(true)}
+            className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
+            title="Walk through Purpose, Vision, Brainstorm, Organize, and Next Actions"
+          >
+            🧭 Deep Plan
+          </button>
+          <button
+            onClick={() => setCreating((v) => !v)}
+            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+          >
+            + New Project
+          </button>
+        </div>
       </div>
       <p className="mb-6 text-sm text-neutral-500">
         Any outcome that requires more than one action. Each project needs a defined outcome and a next action.
@@ -105,6 +116,16 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
           )
         })}
       </div>
+
+      {deepPlanning && (
+        <DeepPlanModal
+          onClose={() => setDeepPlanning(false)}
+          onCreated={(projectId) => {
+            setDeepPlanning(false)
+            onOpen(projectId)
+          }}
+        />
+      )}
     </div>
   )
 }

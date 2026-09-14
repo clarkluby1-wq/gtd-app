@@ -1,0 +1,85 @@
+import { useRef, useState } from 'react'
+import { downloadBackup, exportBackup, getLastBackupAt, importBackup } from '../db/backup'
+
+function formatRelative(ts: number) {
+  const days = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days} days ago`
+}
+
+export function SettingsView() {
+  const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importedOk, setImportedOk] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExport = async () => {
+    const json = await exportBackup()
+    downloadBackup(json)
+    setLastBackupAt(getLastBackupAt())
+  }
+
+  const handleImportFile = async (file: File) => {
+    setImportError(null)
+    setImportedOk(false)
+    try {
+      const text = await file.text()
+      await importBackup(text)
+      setImportedOk(true)
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not read that file.')
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl p-6">
+      <h1 className="mb-1 text-xl font-semibold text-neutral-100">Settings</h1>
+      <p className="mb-6 text-sm text-neutral-500">
+        Everything lives only in this browser. Back up regularly, especially before clearing site data or
+        switching browsers/devices.
+      </p>
+
+      <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <div className="mb-2 font-medium text-neutral-100">Backup</div>
+        <p className="mb-3 text-sm text-neutral-500">
+          {lastBackupAt
+            ? `Last backup: ${formatRelative(lastBackupAt)}.`
+            : "You haven't backed up yet."}
+        </p>
+        <button
+          onClick={handleExport}
+          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+        >
+          Download backup (.json)
+        </button>
+      </div>
+
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <div className="mb-2 font-medium text-neutral-100">Restore</div>
+        <p className="mb-3 text-sm text-amber-400">
+          This replaces everything currently in the app with the contents of the file. There's no undo.
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) void handleImportFile(file)
+            e.target.value = ''
+          }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-red-600 hover:text-white"
+        >
+          Restore from file…
+        </button>
+        {importedOk && <p className="mt-2 text-xs text-emerald-400">Restored. Reload the app to see it everywhere.</p>}
+        {importError && <p className="mt-2 text-xs text-red-400">{importError}</p>}
+      </div>
+    </div>
+  )
+}

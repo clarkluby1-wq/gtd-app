@@ -6,6 +6,7 @@ import { db } from '../db/db'
 export function AreasOfFocusView({ onOpenProject }: { onOpenProject: (id: string) => void }) {
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
   const [name, setName] = useState('')
 
   const addArea = async () => {
@@ -19,8 +20,8 @@ export function AreasOfFocusView({ onOpenProject }: { onOpenProject: (id: string
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Areas of Focus</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Horizon 3: the ongoing roles and responsibilities you're maintaining standards for — not projects with an
-        end date, but areas you keep in balance. Every project can be anchored to one of these.
+        Horizon 2 (20,000 ft) — the ongoing roles and responsibilities you're maintaining standards for, not
+        projects with an end date. Goals and Projects can anchor to one of these.
       </p>
 
       <form
@@ -43,16 +44,28 @@ export function AreasOfFocusView({ onOpenProject }: { onOpenProject: (id: string
 
       <div className="flex flex-col gap-4">
         {areas?.map((area) => {
-          const linked = projects?.filter((p) => p.areaOfFocusId === area.id) ?? []
+          const linkedProjects = projects?.filter((p) => p.areaOfFocusId === area.id) ?? []
+          const linkedGoals = goals?.filter((g) => g.areaOfFocusId === area.id) ?? []
           return (
             <div key={area.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
               <div className="font-medium text-neutral-100">{area.name}</div>
               {area.description && <p className="mt-1 text-sm text-neutral-500">{area.description}</p>}
-              {linked.length === 0 ? (
+
+              {linkedGoals.length > 0 && (
+                <div className="mt-2 flex flex-col gap-1">
+                  {linkedGoals.map((g) => (
+                    <div key={g.id} className="text-sm text-amber-300">
+                      🎯 {g.title}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {linkedProjects.length === 0 ? (
                 <p className="mt-2 text-xs text-neutral-600">No active projects anchored here.</p>
               ) : (
                 <div className="mt-2 flex flex-col gap-1">
-                  {linked.map((p) => (
+                  {linkedProjects.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => onOpenProject(p.id)}

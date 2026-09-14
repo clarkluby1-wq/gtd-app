@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import {
   clarifyAsNextAction,
   clarifyAsProject,
+  clarifyAsReference,
   clarifyAsScheduled,
   clarifyAsWaitingFor,
   doItNow,
@@ -38,6 +39,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [step, setStep] = useState<Step>('actionable')
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
+  const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
 
   const [contextId, setContextId] = useState<string | undefined>()
   const [energy, setEnergy] = useState<EnergyLevel | undefined>()
@@ -48,6 +50,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [projectTitle, setProjectTitle] = useState(item.title)
   const [outcome, setOutcome] = useState('')
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
+  const [goalId, setGoalId] = useState<string | undefined>()
   const [firstActionTitle, setFirstActionTitle] = useState('')
 
   const finish = async (action: () => Promise<unknown>) => {
@@ -75,9 +78,9 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
           <div className="flex flex-col gap-2">
             <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
             <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
-            <p className="mt-1 text-xs text-neutral-500">
-              Reference material can be filed outside this app for now (notes, docs, bookmarks).
-            </p>
+            <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title: item.title }))}>
+              📎 File as Reference
+            </Btn>
           </div>
         )}
 
@@ -221,7 +224,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
             <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
             <select
               value={areaOfFocusId ?? ''}
-              onChange={(e) => setAreaOfFocusId(e.target.value || undefined)}
+              onChange={(e) => {
+                setAreaOfFocusId(e.target.value || undefined)
+                setGoalId(undefined)
+              }}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             >
               <option value="">None</option>
@@ -231,6 +237,25 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 </option>
               ))}
             </select>
+            {areaOfFocusId && (
+              <>
+                <label className="text-xs text-neutral-500">Which Goal does this serve? (optional)</label>
+                <select
+                  value={goalId ?? ''}
+                  onChange={(e) => setGoalId(e.target.value || undefined)}
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                >
+                  <option value="">None</option>
+                  {goals
+                    ?.filter((g) => g.areaOfFocusId === areaOfFocusId)
+                    .map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.title}
+                      </option>
+                    ))}
+                </select>
+              </>
+            )}
             <label className="text-xs text-neutral-500">
               What's the very next physical action to move this forward?
             </label>
@@ -248,6 +273,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     title: projectTitle.trim(),
                     outcome: outcome.trim(),
                     areaOfFocusId,
+                    goalId,
                     firstActionTitle: firstActionTitle.trim(),
                   }),
                 )

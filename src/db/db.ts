@@ -4,8 +4,12 @@ import type {
   Action,
   AreaOfFocus,
   Context,
+  Goal,
   Project,
+  Purpose,
   ReferenceItem,
+  RecurringTemplate,
+  Vision,
   WeeklyReview,
 } from './types'
 
@@ -14,8 +18,12 @@ class GtdDatabase extends Dexie {
   projects!: EntityTable<Project, 'id'>
   contexts!: EntityTable<Context, 'id'>
   areasOfFocus!: EntityTable<AreaOfFocus, 'id'>
+  goals!: EntityTable<Goal, 'id'>
+  visions!: EntityTable<Vision, 'id'>
+  purposes!: EntityTable<Purpose, 'id'>
   references!: EntityTable<ReferenceItem, 'id'>
   weeklyReviews!: EntityTable<WeeklyReview, 'id'>
+  recurringTemplates!: EntityTable<RecurringTemplate, 'id'>
 
   constructor() {
     super('gtd-app')
@@ -26,6 +34,19 @@ class GtdDatabase extends Dexie {
       areasOfFocus: 'id, order',
       references: 'id, createdAt',
       weeklyReviews: 'id, date',
+    })
+    this.version(2).stores({
+      actions:
+        'id, status, projectId, contextId, dueDate, scheduledDate, order, createdAt, recurringTemplateId',
+      projects: 'id, status, areaOfFocusId, goalId, createdAt',
+      contexts: 'id, order',
+      areasOfFocus: 'id, order',
+      goals: 'id, areaOfFocusId, visionId, status, createdAt',
+      visions: 'id, areaOfFocusId, createdAt',
+      purposes: 'id',
+      references: 'id, projectId, areaOfFocusId, createdAt',
+      weeklyReviews: 'id, date',
+      recurringTemplates: 'id, projectId, createdAt',
     })
   }
 }
@@ -43,17 +64,25 @@ const DEFAULT_AREAS_OF_FOCUS = [
 ]
 
 export async function seedDefaultsIfEmpty() {
-  const contextCount = await db.contexts.count()
-  if (contextCount === 0) {
-    await db.contexts.bulkAdd(
-      DEFAULT_CONTEXTS.map((name, i) => ({ id: uuid(), name, order: i })),
-    )
-  }
+  // A single readwrite transaction serializes concurrent calls (e.g. React
+  // StrictMode's double-invoked effect in dev) so the count-then-write checks
+  // below can't race against each other.
+  await db.transaction('rw', db.contexts, db.areasOfFocus, db.purposes, async () => {
+    const contextCount = await db.contexts.count()
+    if (contextCount === 0) {
+      await db.contexts.bulkAdd(DEFAULT_CONTEXTS.map((name, i) => ({ id: uuid(), name, order: i })))
+    }
 
-  const areaCount = await db.areasOfFocus.count()
-  if (areaCount === 0) {
-    await db.areasOfFocus.bulkAdd(
-      DEFAULT_AREAS_OF_FOCUS.map((a, i) => ({ id: uuid(), order: i, ...a })),
-    )
-  }
+    const areaCount = await db.areasOfFocus.count()
+    if (areaCount === 0) {
+      await db.areasOfFocus.bulkAdd(
+        DEFAULT_AREAS_OF_FOCUS.map((a, i) => ({ id: uuid(), order: i, ...a })),
+      )
+    }
+
+    const purposeExists = await db.purposes.get('singleton')
+    if (!purposeExists) {
+      await db.purposes.add({ id: 'singleton', statement: '', principles: [], updatedAt: Date.now() })
+    }
+  })
 }
