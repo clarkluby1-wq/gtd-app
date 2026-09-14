@@ -3,6 +3,17 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
 import { TaskRow } from '../components/TaskRow'
+import { parseLocalDate } from '../lib/date'
+import type { ActionStatus } from '../db/types'
+
+type NewActionType = 'next' | 'waiting' | 'someday' | 'scheduled'
+
+const NEW_ACTION_TYPES: { key: NewActionType; label: string; status: ActionStatus; placeholder: string }[] = [
+  { key: 'next', label: 'Next Action', status: 'next', placeholder: 'Add a next action for this project…' },
+  { key: 'waiting', label: 'Waiting For', status: 'waiting', placeholder: 'What are you waiting for?' },
+  { key: 'someday', label: 'Someday', status: 'someday', placeholder: 'Add a someday/maybe idea for this project…' },
+  { key: 'scheduled', label: 'Scheduled', status: 'scheduled', placeholder: 'What needs to happen on a specific day?' },
+]
 
 export function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: () => void }) {
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId])
@@ -19,9 +30,14 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
     () => (linkedGoal?.visionId ? db.visions.get(linkedGoal.visionId) : undefined),
     [linkedGoal?.visionId],
   )
+  const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const [showPlanning, setShowPlanning] = useState(false)
 
   const [newAction, setNewAction] = useState('')
+  const [newActionType, setNewActionType] = useState<NewActionType>('next')
+  const [newActionContextId, setNewActionContextId] = useState('')
+  const [newActionWaitingOn, setNewActionWaitingOn] = useState('')
+  const [newActionScheduledDate, setNewActionScheduledDate] = useState('')
   const [editingOutcome, setEditingOutcome] = useState(false)
   const [outcomeDraft, setOutcomeDraft] = useState('')
 
@@ -168,20 +184,87 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
         onSubmit={(e) => {
           e.preventDefault()
           if (!newAction.trim()) return
-          addActionToProject(projectId, newAction.trim())
+          if (newActionType === 'waiting' && !newActionWaitingOn.trim()) return
+          if (newActionType === 'scheduled' && !newActionScheduledDate) return
+
+          const status = NEW_ACTION_TYPES.find((t) => t.key === newActionType)!.status
+          addActionToProject(projectId, newAction.trim(), {
+            status,
+            contextId: newActionType === 'next' ? newActionContextId || undefined : undefined,
+            waitingOn: newActionType === 'waiting' ? newActionWaitingOn.trim() : undefined,
+            scheduledDate:
+              newActionType === 'scheduled' ? parseLocalDate(newActionScheduledDate) : undefined,
+          })
+
           setNewAction('')
+          setNewActionContextId('')
+          setNewActionWaitingOn('')
+          setNewActionScheduledDate('')
         }}
-        className="mb-4 flex gap-2"
+        className="mb-4 flex flex-col gap-2"
       >
-        <input
-          value={newAction}
-          onChange={(e) => setNewAction(e.target.value)}
-          placeholder="Add a next action for this project…"
-          className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
-        />
-        <button type="submit" className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white">
-          Add
-        </button>
+        <div className="flex gap-1">
+          {NEW_ACTION_TYPES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setNewActionType(t.key)}
+              className={`rounded-md px-2 py-1 text-xs ${
+                newActionType === t.key ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-400'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={newAction}
+            onChange={(e) => setNewAction(e.target.value)}
+            placeholder={NEW_ACTION_TYPES.find((t) => t.key === newActionType)!.placeholder}
+            className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
+          />
+
+          {newActionType === 'next' && (
+            <select
+              value={newActionContextId}
+              onChange={(e) => setNewActionContextId(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300"
+            >
+              <option value="">No context</option>
+              {contexts?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {newActionType === 'waiting' && (
+            <input
+              value={newActionWaitingOn}
+              onChange={(e) => setNewActionWaitingOn(e.target.value)}
+              placeholder="Waiting on whom?"
+              className="w-40 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300 outline-none"
+            />
+          )}
+
+          {newActionType === 'scheduled' && (
+            <input
+              type="date"
+              value={newActionScheduledDate}
+              onChange={(e) => setNewActionScheduledDate(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300 outline-none"
+            />
+          )}
+
+          <button
+            type="submit"
+            className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white"
+          >
+            Add
+          </button>
+        </div>
       </form>
 
       <div className="flex flex-col divide-y divide-neutral-900">

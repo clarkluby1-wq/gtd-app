@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
 import { db } from '../db/db'
 import { completeAction, deleteAction, reopenAction } from '../db/operations'
 import type { Action } from '../db/types'
+import { EditActionModal } from './EditActionModal'
 
 function formatDate(ts?: number) {
   if (!ts) return undefined
@@ -15,6 +17,7 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
   const project = useLiveQuery(() => (action.projectId ? db.projects.get(action.projectId) : undefined), [
     action.projectId,
   ])
+  const [editing, setEditing] = useState(false)
 
   const done = action.status === 'done'
 
@@ -29,8 +32,8 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
         {done ? '✓' : ''}
       </button>
 
-      <div className="min-w-0 flex-1">
-        <div className={`truncate text-sm ${done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>
+      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditing(true)}>
+        <div className={`truncate text-sm hover:underline ${done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>
           {action.recurringTemplateId && <span title="Recurring">🔁 </span>}
           {action.title}
         </div>
@@ -52,6 +55,8 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
       >
         ✕
       </button>
+
+      {editing && <EditActionModal action={action} onClose={() => setEditing(false)} />}
     </div>
   )
 }

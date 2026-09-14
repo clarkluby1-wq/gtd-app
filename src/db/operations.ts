@@ -173,7 +173,12 @@ export async function deleteAction(actionId: string) {
 export async function addActionToProject(
   projectId: string,
   title: string,
-  opts: { contextId?: string; status?: ActionStatus } = {},
+  opts: {
+    contextId?: string
+    status?: ActionStatus
+    waitingOn?: string
+    scheduledDate?: number
+  } = {},
 ) {
   const now = Date.now()
   const action: Action = {
@@ -182,6 +187,8 @@ export async function addActionToProject(
     status: opts.status ?? 'next',
     projectId,
     contextId: opts.contextId,
+    waitingOn: opts.waitingOn,
+    scheduledDate: opts.scheduledDate,
     createdAt: now,
     clarifiedAt: now,
     order: now,
