@@ -1,0 +1,133 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
+import { db } from '../db/db'
+import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
+import { TaskRow } from '../components/TaskRow'
+
+export function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: () => void }) {
+  const project = useLiveQuery(() => db.projects.get(projectId), [projectId])
+  const actions = useLiveQuery(() => db.actions.where('projectId').equals(projectId).sortBy('createdAt'), [
+    projectId,
+  ])
+  const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
+
+  const [newAction, setNewAction] = useState('')
+  const [editingOutcome, setEditingOutcome] = useState(false)
+  const [outcomeDraft, setOutcomeDraft] = useState('')
+
+  if (!project) return null
+
+  const open = actions?.filter((a) => a.status !== 'done') ?? []
+  const done = actions?.filter((a) => a.status === 'done') ?? []
+
+  return (
+    <div className="mx-auto max-w-2xl p-6">
+      <button onClick={onBack} className="mb-4 text-xs text-neutral-500 hover:text-neutral-300">
+        ← Back to Projects
+      </button>
+
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-neutral-100">{project.title}</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => completeProject(projectId).then(onBack)}
+            className="rounded-md bg-emerald-600/20 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-600 hover:text-white"
+          >
+            Mark complete
+          </button>
+          <button
+            onClick={() => {
+              if (confirm(`Delete project "${project.title}" and all its actions?`)) {
+                deleteProject(projectId).then(onBack)
+              }
+            }}
+            className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-400 hover:bg-red-600/80 hover:text-white"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {editingOutcome ? (
+        <div className="mb-4 flex flex-col gap-2">
+          <textarea
+            autoFocus
+            value={outcomeDraft}
+            onChange={(e) => setOutcomeDraft(e.target.value)}
+            rows={2}
+            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+          />
+          <button
+            onClick={() => {
+              updateProject(projectId, { outcome: outcomeDraft })
+              setEditingOutcome(false)
+            }}
+            className="self-start rounded-md bg-emerald-600 px-3 py-1 text-xs text-white"
+          >
+            Save
+          </button>
+        </div>
+      ) : (
+        <p
+          onClick={() => {
+            setOutcomeDraft(project.outcome)
+            setEditingOutcome(true)
+          }}
+          className="mb-4 cursor-pointer text-sm text-neutral-400 hover:text-neutral-300"
+        >
+          {project.outcome || 'Click to define what "done" looks like for this project…'}
+        </p>
+      )}
+
+      <select
+        value={project.areaOfFocusId ?? ''}
+        onChange={(e) => updateProject(projectId, { areaOfFocusId: e.target.value || undefined })}
+        className="mb-6 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-300"
+      >
+        <option value="">No Area of Focus</option>
+        {areas?.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+      </select>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!newAction.trim()) return
+          addActionToProject(projectId, newAction.trim())
+          setNewAction('')
+        }}
+        className="mb-4 flex gap-2"
+      >
+        <input
+          value={newAction}
+          onChange={(e) => setNewAction(e.target.value)}
+          placeholder="Add a next action for this project…"
+          className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
+        />
+        <button type="submit" className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white">
+          Add
+        </button>
+      </form>
+
+      <div className="flex flex-col divide-y divide-neutral-900">
+        {open.map((a) => (
+          <TaskRow key={a.id} action={a} />
+        ))}
+      </div>
+
+      {!!done.length && (
+        <>
+          <h2 className="mb-2 mt-6 text-xs uppercase tracking-wide text-neutral-600">Completed</h2>
+          <div className="flex flex-col divide-y divide-neutral-900 opacity-60">
+            {done.map((a) => (
+              <TaskRow key={a.id} action={a} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
