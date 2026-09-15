@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { completeAction, deleteAction, reopenAction } from '../db/operations'
 import type { Action } from '../db/types'
+import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
 
 function formatDate(ts?: number) {
@@ -18,6 +19,7 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
     action.projectId,
   ])
   const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const done = action.status === 'done'
 
@@ -49,7 +51,7 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
       </div>
 
       <button
-        onClick={() => deleteAction(action.id)}
+        onClick={() => setConfirmingDelete(true)}
         className="shrink-0 text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
         title="Delete"
       >
@@ -57,6 +59,17 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
       </button>
 
       {editing && <EditActionModal action={action} onClose={() => setEditing(false)} />}
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete "${action.title}"? This can't be undone.`}
+          onConfirm={() => {
+            deleteAction(action.id)
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }

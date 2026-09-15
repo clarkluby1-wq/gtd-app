@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
 import { parseLocalDate } from '../lib/date'
 import type { ActionStatus } from '../db/types'
@@ -40,6 +41,7 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
   const [newActionScheduledDate, setNewActionScheduledDate] = useState('')
   const [editingOutcome, setEditingOutcome] = useState(false)
   const [outcomeDraft, setOutcomeDraft] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (!project) return null
 
@@ -62,11 +64,7 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
             Mark complete
           </button>
           <button
-            onClick={() => {
-              if (confirm(`Delete project "${project.title}" and all its actions?`)) {
-                deleteProject(projectId).then(onBack)
-              }
-            }}
+            onClick={() => setConfirmingDelete(true)}
             className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-400 hover:bg-red-600/80 hover:text-white"
           >
             Delete
@@ -282,6 +280,17 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
             ))}
           </div>
         </>
+      )}
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete project "${project.title}" and all its actions? This can't be undone.`}
+          onConfirm={() => {
+            setConfirmingDelete(false)
+            deleteProject(projectId).then(onBack)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       )}
     </div>
   )

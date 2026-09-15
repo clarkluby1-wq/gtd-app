@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { createReference, deleteReference, updateReference } from '../db/reference'
 import type { ReferenceItem } from '../db/types'
 
@@ -104,18 +105,30 @@ export function ReferenceView() {
 function ReferenceRow({ item, projectTitle }: { item: ReferenceItem; projectTitle?: string }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.content ?? '')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
     <div className="group rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div className="flex items-start justify-between">
         <div className="font-medium text-neutral-100">{item.title}</div>
         <button
-          onClick={() => deleteReference(item.id)}
+          onClick={() => setConfirmingDelete(true)}
           className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
         >
           ✕
         </button>
       </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete "${item.title}"? This can't be undone.`}
+          onConfirm={() => {
+            deleteReference(item.id)
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
       {item.url && (
         <a href={item.url} target="_blank" rel="noreferrer" className="text-xs text-sky-400 hover:underline">
           {item.url}

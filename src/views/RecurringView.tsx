@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { createRecurringTemplate, deleteRecurringTemplate, updateRecurringTemplate } from '../db/recurring'
 import type { RecurrenceFrequency, RecurringTemplate } from '../db/types'
 
@@ -157,27 +158,51 @@ export function RecurringView() {
 
       <div className="flex flex-col gap-2">
         {templates?.map((t) => (
-          <div key={t.id} className="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-            <div>
-              <div className={`text-sm font-medium ${t.active ? 'text-neutral-100' : 'text-neutral-500 line-through'}`}>
-                {t.title}
-              </div>
-              <div className="text-xs text-neutral-500">{describe(t)}</div>
-            </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100">
-              <button
-                onClick={() => updateRecurringTemplate(t.id, { active: !t.active })}
-                className="text-xs text-neutral-400 hover:text-emerald-400"
-              >
-                {t.active ? 'Pause' : 'Resume'}
-              </button>
-              <button onClick={() => deleteRecurringTemplate(t.id)} className="text-xs text-neutral-600 hover:text-red-400">
-                ✕
-              </button>
-            </div>
-          </div>
+          <TemplateRow key={t.id} template={t} describe={describe} />
         ))}
       </div>
+    </div>
+  )
+}
+
+function TemplateRow({
+  template: t,
+  describe,
+}: {
+  template: RecurringTemplate
+  describe: (t: RecurringTemplate) => string
+}) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  return (
+    <div className="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+      <div>
+        <div className={`text-sm font-medium ${t.active ? 'text-neutral-100' : 'text-neutral-500 line-through'}`}>
+          {t.title}
+        </div>
+        <div className="text-xs text-neutral-500">{describe(t)}</div>
+      </div>
+      <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+        <button
+          onClick={() => updateRecurringTemplate(t.id, { active: !t.active })}
+          className="text-xs text-neutral-400 hover:text-emerald-400"
+        >
+          {t.active ? 'Pause' : 'Resume'}
+        </button>
+        <button onClick={() => setConfirmingDelete(true)} className="text-xs text-neutral-600 hover:text-red-400">
+          ✕
+        </button>
+      </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete "${t.title}"? This can't be undone.`}
+          onConfirm={() => {
+            deleteRecurringTemplate(t.id)
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { createVision, deleteVision, updateVision } from '../db/horizons'
 
 export function VisionView() {
@@ -126,13 +127,14 @@ function VisionRow({
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(statement)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   return (
     <div className="group rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div className="mb-1 flex items-center justify-between">
         {areaName && <span className="text-xs text-emerald-400">{areaName}</span>}
         <button
-          onClick={onDelete}
+          onClick={() => setConfirmingDelete(true)}
           className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
         >
           ✕
@@ -154,6 +156,17 @@ function VisionRow({
         <p onClick={() => setEditing(true)} className="cursor-pointer text-sm text-neutral-200">
           {statement}
         </p>
+      )}
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message="Delete this vision? This can't be undone."
+          onConfirm={() => {
+            onDelete()
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       )}
     </div>
   )

@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { deleteAction, updateAction } from '../db/operations'
 import type { Action } from '../db/types'
 
@@ -37,6 +38,7 @@ export function InboxView() {
 function InboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.title)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const save = () => {
     setEditing(false)
@@ -82,13 +84,24 @@ function InboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) 
           Clarify →
         </button>
         <button
-          onClick={() => deleteAction(item.id)}
+          onClick={() => setConfirmingDelete(true)}
           className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
           title="Delete"
         >
           ✕
         </button>
       </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete "${item.title}"? This can't be undone.`}
+          onConfirm={() => {
+            deleteAction(item.id)
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }

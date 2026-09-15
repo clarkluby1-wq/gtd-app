@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { createGoal, deleteGoal, updateGoal } from '../db/horizons'
 import type { Goal } from '../db/types'
 
@@ -115,6 +116,7 @@ export function GoalsView() {
 }
 
 function GoalRow({ goal, areaName }: { goal: Goal; areaName?: string }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   return (
     <div className="group flex items-start justify-between rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div>
@@ -131,10 +133,21 @@ function GoalRow({ goal, areaName }: { goal: Goal; areaName?: string }) {
         >
           Achieved
         </button>
-        <button onClick={() => deleteGoal(goal.id)} className="text-xs text-neutral-600 hover:text-red-400">
+        <button onClick={() => setConfirmingDelete(true)} className="text-xs text-neutral-600 hover:text-red-400">
           ✕
         </button>
       </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete the goal "${goal.title}"? This can't be undone.`}
+          onConfirm={() => {
+            deleteGoal(goal.id)
+            setConfirmingDelete(false)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }
