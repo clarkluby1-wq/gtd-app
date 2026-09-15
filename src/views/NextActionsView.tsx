@@ -2,11 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
+import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
 export function NextActionsView() {
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
+  const somedayProjectIds = useSomedayProjectIds()
 
   const [contextId, setContextId] = useState<string>('all')
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')
@@ -15,12 +17,13 @@ export function NextActionsView() {
   const filtered = useMemo(() => {
     if (!actions) return []
     return actions.filter((a) => {
+      if (a.projectId && somedayProjectIds.has(a.projectId)) return false
       if (contextId !== 'all' && a.contextId !== contextId) return false
       if (energy !== 'all' && a.energy !== energy) return false
       if (maxTime !== 'all' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
       return true
     })
-  }, [actions, contextId, energy, maxTime])
+  }, [actions, contextId, energy, maxTime, somedayProjectIds])
 
   return (
     <div className="mx-auto max-w-2xl p-6">

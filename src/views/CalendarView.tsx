@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
+import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { Action } from '../db/types'
 
 function groupByDay(actions: Action[]) {
@@ -19,8 +20,11 @@ export function CalendarView() {
       .filter((a) => a.status === 'next' && a.dueDate != null)
       .sortBy('dueDate'),
   )
+  const somedayProjectIds = useSomedayProjectIds()
+  const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
 
-  const groups = scheduled ? groupByDay(scheduled) : []
+  const groups = scheduled ? groupByDay(scheduled.filter(notParked)) : []
+  const dueFiltered = withDue?.filter(notParked) ?? []
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -48,11 +52,11 @@ export function CalendarView() {
         </div>
       ))}
 
-      {!!withDue?.length && (
+      {!!dueFiltered.length && (
         <>
           <h2 className="mb-2 mt-6 text-sm font-medium text-amber-500">Upcoming Deadlines</h2>
           <div className="flex flex-col divide-y divide-neutral-900">
-            {withDue.map((a) => (
+            {dueFiltered.map((a) => (
               <TaskRow key={a.id} action={a} showProject />
             ))}
           </div>

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
   | 'inbox'
@@ -51,9 +52,13 @@ export function Sidebar({
   onStartIntake: () => void
 }) {
   const [horizonsOpen, setHorizonsOpen] = useState(true)
+  const somedayProjectIds = useSomedayProjectIds()
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
-  const nextCount = useLiveQuery(() => db.actions.where('status').equals('next').count())
-  const waitingCount = useLiveQuery(() => db.actions.where('status').equals('waiting').count())
+  const nextActions = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
+  const waitingActions = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
+  const notParked = (a: { projectId?: string }) => !a.projectId || !somedayProjectIds.has(a.projectId)
+  const nextCount = nextActions?.filter(notParked).length
+  const waitingCount = waitingActions?.filter(notParked).length
 
   const badge = (key: ViewKey): number | undefined => {
     if (key === 'inbox') return inboxCount
