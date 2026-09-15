@@ -1,7 +1,10 @@
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
-import { TaskRow } from '../components/TaskRow'
+import { updateAction } from '../db/operations'
+import { SortableTaskRow } from '../components/SortableTaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
@@ -25,12 +28,36 @@ export function NextActionsView() {
     })
   }, [actions, contextId, energy, maxTime, somedayProjectIds])
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = filtered.findIndex((a) => a.id === active.id)
+    const newIndex = filtered.findIndex((a) => a.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(filtered, oldIndex, newIndex)
+    const draggedIndex = reordered.findIndex((a) => a.id === active.id)
+    const prev = reordered[draggedIndex - 1]
+    const next = reordered[draggedIndex + 1]
+
+    let newOrder: number
+    if (prev && next) newOrder = (prev.order + next.order) / 2
+    else if (prev) newOrder = prev.order + 1000
+    else if (next) newOrder = next.order - 1000
+    else newOrder = Date.now()
+
+    void updateAction(active.id as string, { order: newOrder })
+  }
+
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Next Actions</h1>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
-        time you've got.
+        time you've got. Drag the ⠿ handle to reorder.
       </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -76,11 +103,15 @@ export function NextActionsView() {
         </div>
       )}
 
-      <div className="flex flex-col divide-y divide-neutral-900">
-        {filtered.map((a) => (
-          <TaskRow key={a.id} action={a} showProject />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col divide-y divide-neutral-900">
+            {filtered.map((a) => (
+              <SortableTaskRow key={a.id} action={a} showProject />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }

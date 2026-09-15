@@ -1,3 +1,5 @@
+import type { DraggableAttributes } from '@dnd-kit/core'
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
@@ -12,7 +14,16 @@ function formatDate(ts?: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export function TaskRow({ action, showProject }: { action: Action; showProject?: boolean }) {
+export function TaskRow({
+  action,
+  showProject,
+  dragHandle,
+}: {
+  action: Action
+  showProject?: boolean
+  /** Passed by a sortable wrapper to enable drag-to-reorder; omit to render no handle. */
+  dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
+}) {
   const context = useLiveQuery(() => (action.contextId ? db.contexts.get(action.contextId) : undefined), [
     action.contextId,
   ])
@@ -28,6 +39,17 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
 
   return (
     <div className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-900">
+      {dragHandle && (
+        <button
+          {...dragHandle.attributes}
+          {...dragHandle.listeners}
+          style={{ touchAction: 'none' }}
+          className="shrink-0 cursor-grab text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 active:cursor-grabbing"
+          title="Drag to reorder"
+        >
+          ⠿
+        </button>
+      )}
       <button
         onClick={() => {
           if (done) {
