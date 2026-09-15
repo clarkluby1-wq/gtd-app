@@ -41,9 +41,19 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
   const [newActionScheduledDate, setNewActionScheduledDate] = useState('')
   const [editingOutcome, setEditingOutcome] = useState(false)
   const [outcomeDraft, setOutcomeDraft] = useState('')
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (!project) return null
+
+  const saveTitle = () => {
+    setEditingTitle(false)
+    const trimmed = titleDraft.trim()
+    if (trimmed && trimmed !== project.title) {
+      updateProject(projectId, { title: trimmed })
+    }
+  }
 
   const open = actions?.filter((a) => a.status !== 'done') ?? []
   const done = actions?.filter((a) => a.status === 'done') ?? []
@@ -54,9 +64,31 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
         ← Back to Projects
       </button>
 
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-neutral-100">{project.title}</h1>
-        <div className="flex gap-2">
+      <div className="mb-1 flex items-center justify-between gap-3">
+        {editingTitle ? (
+          <input
+            autoFocus
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveTitle()
+              if (e.key === 'Escape') setEditingTitle(false)
+            }}
+            className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-xl font-semibold text-neutral-100 outline-none"
+          />
+        ) : (
+          <h1
+            onClick={() => {
+              setTitleDraft(project.title)
+              setEditingTitle(true)
+            }}
+            className="cursor-pointer text-xl font-semibold text-neutral-100 hover:underline"
+          >
+            {project.title}
+          </h1>
+        )}
+        <div className="flex shrink-0 gap-2">
           <button
             onClick={() => completeProject(projectId).then(onBack)}
             className="rounded-md bg-emerald-600/20 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-600 hover:text-white"

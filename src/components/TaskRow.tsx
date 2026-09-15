@@ -20,6 +20,7 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
   ])
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const done = action.status === 'done'
 
@@ -48,6 +49,23 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
           {action.waitingOn && <span>waiting on {action.waitingOn}</span>}
           {showProject && project && <span className="text-neutral-400">↳ {project.title}</span>}
         </div>
+
+        {action.notes && (
+          <div className="mt-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setExpanded((v) => !v)
+              }}
+              className="text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              {expanded ? '▾' : '▸'} Description
+            </button>
+            {expanded && (
+              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-400">{action.notes}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <button

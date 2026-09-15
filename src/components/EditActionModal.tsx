@@ -40,6 +40,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [waitingOn, setWaitingOn] = useState(action.waitingOn ?? '')
   const [scheduledDate, setScheduledDate] = useState(toDateInputValue(action.scheduledDate))
   const [projectId, setProjectId] = useState(action.projectId ?? '')
+  const [notes, setNotes] = useState(action.notes ?? '')
 
   const save = async () => {
     const status = TYPES.find((t) => t.key === type)!.status
@@ -53,6 +54,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       dueDate: type === 'next' && dueDate ? parseLocalDate(dueDate) : undefined,
       waitingOn: type === 'waiting' ? waitingOn.trim() || undefined : undefined,
       scheduledDate: type === 'scheduled' && scheduledDate ? parseLocalDate(scheduledDate) : undefined,
+      notes: notes.trim() || undefined,
     })
     onClose()
   }
@@ -84,6 +86,15 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
         </div>
 
         <div className="flex flex-col gap-3">
+          <label className="text-xs text-neutral-500">Description — notes, correspondence, backup detail</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={4}
+            placeholder="Optional — paste relevant context here, keep the title itself scannable"
+            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+          />
+
           {type === 'next' && (
             <>
               <label className="text-xs text-neutral-500">Context</label>
