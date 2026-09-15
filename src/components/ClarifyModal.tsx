@@ -81,6 +81,21 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
             <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title: item.title }))}>
               📎 File as Reference
             </Btn>
+            <div className="my-1 text-center text-xs text-neutral-600">
+              — or already waiting on someone for this? —
+            </div>
+            <input
+              value={waitingOn}
+              onChange={(e) => setWaitingOn(e.target.value)}
+              placeholder="Who is it waiting on?"
+              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+            />
+            <Btn
+              disabled={!waitingOn.trim()}
+              onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim()))}
+            >
+              ⏳ Confirm — Waiting For {waitingOn.trim() || '…'}
+            </Btn>
           </div>
         )}
 
