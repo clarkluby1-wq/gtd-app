@@ -1,17 +1,25 @@
+import { closestCenter, DndContext } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { db } from '../db/db'
-import { TaskRow } from '../components/TaskRow'
+import { updateAction } from '../db/operations'
+import { SortableTaskRow } from '../components/SortableTaskRow'
+import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export function WaitingForView() {
-  const actions = useLiveQuery(() => db.actions.where('status').equals('waiting').sortBy('createdAt'))
+  const actions = useLiveQuery(() => db.actions.where('status').equals('waiting').sortBy('order'))
   const somedayProjectIds = useSomedayProjectIds()
 
   const filtered = useMemo(
     () => actions?.filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId)) ?? [],
     [actions, somedayProjectIds],
   )
+
+  const { sensors, handleDragEnd } = useDragReorder(filtered, (id, order) => {
+    void updateAction(id, { order })
+  })
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -26,11 +34,15 @@ export function WaitingForView() {
         </div>
       )}
 
-      <div className="flex flex-col divide-y divide-neutral-900">
-        {filtered.map((a) => (
-          <TaskRow key={a.id} action={a} showProject />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col divide-y divide-neutral-900">
+            {filtered.map((a) => (
+              <SortableTaskRow key={a.id} action={a} showProject showCreatedDate />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }

@@ -1,10 +1,11 @@
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { closestCenter, DndContext } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import { SortableTaskRow } from '../components/SortableTaskRow'
+import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
@@ -28,29 +29,9 @@ export function NextActionsView() {
     })
   }, [actions, contextId, energy, maxTime, somedayProjectIds])
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIndex = filtered.findIndex((a) => a.id === active.id)
-    const newIndex = filtered.findIndex((a) => a.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-
-    const reordered = arrayMove(filtered, oldIndex, newIndex)
-    const draggedIndex = reordered.findIndex((a) => a.id === active.id)
-    const prev = reordered[draggedIndex - 1]
-    const next = reordered[draggedIndex + 1]
-
-    let newOrder: number
-    if (prev && next) newOrder = (prev.order + next.order) / 2
-    else if (prev) newOrder = prev.order + 1000
-    else if (next) newOrder = next.order - 1000
-    else newOrder = Date.now()
-
-    void updateAction(active.id as string, { order: newOrder })
-  }
+  const { sensors, handleDragEnd } = useDragReorder(filtered, (id, order) => {
+    void updateAction(id, { order })
+  })
 
   return (
     <div className="mx-auto max-w-2xl p-6">

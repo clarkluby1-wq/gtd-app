@@ -103,6 +103,7 @@ export async function clarifyAsProject(
     areaOfFocusId: opts.areaOfFocusId,
     goalId: opts.goalId,
     createdAt: now,
+    order: now,
   }
   await db.projects.add(project)
 
@@ -144,6 +145,7 @@ export async function createProject(opts: {
     goalId: opts.goalId,
     planning: opts.planning,
     createdAt: now,
+    order: now,
   }
   await db.projects.add(project)
 

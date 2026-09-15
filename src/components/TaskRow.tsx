@@ -17,10 +17,12 @@ function formatDate(ts?: number) {
 export function TaskRow({
   action,
   showProject,
+  showCreatedDate,
   dragHandle,
 }: {
   action: Action
   showProject?: boolean
+  showCreatedDate?: boolean
   /** Passed by a sortable wrapper to enable drag-to-reorder; omit to render no handle. */
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
 }) {
@@ -78,6 +80,7 @@ export function TaskRow({
           {action.dueDate && <span className="text-amber-500">due {formatDate(action.dueDate)}</span>}
           {action.scheduledDate && <span className="text-sky-400">{formatDate(action.scheduledDate)}</span>}
           {action.waitingOn && <span>waiting on {action.waitingOn}</span>}
+          {showCreatedDate && <span>captured {formatDate(action.createdAt)}</span>}
           {showProject && project && <span className="text-neutral-400">↳ {project.title}</span>}
         </div>
 

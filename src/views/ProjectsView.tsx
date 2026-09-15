@@ -1,18 +1,35 @@
+import { closestCenter, DndContext } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
 import { DeepPlanModal } from '../components/DeepPlanModal'
+import { updateProject } from '../db/operations'
+import { useDragReorder } from '../lib/useDragReorder'
 import type { Project } from '../db/types'
 
+/** Projects created before `order` existed fall back to their creation time. */
+type OrderedProject = Project & { order: number }
+
 export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }) {
-  const projects = useLiveQuery(() => db.projects.where('status').equals('active').sortBy('createdAt'))
+  const projectsRaw = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const projects = useMemo(
+    (): OrderedProject[] =>
+      (projectsRaw ?? []).map((p) => ({ ...p, order: p.order ?? p.createdAt })).sort((a, b) => a.order - b.order),
+    [projectsRaw],
+  )
   const allActions = useLiveQuery(() => db.actions.toArray())
   const [creating, setCreating] = useState(false)
   const [deepPlanning, setDeepPlanning] = useState(false)
   const [title, setTitle] = useState('')
   const [outcome, setOutcome] = useState('')
   const [status, setStatus] = useState<'active' | 'someday'>('active')
+
+  const { sensors, handleDragEnd } = useDragReorder(projects, (id, order) => {
+    void updateProject(id, { order })
+  })
 
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
@@ -22,12 +39,14 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
 
   const createProject = async () => {
     if (!title.trim()) return
+    const now = Date.now()
     const project: Project = {
       id: uuid(),
       title: title.trim(),
       outcome: outcome.trim(),
       status,
-      createdAt: Date.now(),
+      createdAt: now,
+      order: now,
     }
     await db.projects.add(project)
     setTitle('')
@@ -114,38 +133,21 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
         </div>
       )}
 
-      {projects?.length === 0 && !creating && (
+      {projects.length === 0 && !creating && (
         <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
           No active projects yet.
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        {projects?.map((p) => {
-          const { done, total } = progress(p.id)
-          return (
-            <button
-              key={p.id}
-              onClick={() => onOpen(p.id)}
-              className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-left hover:border-neutral-700"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-neutral-100">{p.title}</span>
-                <span className="text-xs text-neutral-500">
-                  {done}/{total}
-                </span>
-              </div>
-              {p.outcome && <p className="mt-1 truncate text-sm text-neutral-500">{p.outcome}</p>}
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
-                <div
-                  className="h-full bg-emerald-600"
-                  style={{ width: total ? `${(done / total) * 100}%` : '0%' }}
-                />
-              </div>
-            </button>
-          )
-        })}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-2">
+            {projects.map((p) => (
+              <SortableProjectCard key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {deepPlanning && (
         <DeepPlanModal
@@ -156,6 +158,50 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
           }}
         />
       )}
+    </div>
+  )
+}
+
+function SortableProjectCard({
+  project,
+  progress,
+  onOpen,
+}: {
+  project: OrderedProject
+  progress: { done: number; total: number }
+  onOpen: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  const { done, total } = progress
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group flex items-start gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:border-neutral-700"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        style={{ touchAction: 'none' }}
+        className="mt-0.5 shrink-0 cursor-grab text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 active:cursor-grabbing"
+        title="Drag to reorder"
+      >
+        ⠿
+      </button>
+      <button onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-neutral-100">{project.title}</span>
+          <span className="text-xs text-neutral-500">
+            {done}/{total}
+          </span>
+        </div>
+        {project.outcome && <p className="mt-1 truncate text-sm text-neutral-500">{project.outcome}</p>}
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+          <div className="h-full bg-emerald-600" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
+        </div>
+      </button>
     </div>
   )
 }

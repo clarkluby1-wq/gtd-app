@@ -1,14 +1,24 @@
+import { closestCenter, DndContext } from '@dnd-kit/core'
+import type { DraggableAttributes } from '@dnd-kit/core'
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { deleteAction, updateAction } from '../db/operations'
+import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
 
 export function InboxView() {
-  const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('createdAt'))
+  const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
+
+  const { sensors, handleDragEnd } = useDragReorder(items ?? [], (id, order) => {
+    void updateAction(id, { order })
+  })
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -24,18 +34,40 @@ export function InboxView() {
         </div>
       )}
 
-      <div className="flex flex-col divide-y divide-neutral-900">
-        {items?.map((item) => (
-          <InboxRow key={item.id} item={item} onClarify={() => setClarifying(item)} />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={(items ?? []).map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col divide-y divide-neutral-900">
+            {items?.map((item) => (
+              <SortableInboxRow key={item.id} item={item} onClarify={() => setClarifying(item)} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
     </div>
   )
 }
 
-function InboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) {
+function SortableInboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div ref={setNodeRef} style={style}>
+      <InboxRow item={item} onClarify={onClarify} dragHandle={{ attributes, listeners }} />
+    </div>
+  )
+}
+
+function InboxRow({
+  item,
+  onClarify,
+  dragHandle,
+}: {
+  item: Action
+  onClarify: () => void
+  dragHandle: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
+}) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.title)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -52,6 +84,16 @@ function InboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) 
 
   return (
     <div className="group flex items-center justify-between gap-3 py-3">
+      <button
+        {...dragHandle.attributes}
+        {...dragHandle.listeners}
+        style={{ touchAction: 'none' }}
+        className="shrink-0 cursor-grab text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 active:cursor-grabbing"
+        title="Drag to reorder"
+      >
+        ⠿
+      </button>
+
       {editing ? (
         <input
           autoFocus

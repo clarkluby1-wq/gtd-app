@@ -3,7 +3,15 @@ import { CSS } from '@dnd-kit/utilities'
 import { TaskRow } from './TaskRow'
 import type { Action } from '../db/types'
 
-export function SortableTaskRow({ action, showProject }: { action: Action; showProject?: boolean }) {
+export function SortableTaskRow({
+  action,
+  showProject,
+  showCreatedDate,
+}: {
+  action: Action
+  showProject?: boolean
+  showCreatedDate?: boolean
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: action.id,
   })
@@ -16,7 +24,12 @@ export function SortableTaskRow({ action, showProject }: { action: Action; showP
 
   return (
     <div ref={setNodeRef} style={style}>
-      <TaskRow action={action} showProject={showProject} dragHandle={{ attributes, listeners }} />
+      <TaskRow
+        action={action}
+        showProject={showProject}
+        showCreatedDate={showCreatedDate}
+        dragHandle={{ attributes, listeners }}
+      />
     </div>
   )
 }

@@ -74,6 +74,8 @@ export interface Project {
   planning?: NaturalPlanningNotes
   createdAt: number
   completedAt?: number
+  /** Manual sort position. Falls back to createdAt for projects created before this existed. */
+  order?: number
 }
 
 export interface Action {
