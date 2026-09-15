@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Sidebar, type ViewKey } from './components/Sidebar'
 import { CaptureBar } from './components/CaptureBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
+import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
 import { InboxView } from './views/InboxView'
@@ -90,14 +91,16 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-neutral-100">
-      <Sidebar current={view} onSelect={selectView} onStartIntake={() => setShowIntake(true)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <CaptureBar />
-        <div className="flex-1 overflow-y-auto">{content}</div>
+    <CompletionToastProvider>
+      <div className="flex h-screen bg-neutral-950 text-neutral-100">
+        <Sidebar current={view} onSelect={selectView} onStartIntake={() => setShowIntake(true)} />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <CaptureBar />
+          <div className="flex-1 overflow-y-auto">{content}</div>
+        </div>
+        {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
       </div>
-      {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
-    </div>
+    </CompletionToastProvider>
   )
 }
 

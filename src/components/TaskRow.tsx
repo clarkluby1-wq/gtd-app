@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { completeAction, deleteAction, reopenAction } from '../db/operations'
+import { useCompletionToast } from '../lib/completionToastContext'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -21,13 +22,21 @@ export function TaskRow({ action, showProject }: { action: Action; showProject?:
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const { notify } = useCompletionToast()
 
   const done = action.status === 'done'
 
   return (
     <div className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-900">
       <button
-        onClick={() => (done ? reopenAction(action.id) : completeAction(action.id))}
+        onClick={() => {
+          if (done) {
+            reopenAction(action.id)
+          } else {
+            completeAction(action.id)
+            notify(action)
+          }
+        }}
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs transition ${
           done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-neutral-600 hover:border-emerald-500'
         }`}

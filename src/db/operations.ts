@@ -171,6 +171,32 @@ export async function deleteAction(actionId: string) {
   await db.actions.delete(actionId)
 }
 
+/** Create an action, optionally tied to a project — the general form behind addActionToProject and follow-up capture. */
+export async function createAction(opts: {
+  title: string
+  projectId?: string
+  contextId?: string
+  status?: ActionStatus
+  waitingOn?: string
+  scheduledDate?: number
+}) {
+  const now = Date.now()
+  const action: Action = {
+    id: uuid(),
+    title: opts.title,
+    status: opts.status ?? 'next',
+    projectId: opts.projectId,
+    contextId: opts.contextId,
+    waitingOn: opts.waitingOn,
+    scheduledDate: opts.scheduledDate,
+    createdAt: now,
+    clarifiedAt: now,
+    order: now,
+  }
+  await db.actions.add(action)
+  return action
+}
+
 export async function addActionToProject(
   projectId: string,
   title: string,
@@ -181,21 +207,7 @@ export async function addActionToProject(
     scheduledDate?: number
   } = {},
 ) {
-  const now = Date.now()
-  const action: Action = {
-    id: uuid(),
-    title,
-    status: opts.status ?? 'next',
-    projectId,
-    contextId: opts.contextId,
-    waitingOn: opts.waitingOn,
-    scheduledDate: opts.scheduledDate,
-    createdAt: now,
-    clarifiedAt: now,
-    order: now,
-  }
-  await db.actions.add(action)
-  return action
+  return createAction({ ...opts, title, projectId })
 }
 
 export async function updateProject(projectId: string, changes: Partial<Project>) {
