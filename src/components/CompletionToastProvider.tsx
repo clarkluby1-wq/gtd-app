@@ -17,9 +17,11 @@ export function CompletionToastProvider({ children }: { children: ReactNode }) {
   return (
     <CompletionToastContext.Provider value={{ notify }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center gap-2">
         {pending.map((action) => (
-          <CompletionToast key={action.id} completedAction={action} onDismiss={() => dismiss(action.id)} />
+          <div key={action.id} className="pointer-events-auto">
+            <CompletionToast completedAction={action} onDismiss={() => dismiss(action.id)} />
+          </div>
         ))}
       </div>
     </CompletionToastContext.Provider>
