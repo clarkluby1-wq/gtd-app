@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
+import { deleteAction, updateAction } from '../db/operations'
 import type { Action } from '../db/types'
 
 export function InboxView() {
@@ -24,19 +25,70 @@ export function InboxView() {
 
       <div className="flex flex-col divide-y divide-neutral-900">
         {items?.map((item) => (
-          <div key={item.id} className="flex items-center justify-between py-3">
-            <span className="text-sm text-neutral-100">{item.title}</span>
-            <button
-              onClick={() => setClarifying(item)}
-              className="rounded-md bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
-            >
-              Clarify →
-            </button>
-          </div>
+          <InboxRow key={item.id} item={item} onClarify={() => setClarifying(item)} />
         ))}
       </div>
 
       {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
+    </div>
+  )
+}
+
+function InboxRow({ item, onClarify }: { item: Action; onClarify: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(item.title)
+
+  const save = () => {
+    setEditing(false)
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== item.title) {
+      updateAction(item.id, { title: trimmed })
+    } else {
+      setDraft(item.title)
+    }
+  }
+
+  return (
+    <div className="group flex items-center justify-between gap-3 py-3">
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save()
+            if (e.key === 'Escape') {
+              setDraft(item.title)
+              setEditing(false)
+            }
+          }}
+          className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
+        />
+      ) : (
+        <span
+          onClick={() => setEditing(true)}
+          className="flex-1 cursor-pointer text-sm text-neutral-100 hover:underline"
+        >
+          {item.title}
+        </span>
+      )}
+
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          onClick={onClarify}
+          className="rounded-md bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
+        >
+          Clarify →
+        </button>
+        <button
+          onClick={() => deleteAction(item.id)}
+          className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
+          title="Delete"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   )
 }
