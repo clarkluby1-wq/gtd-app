@@ -38,7 +38,15 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-neutral-100">Projects</h1>
+        <h1 className="flex items-center gap-1.5 text-xl font-semibold text-neutral-100">
+          Projects
+          <span
+            title="Your Projects list should only contain things you're genuinely resourcing right now, so it stays trustworthy and doesn't create guilt/noise from stuff you're not really moving on."
+            className="cursor-help text-sm text-neutral-500 hover:text-neutral-300"
+          >
+            ⓘ
+          </span>
+        </h1>
         <div className="flex gap-2">
           <button
             onClick={() => setDeepPlanning(true)}
