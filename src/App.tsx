@@ -5,6 +5,7 @@ import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
+import { DashboardView } from './views/DashboardView'
 import { InboxView } from './views/InboxView'
 import { NextActionsView } from './views/NextActionsView'
 import { ProjectsView } from './views/ProjectsView'
@@ -45,6 +46,9 @@ function App() {
     content = <ProjectDetailView projectId={openProjectId} onBack={() => setOpenProjectId(null)} />
   } else {
     switch (view) {
+      case 'dashboard':
+        content = <DashboardView onOpenProject={openProject} onViewWaitingFor={() => selectView('waiting')} />
+        break
       case 'inbox':
         content = <InboxView />
         break

@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
+  | 'dashboard'
   | 'inbox'
   | 'next'
   | 'projects'
@@ -20,6 +21,7 @@ export type ViewKey =
   | 'settings'
 
 const MAIN_NAV: { key: ViewKey; label: string; icon: string }[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
   { key: 'projects', label: 'Projects', icon: '📁' },
