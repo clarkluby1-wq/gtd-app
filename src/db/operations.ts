@@ -128,6 +128,7 @@ export async function clarifyAsProject(
 export async function createProject(opts: {
   title: string
   outcome: string
+  status?: ProjectStatus
   areaOfFocusId?: string
   goalId?: string
   planning?: Project['planning']
@@ -138,7 +139,7 @@ export async function createProject(opts: {
     id: uuid(),
     title: opts.title,
     outcome: opts.outcome,
-    status: 'active',
+    status: opts.status ?? 'active',
     areaOfFocusId: opts.areaOfFocusId,
     goalId: opts.goalId,
     planning: opts.planning,

@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
-import { clarifyAsNextAction } from '../db/operations'
+import { clarifyAsNextAction, updateProject } from '../db/operations'
 import { TaskRow } from '../components/TaskRow'
 
-export function SomedayMaybeView() {
+export function SomedayMaybeView({ onOpenProject }: { onOpenProject: (id: string) => void }) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('someday').sortBy('createdAt'))
   const somedayProjects = useLiveQuery(() => db.projects.where('status').equals('someday').sortBy('createdAt'))
 
@@ -33,8 +33,19 @@ export function SomedayMaybeView() {
           <h2 className="mb-2 mt-6 text-sm font-medium text-neutral-400">Someday Projects</h2>
           <div className="flex flex-col divide-y divide-neutral-900">
             {somedayProjects.map((p) => (
-              <div key={p.id} className="py-2 text-sm text-neutral-200">
-                {p.title}
+              <div key={p.id} className="flex items-center justify-between py-2">
+                <button
+                  onClick={() => onOpenProject(p.id)}
+                  className="flex-1 text-left text-sm text-neutral-200 hover:underline"
+                >
+                  {p.title}
+                </button>
+                <button
+                  onClick={() => updateProject(p.id, { status: 'active' })}
+                  className="ml-2 shrink-0 rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
+                >
+                  Activate
+                </button>
               </div>
             ))}
           </div>

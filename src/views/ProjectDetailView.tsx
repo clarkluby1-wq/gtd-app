@@ -83,12 +83,33 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
               setTitleDraft(project.title)
               setEditingTitle(true)
             }}
-            className="cursor-pointer text-xl font-semibold text-neutral-100 hover:underline"
+            className="flex items-center gap-2 cursor-pointer text-xl font-semibold text-neutral-100 hover:underline"
           >
             {project.title}
+            {project.status === 'someday' && (
+              <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-xs font-normal text-neutral-400 no-underline">
+                🌙 Someday
+              </span>
+            )}
           </h1>
         )}
         <div className="flex shrink-0 gap-2">
+          {project.status === 'someday' ? (
+            <button
+              onClick={() => updateProject(projectId, { status: 'active' })}
+              className="rounded-md bg-emerald-600/20 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-600 hover:text-white"
+            >
+              Activate
+            </button>
+          ) : (
+            <button
+              onClick={() => updateProject(projectId, { status: 'someday' })}
+              className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-700"
+              title="Not committed to this right now — park it without deleting it"
+            >
+              🌙 Move to Someday
+            </button>
+          )}
           <button
             onClick={() => completeProject(projectId).then(onBack)}
             className="rounded-md bg-emerald-600/20 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-600 hover:text-white"

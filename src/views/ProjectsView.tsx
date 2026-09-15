@@ -12,6 +12,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
   const [deepPlanning, setDeepPlanning] = useState(false)
   const [title, setTitle] = useState('')
   const [outcome, setOutcome] = useState('')
+  const [status, setStatus] = useState<'active' | 'someday'>('active')
 
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
@@ -25,14 +26,15 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
       id: uuid(),
       title: title.trim(),
       outcome: outcome.trim(),
-      status: 'active',
+      status,
       createdAt: Date.now(),
     }
     await db.projects.add(project)
     setTitle('')
     setOutcome('')
     setCreating(false)
-    onOpen(project.id)
+    if (status === 'active') onOpen(project.id)
+    setStatus('active')
   }
 
   return (
@@ -83,6 +85,26 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
             placeholder='Outcome — what does "done" look like?'
             className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
           />
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setStatus('active')}
+              className={`flex-1 rounded-md px-3 py-2 text-xs font-medium ${
+                status === 'active' ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-300'
+              }`}
+            >
+              Active — committed now
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus('someday')}
+              className={`flex-1 rounded-md px-3 py-2 text-xs font-medium ${
+                status === 'someday' ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-300'
+              }`}
+            >
+              Someday — not committed yet
+            </button>
+          </div>
           <button
             onClick={createProject}
             className="self-start rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"

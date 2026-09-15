@@ -57,7 +57,7 @@ function App() {
         content = <WaitingForView />
         break
       case 'someday':
-        content = <SomedayMaybeView />
+        content = <SomedayMaybeView onOpenProject={openProject} />
         break
       case 'calendar':
         content = <CalendarView />
