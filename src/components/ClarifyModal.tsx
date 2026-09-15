@@ -333,6 +333,19 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               onChange={(e) => setFirstActionTitle(e.target.value)}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
+            <label className="text-xs text-neutral-500">Context for that action (optional)</label>
+            <select
+              value={contextId ?? ''}
+              onChange={(e) => setContextId(e.target.value || undefined)}
+              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+            >
+              <option value="">No context</option>
+              {contexts?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
             <Btn
               primary
               disabled={!projectTitle.trim() || !firstActionTitle.trim()}
@@ -344,6 +357,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     areaOfFocusId,
                     goalId,
                     firstActionTitle: firstActionTitle.trim(),
+                    contextId,
                   }),
                 )
               }

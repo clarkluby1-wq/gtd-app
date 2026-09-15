@@ -133,7 +133,7 @@ export async function createProject(opts: {
   areaOfFocusId?: string
   goalId?: string
   planning?: Project['planning']
-  firstActionTitles?: string[]
+  firstActions?: { title: string; contextId?: string }[]
 }) {
   const now = Date.now()
   const project: Project = {
@@ -149,9 +149,9 @@ export async function createProject(opts: {
   }
   await db.projects.add(project)
 
-  for (const title of opts.firstActionTitles ?? []) {
-    if (!title.trim()) continue
-    await addActionToProject(project.id, title.trim())
+  for (const action of opts.firstActions ?? []) {
+    if (!action.title.trim()) continue
+    await addActionToProject(project.id, action.title.trim(), { contextId: action.contextId })
   }
 
   return project

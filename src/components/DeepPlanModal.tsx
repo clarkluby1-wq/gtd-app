@@ -27,6 +27,7 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
   const [step, setStep] = useState<Step>('purpose')
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
+  const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
 
   const [title, setTitle] = useState('')
   const [purpose, setPurpose] = useState('')
@@ -35,7 +36,7 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
   const [organized, setOrganized] = useState('')
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
   const [goalId, setGoalId] = useState<string | undefined>()
-  const [actions, setActions] = useState<string[]>([''])
+  const [actions, setActions] = useState<{ title: string; contextId?: string }[]>([{ title: '' }])
 
   const stepIndex = STEPS.indexOf(step)
 
@@ -46,7 +47,7 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
       areaOfFocusId,
       goalId,
       planning: { purpose: purpose.trim(), brainstorm: brainstorm.trim(), organized: organized.trim() },
-      firstActionTitles: actions,
+      firstActions: actions,
     })
     onCreated(project.id)
   }
@@ -170,18 +171,41 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
               <p className="mb-2 text-sm text-neutral-400">{STEP_PROMPT.actions}</p>
               <div className="flex flex-col gap-2">
                 {actions.map((a, i) => (
-                  <input
-                    key={i}
-                    autoFocus={i === actions.length - 1}
-                    value={a}
-                    onChange={(e) => setActions((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
-                    placeholder={`Next action ${i + 1}`}
-                    className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                  />
+                  <div key={i} className="flex gap-2">
+                    <input
+                      autoFocus={i === actions.length - 1}
+                      value={a.title}
+                      onChange={(e) =>
+                        setActions((prev) =>
+                          prev.map((v, idx) => (idx === i ? { ...v, title: e.target.value } : v)),
+                        )
+                      }
+                      placeholder={`Next action ${i + 1}`}
+                      className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                    />
+                    <select
+                      value={a.contextId ?? ''}
+                      onChange={(e) =>
+                        setActions((prev) =>
+                          prev.map((v, idx) =>
+                            idx === i ? { ...v, contextId: e.target.value || undefined } : v,
+                          ),
+                        )
+                      }
+                      className="w-32 shrink-0 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-2 text-xs text-neutral-300 outline-none"
+                    >
+                      <option value="">No context</option>
+                      {contexts?.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 ))}
               </div>
               <button
-                onClick={() => setActions((prev) => [...prev, ''])}
+                onClick={() => setActions((prev) => [...prev, { title: '' }])}
                 className="mt-2 text-xs text-neutral-500 hover:text-neutral-300"
               >
                 + add another
