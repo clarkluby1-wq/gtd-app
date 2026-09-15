@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import {
   clarifyAsNextAction,
@@ -18,6 +18,7 @@ type Step =
   | 'actionable'
   | 'notActionable'
   | 'twoMinute'
+  | 'doingItNow'
   | 'delegate'
   | 'singleOrProject'
   | 'dateSpecific'
@@ -28,11 +29,20 @@ const STEP_QUESTION: Record<Step, string> = {
   actionable: 'Is it actionable — does it require you to do something?',
   notActionable: "It's not actionable. What should happen to it?",
   twoMinute: 'Will doing it take less than two minutes?',
+  doingItNow: 'Go do it now — mark it done when you actually finish.',
   delegate: 'Are you the right person to do this?',
   singleOrProject: 'Can it be done in one step, or does it need more than one action?',
   dateSpecific: 'Does this need to happen on a specific day, or is it just the next time you get to it?',
   assignNextAction: 'What context and details for this next action?',
   defineProject: 'Define the project.',
+}
+
+const TWO_MINUTES = 120
+
+function formatCountdown(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
 }
 
 export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => void }) {
@@ -52,11 +62,35 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
   const [goalId, setGoalId] = useState<string | undefined>()
   const [firstActionTitle, setFirstActionTitle] = useState('')
+  const [secondsLeft, setSecondsLeft] = useState(TWO_MINUTES)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const finish = async (action: () => Promise<unknown>) => {
     await action()
     onClose()
   }
+
+  const startTimer = () => {
+    setSecondsLeft(TWO_MINUTES)
+    setStep('doingItNow')
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0))
+    }, 1000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (secondsLeft === 0 && intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }, [secondsLeft])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -101,10 +135,30 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
 
         {step === 'twoMinute' && (
           <div className="flex gap-2">
-            <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+            <Btn primary onClick={startTimer}>
               Yes — do it now
             </Btn>
             <Btn onClick={() => setStep('delegate')}>No</Btn>
+          </div>
+        )}
+
+        {step === 'doingItNow' && (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div
+              className={`text-5xl font-semibold tabular-nums ${
+                secondsLeft === 0 ? 'text-amber-400' : 'text-emerald-400'
+              }`}
+            >
+              {formatCountdown(secondsLeft)}
+            </div>
+            <p className="text-center text-xs text-neutral-500">
+              {secondsLeft === 0
+                ? "Time's up — still working on it? That's fine, just mark it done when you're finished."
+                : 'Go do it — this stays open until you mark it done.'}
+            </p>
+            <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+              ✓ Mark Done
+            </Btn>
           </div>
         )}
 
