@@ -115,6 +115,8 @@ export interface WeeklyReviewChecklistItem {
   key: string
   label: string
   done: boolean
+  /** Present only for items that break down into their own checkable list, e.g. "clear every inbox". */
+  subItems?: { key: string; label: string; done: boolean }[]
 }
 
 export interface WeeklyReview {

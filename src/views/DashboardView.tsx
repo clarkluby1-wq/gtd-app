@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { db } from '../db/db'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { ageInDays, staleNextActions } from '../lib/staleness'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
 const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
@@ -13,10 +14,6 @@ const STALE_TIER_COLOR = { 7: '#fab219', 14: '#f2994a', 30: '#d03b3b' }
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-}
-
-function ageInDays(createdAt: number) {
-  return Math.floor((Date.now() - createdAt) / (1000 * 60 * 60 * 24))
 }
 
 function ageColor(days: number) {
@@ -79,13 +76,10 @@ export function DashboardView({
       .sort((a, b) => a.createdAt - b.createdAt)
   }, [waitingActionsRaw, somedayProjectIds])
 
-  const staleNextActions = useMemo(() => {
-    return (allActions ?? [])
-      .filter((a) => a.status === 'next')
-      .filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId))
-      .map((a) => ({ action: a, days: ageInDays(a.touchedAt ?? a.clarifiedAt ?? a.createdAt) }))
-      .filter((x) => x.days > 7)
-  }, [allActions, somedayProjectIds])
+  const staleActions = useMemo(
+    () => staleNextActions(allActions ?? [], somedayProjectIds),
+    [allActions, somedayProjectIds],
+  )
 
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
@@ -109,7 +103,7 @@ export function DashboardView({
         onOpen={onOpenProject}
       />
 
-      <StaleNextActions stale={staleNextActions} onViewAll={onViewNextActions} />
+      <StaleNextActions stale={staleActions} onViewAll={onViewNextActions} />
 
       <WaitingForAging actions={waitingActions} onViewAll={onViewWaitingFor} />
     </div>
