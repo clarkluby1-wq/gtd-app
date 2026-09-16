@@ -47,7 +47,13 @@ function App() {
   } else {
     switch (view) {
       case 'dashboard':
-        content = <DashboardView onOpenProject={openProject} onViewWaitingFor={() => selectView('waiting')} />
+        content = (
+          <DashboardView
+            onOpenProject={openProject}
+            onViewWaitingFor={() => selectView('waiting')}
+            onViewNextActions={() => selectView('next')}
+          />
+        )
         break
       case 'inbox':
         content = <InboxView />

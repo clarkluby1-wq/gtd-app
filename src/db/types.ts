@@ -94,6 +94,8 @@ export interface Action {
   createdAt: number
   clarifiedAt?: number
   completedAt?: number
+  /** Last time this action's status or fields changed — drives the Dashboard's stale Next Actions section. */
+  touchedAt?: number
   order: number
   /** Set when this instance was generated from a RecurringTemplate. */
   recurringTemplateId?: string

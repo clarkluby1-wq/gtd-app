@@ -8,6 +8,7 @@ const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
 const TRACK = '#262626' // neutral-800 — existing unfilled-track color used elsewhere
 const GRID = '#2c2c2a'
 const STATUS = { good: '#0ca30c', warning: '#fab219', critical: '#d03b3b' }
+const STALE_TIER_COLOR = { 7: '#fab219', 14: '#f2994a', 30: '#d03b3b' }
 
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180
@@ -49,9 +50,11 @@ function captureTier(count: number): { icon: string; message: string } {
 export function DashboardView({
   onOpenProject,
   onViewWaitingFor,
+  onViewNextActions,
 }: {
   onOpenProject: (id: string) => void
   onViewWaitingFor: () => void
+  onViewNextActions: () => void
 }) {
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const activeProjects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
@@ -76,6 +79,14 @@ export function DashboardView({
       .sort((a, b) => a.createdAt - b.createdAt)
   }, [waitingActionsRaw, somedayProjectIds])
 
+  const staleNextActions = useMemo(() => {
+    return (allActions ?? [])
+      .filter((a) => a.status === 'next')
+      .filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId))
+      .map((a) => ({ action: a, days: ageInDays(a.touchedAt ?? a.clarifiedAt ?? a.createdAt) }))
+      .filter((x) => x.days > 7)
+  }, [allActions, somedayProjectIds])
+
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
     const done = items.filter((a) => a.status === 'done').length
@@ -97,6 +108,8 @@ export function DashboardView({
         progress={progress}
         onOpen={onOpenProject}
       />
+
+      <StaleNextActions stale={staleNextActions} onViewAll={onViewNextActions} />
 
       <WaitingForAging actions={waitingActions} onViewAll={onViewWaitingFor} />
     </div>
@@ -295,6 +308,58 @@ function ProjectRing({
       </svg>
       <span className="w-full truncate text-xs text-neutral-400">{project.title}</span>
     </button>
+  )
+}
+
+function StaleNextActions({
+  stale,
+  onViewAll,
+}: {
+  stale: { action: Action; days: number }[]
+  onViewAll: () => void
+}) {
+  const over7 = stale.length
+  const over14 = stale.filter((x) => x.days > 14).length
+  const over30 = stale.filter((x) => x.days > 30).length
+
+  return (
+    <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <h2 className="text-sm font-medium text-neutral-300">Stale Next Actions</h2>
+        <span
+          title="Next Actions that haven't been touched (created, edited, or reclarified) in a while — a sign they need a decision, a break-down, or a delete."
+          className="cursor-help text-xs text-neutral-500 hover:text-neutral-300"
+        >
+          ⓘ
+        </span>
+      </div>
+
+      {over7 === 0 ? (
+        <p className="text-sm text-neutral-500">Nothing stale — every Next Action has been touched this week.</p>
+      ) : (
+        <>
+          <div className="flex gap-3">
+            <StaleTile label="7+ days" count={over7} color={STALE_TIER_COLOR[7]} />
+            <StaleTile label="14+ days" count={over14} color={STALE_TIER_COLOR[14]} />
+            <StaleTile label="30+ days" count={over30} color={STALE_TIER_COLOR[30]} />
+          </div>
+          <button onClick={onViewAll} className="mt-3 text-xs text-emerald-400 hover:text-emerald-300">
+            View Next Actions →
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function StaleTile({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <div className="flex-1 rounded-md border border-neutral-800 bg-neutral-950 p-3 text-center">
+      <div className="text-2xl font-semibold" style={{ color }}>
+        {count}
+      </div>
+      <div className="mt-0.5 text-xs text-neutral-500">{label}</div>
+    </div>
   )
 }
 

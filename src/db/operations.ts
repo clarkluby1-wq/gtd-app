@@ -10,6 +10,7 @@ export async function captureToInbox(title: string) {
     title: title.trim(),
     status: 'inbox',
     createdAt: now,
+    touchedAt: now,
     order: now,
   }
   // The capture-event record is permanent and never touched again, regardless
@@ -28,15 +29,18 @@ async function nextOrder() {
 
 /** Clarify: mark an inbox item done immediately (the 2-minute rule). */
 export async function doItNow(actionId: string) {
-  await db.actions.update(actionId, { status: 'done', completedAt: Date.now(), clarifiedAt: Date.now() })
+  const now = Date.now()
+  await db.actions.update(actionId, { status: 'done', completedAt: now, clarifiedAt: now, touchedAt: now })
 }
 
 export async function trashItem(actionId: string) {
-  await db.actions.update(actionId, { status: 'trash', clarifiedAt: Date.now() })
+  const now = Date.now()
+  await db.actions.update(actionId, { status: 'trash', clarifiedAt: now, touchedAt: now })
 }
 
 export async function sendToSomeday(actionId: string) {
-  await db.actions.update(actionId, { status: 'someday', clarifiedAt: Date.now() })
+  const now = Date.now()
+  await db.actions.update(actionId, { status: 'someday', clarifiedAt: now, touchedAt: now })
 }
 
 /** Clarify into reference material: file it away and remove it from the inbox. */
@@ -57,9 +61,11 @@ export async function clarifyAsNextAction(
   actionId: string,
   opts: { contextId?: string; energy?: EnergyLevel; timeEstimateMin?: number; dueDate?: number },
 ) {
+  const now = Date.now()
   await db.actions.update(actionId, {
     status: 'next',
-    clarifiedAt: Date.now(),
+    clarifiedAt: now,
+    touchedAt: now,
     order: await nextOrder(),
     ...opts,
   })
@@ -67,20 +73,24 @@ export async function clarifyAsNextAction(
 
 /** Clarify into a scheduled (calendar) item for a specific date. */
 export async function clarifyAsScheduled(actionId: string, scheduledDate: number) {
+  const now = Date.now()
   await db.actions.update(actionId, {
     status: 'scheduled',
     scheduledDate,
-    clarifiedAt: Date.now(),
+    clarifiedAt: now,
+    touchedAt: now,
     order: await nextOrder(),
   })
 }
 
 /** Clarify into a delegated item, waiting on someone else. */
 export async function clarifyAsWaitingFor(actionId: string, waitingOn: string) {
+  const now = Date.now()
   await db.actions.update(actionId, {
     status: 'waiting',
     waitingOn,
-    clarifiedAt: Date.now(),
+    clarifiedAt: now,
+    touchedAt: now,
     order: await nextOrder(),
   })
 }
@@ -121,6 +131,7 @@ export async function clarifyAsProject(
     contextId: opts.contextId,
     createdAt: now,
     clarifiedAt: now,
+    touchedAt: now,
     order: now,
   }
   await db.actions.add(firstAction)
@@ -164,15 +175,16 @@ export async function createProject(opts: {
 }
 
 export async function completeAction(actionId: string) {
-  await db.actions.update(actionId, { status: 'done', completedAt: Date.now() })
+  const now = Date.now()
+  await db.actions.update(actionId, { status: 'done', completedAt: now, touchedAt: now })
 }
 
 export async function reopenAction(actionId: string, status: ActionStatus = 'next') {
-  await db.actions.update(actionId, { status, completedAt: undefined })
+  await db.actions.update(actionId, { status, completedAt: undefined, touchedAt: Date.now() })
 }
 
 export async function updateAction(actionId: string, changes: Partial<Action>) {
-  await db.actions.update(actionId, changes)
+  await db.actions.update(actionId, { ...changes, touchedAt: Date.now() })
 }
 
 export async function deleteAction(actionId: string) {
@@ -199,6 +211,7 @@ export async function createAction(opts: {
     scheduledDate: opts.scheduledDate,
     createdAt: now,
     clarifiedAt: now,
+    touchedAt: now,
     order: now,
   }
   await db.actions.add(action)
