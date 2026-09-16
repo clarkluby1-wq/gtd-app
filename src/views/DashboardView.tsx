@@ -30,6 +30,22 @@ function ageLabel(days: number) {
   return `${days} days`
 }
 
+function startOfToday() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+const CAPTURE_FILL_CAP = 10
+
+function captureTier(count: number): { icon: string; message: string } {
+  if (count === 0) return { icon: '📥', message: 'Nothing captured yet today' }
+  if (count <= 2) return { icon: '📥', message: 'Off to a good start' }
+  if (count <= 5) return { icon: '✨', message: 'Nice capture streak' }
+  if (count <= 9) return { icon: '🔥', message: "You're on fire" }
+  return { icon: '🏆', message: 'Capture champion' }
+}
+
 export function DashboardView({
   onOpenProject,
   onViewWaitingFor,
@@ -42,6 +58,10 @@ export function DashboardView({
   const allActions = useLiveQuery(() => db.actions.toArray())
   const waitingActionsRaw = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
   const somedayProjectIds = useSomedayProjectIds()
+  const capturedToday = useLiveQuery(
+    () => db.captureEvents.where('createdAt').aboveOrEqual(startOfToday()).count(),
+    [],
+  )
 
   const waitingActions = useMemo(() => {
     return (waitingActionsRaw ?? [])
@@ -60,11 +80,41 @@ export function DashboardView({
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Dashboard</h1>
       <p className="mb-6 text-sm text-neutral-500">A glance at the whole system, not just one list.</p>
 
+      <CaptureReward count={capturedToday ?? 0} />
+
       <BalanceWheel areas={areas ?? []} projects={activeProjects ?? []} />
 
       <ProjectRings projects={activeProjects ?? []} progress={progress} onOpen={onOpenProject} />
 
       <WaitingForAging actions={waitingActions} onViewAll={onViewWaitingFor} />
+    </div>
+  )
+}
+
+function CaptureReward({ count }: { count: number }) {
+  const { icon, message } = captureTier(count)
+  const fillPct = Math.min(count, CAPTURE_FILL_CAP) / CAPTURE_FILL_CAP
+
+  return (
+    <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+      <div className="flex items-center gap-4">
+        <div className="text-3xl" aria-hidden>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-semibold text-neutral-100">{count}</span>
+            <span className="text-sm text-neutral-500">captured today</span>
+          </div>
+          <div className="mt-0.5 text-xs text-neutral-500">{message}</div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all"
+              style={{ width: `${fillPct * 100}%` }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

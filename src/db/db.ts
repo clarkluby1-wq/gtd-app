@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import type {
   Action,
   AreaOfFocus,
+  CaptureEvent,
   Context,
   Goal,
   Project,
@@ -24,6 +25,7 @@ class GtdDatabase extends Dexie {
   references!: EntityTable<ReferenceItem, 'id'>
   weeklyReviews!: EntityTable<WeeklyReview, 'id'>
   recurringTemplates!: EntityTable<RecurringTemplate, 'id'>
+  captureEvents!: EntityTable<CaptureEvent, 'id'>
 
   constructor() {
     super('gtd-app')
@@ -47,6 +49,20 @@ class GtdDatabase extends Dexie {
       references: 'id, projectId, areaOfFocusId, createdAt',
       weeklyReviews: 'id, date',
       recurringTemplates: 'id, projectId, createdAt',
+    })
+    this.version(3).stores({
+      actions:
+        'id, status, projectId, contextId, dueDate, scheduledDate, order, createdAt, recurringTemplateId',
+      projects: 'id, status, areaOfFocusId, goalId, createdAt',
+      contexts: 'id, order',
+      areasOfFocus: 'id, order',
+      goals: 'id, areaOfFocusId, visionId, status, createdAt',
+      visions: 'id, areaOfFocusId, createdAt',
+      purposes: 'id',
+      references: 'id, projectId, areaOfFocusId, createdAt',
+      weeklyReviews: 'id, date',
+      recurringTemplates: 'id, projectId, createdAt',
+      captureEvents: 'id, createdAt',
     })
   }
 }

@@ -147,3 +147,15 @@ export interface RecurringTemplate {
   lastGeneratedKey?: string
   createdAt: number
 }
+
+/**
+ * A permanent record that a capture happened — written once by captureToInbox
+ * and never touched again, independent of whatever later happens to the
+ * resulting action (clarified, converted to a project, deleted, ...). This is
+ * what "items captured today" counts against, so triaging your inbox (even
+ * deleting junk) never reduces the count.
+ */
+export interface CaptureEvent {
+  id: string
+  createdAt: number
+}

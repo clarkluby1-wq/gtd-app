@@ -12,7 +12,13 @@ export async function captureToInbox(title: string) {
     createdAt: now,
     order: now,
   }
-  await db.actions.add(action)
+  // The capture-event record is permanent and never touched again, regardless
+  // of what later happens to the action (clarified, converted, deleted) — it's
+  // what "items captured today" counts against.
+  await db.transaction('rw', db.actions, db.captureEvents, async () => {
+    await db.actions.add(action)
+    await db.captureEvents.add({ id: uuid(), createdAt: now })
+  })
   return action
 }
 
