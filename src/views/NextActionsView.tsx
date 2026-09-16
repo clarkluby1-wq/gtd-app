@@ -6,6 +6,7 @@ import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import { SortableTaskRow } from '../components/SortableTaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
+import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
@@ -13,6 +14,7 @@ export function NextActionsView() {
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
+  const pinnedTodayCount = (actions ?? []).filter((a) => a.bigThreeDate === startOfToday()).length
 
   const [contextId, setContextId] = useState<string>('all')
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')
@@ -38,7 +40,7 @@ export function NextActionsView() {
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Next Actions</h1>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
-        time you've got. Drag the ⠿ handle to reorder.
+        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to pin up to three as today's focus.
       </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -88,7 +90,7 @@ export function NextActionsView() {
         <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col divide-y divide-neutral-900">
             {filtered.map((a) => (
-              <SortableTaskRow key={a.id} action={a} showProject />
+              <SortableTaskRow key={a.id} action={a} showProject showBigThreePin pinnedTodayCount={pinnedTodayCount} />
             ))}
           </div>
         </SortableContext>

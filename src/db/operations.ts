@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { db } from './db'
+import { startOfToday } from '../lib/date'
 import type { Action, ActionStatus, EnergyLevel, Project, ProjectStatus } from './types'
 
 /** Capture: add a raw, unprocessed item to the inbox. No decisions made yet. */
@@ -189,6 +190,15 @@ export async function updateAction(actionId: string, changes: Partial<Action>) {
 
 export async function deleteAction(actionId: string) {
   await db.actions.delete(actionId)
+}
+
+/** Pin an action as one of today's Big Three. Caller is responsible for enforcing the 3-item cap. */
+export async function pinToBigThree(actionId: string) {
+  await db.actions.update(actionId, { bigThreeDate: startOfToday(), touchedAt: Date.now() })
+}
+
+export async function unpinFromBigThree(actionId: string) {
+  await db.actions.update(actionId, { bigThreeDate: undefined, touchedAt: Date.now() })
 }
 
 /** Create an action, optionally tied to a project — the general form behind addActionToProject and follow-up capture. */

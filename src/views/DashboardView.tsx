@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { db } from '../db/db'
+import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, staleNextActions } from '../lib/staleness'
+import { startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
 const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
@@ -26,12 +28,6 @@ function ageLabel(days: number) {
   if (days === 0) return 'today'
   if (days === 1) return '1 day'
   return `${days} days`
-}
-
-function startOfToday() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
 }
 
 const CAPTURE_FILL_CAP = 10
@@ -81,6 +77,11 @@ export function DashboardView({
     [allActions, somedayProjectIds],
   )
 
+  const bigThreeActions = useMemo(() => {
+    const today = startOfToday()
+    return (allActions ?? []).filter((a) => a.bigThreeDate === today)
+  }, [allActions])
+
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
     const done = items.filter((a) => a.status === 'done').length
@@ -91,6 +92,8 @@ export function DashboardView({
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Dashboard</h1>
       <p className="mb-6 text-sm text-neutral-500">A glance at the whole system, not just one list.</p>
+
+      <BigThree actions={bigThreeActions} onViewNextActions={onViewNextActions} />
 
       <CaptureReward count={capturedToday ?? 0} />
 
@@ -106,6 +109,37 @@ export function DashboardView({
       <StaleNextActions stale={staleActions} onViewAll={onViewNextActions} />
 
       <WaitingForAging actions={waitingActions} onViewAll={onViewWaitingFor} />
+    </div>
+  )
+}
+
+function BigThree({ actions, onViewNextActions }: { actions: Action[]; onViewNextActions: () => void }) {
+  return (
+    <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+      <div className="mb-3 flex items-center gap-1.5">
+        <h2 className="text-sm font-medium text-neutral-300">Today's Big Three</h2>
+        <span
+          title="Up to three things you're committed to today, pinned from Next Actions. Not a new list — just a focus flag. Whatever's left unfinished quietly stops being pinned at midnight, no guilt."
+          className="cursor-help text-xs text-neutral-500 hover:text-neutral-300"
+        >
+          ⓘ
+        </span>
+      </div>
+
+      {actions.length === 0 ? (
+        <p className="text-sm text-neutral-500">
+          Nothing pinned yet.{' '}
+          <button onClick={onViewNextActions} className="text-emerald-400 hover:text-emerald-300">
+            Pin up to three from Next Actions →
+          </button>
+        </p>
+      ) : (
+        <div className="flex flex-col divide-y divide-neutral-900">
+          {actions.map((a) => (
+            <TaskRow key={a.id} action={a} showProject />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,8 +3,9 @@ import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
-import { completeAction, deleteAction, reopenAction } from '../db/operations'
+import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { useCompletionToast } from '../lib/completionToastContext'
+import { startOfToday } from '../lib/date'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -19,12 +20,18 @@ export function TaskRow({
   showProject,
   showCreatedDate,
   dragHandle,
+  showBigThreePin,
+  pinnedTodayCount,
 }: {
   action: Action
   showProject?: boolean
   showCreatedDate?: boolean
   /** Passed by a sortable wrapper to enable drag-to-reorder; omit to render no handle. */
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
+  /** Show the Big Three pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
+  showBigThreePin?: boolean
+  /** How many actions are pinned for today, to enforce the 3-item cap. Only used when showBigThreePin is true. */
+  pinnedTodayCount?: number
 }) {
   const context = useLiveQuery(() => (action.contextId ? db.contexts.get(action.contextId) : undefined), [
     action.contextId,
@@ -38,6 +45,8 @@ export function TaskRow({
   const { notify } = useCompletionToast()
 
   const done = action.status === 'done'
+  const pinnedToday = action.bigThreeDate === startOfToday()
+  const atCap = (pinnedTodayCount ?? 0) >= 3
 
   return (
     <div className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-900">
@@ -67,6 +76,27 @@ export function TaskRow({
       >
         {done ? '✓' : ''}
       </button>
+
+      {showBigThreePin && (
+        <button
+          onClick={() => (pinnedToday ? unpinFromBigThree(action.id) : pinToBigThree(action.id))}
+          disabled={!pinnedToday && atCap}
+          title={
+            pinnedToday
+              ? "Remove from today's Big Three"
+              : atCap
+                ? "Today's Big Three is full — remove one first"
+                : "Pin as one of today's Big Three"
+          }
+          className={`shrink-0 text-sm transition disabled:cursor-not-allowed disabled:opacity-20 ${
+            pinnedToday
+              ? 'text-amber-400'
+              : 'text-neutral-700 opacity-0 hover:text-amber-400 group-hover:opacity-100'
+          }`}
+        >
+          {pinnedToday ? '★' : '☆'}
+        </button>
+      )}
 
       <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditing(true)}>
         <div className={`truncate text-sm hover:underline ${done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>

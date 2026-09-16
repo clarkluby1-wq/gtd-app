@@ -7,10 +7,14 @@ export function SortableTaskRow({
   action,
   showProject,
   showCreatedDate,
+  showBigThreePin,
+  pinnedTodayCount,
 }: {
   action: Action
   showProject?: boolean
   showCreatedDate?: boolean
+  showBigThreePin?: boolean
+  pinnedTodayCount?: number
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: action.id,
@@ -29,6 +33,8 @@ export function SortableTaskRow({
         showProject={showProject}
         showCreatedDate={showCreatedDate}
         dragHandle={{ attributes, listeners }}
+        showBigThreePin={showBigThreePin}
+        pinnedTodayCount={pinnedTodayCount}
       />
     </div>
   )
