@@ -55,6 +55,13 @@ export function DashboardView({
 }) {
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const activeProjects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const completedProjects = useLiveQuery(() =>
+    db.projects
+      .where('status')
+      .equals('completed')
+      .toArray()
+      .then((ps) => ps.sort((a, b) => (b.completedAt ?? b.createdAt) - (a.completedAt ?? a.createdAt))),
+  )
   const allActions = useLiveQuery(() => db.actions.toArray())
   const waitingActionsRaw = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
   const somedayProjectIds = useSomedayProjectIds()
@@ -84,7 +91,12 @@ export function DashboardView({
 
       <BalanceWheel areas={areas ?? []} projects={activeProjects ?? []} />
 
-      <ProjectRings projects={activeProjects ?? []} progress={progress} onOpen={onOpenProject} />
+      <ProjectRings
+        activeProjects={activeProjects ?? []}
+        completedProjects={completedProjects ?? []}
+        progress={progress}
+        onOpen={onOpenProject}
+      />
 
       <WaitingForAging actions={waitingActions} onViewAll={onViewWaitingFor} />
     </div>
@@ -200,15 +212,17 @@ function BalanceWheel({ areas, projects }: { areas: AreaOfFocus[]; projects: Pro
 }
 
 function ProjectRings({
-  projects,
+  activeProjects,
+  completedProjects,
   progress,
   onOpen,
 }: {
-  projects: Project[]
+  activeProjects: Project[]
+  completedProjects: Project[]
   progress: (id: string) => { done: number; total: number }
   onOpen: (id: string) => void
 }) {
-  if (projects.length === 0) {
+  if (activeProjects.length === 0 && completedProjects.length === 0) {
     return (
       <div className="mb-6 rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
         No active projects yet.
@@ -219,11 +233,28 @@ function ProjectRings({
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <h2 className="mb-3 text-sm font-medium text-neutral-300">Project Progress</h2>
-      <div className="flex flex-wrap gap-4">
-        {projects.map((p) => (
-          <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
-        ))}
-      </div>
+
+      <h3 className="mb-2 text-xs font-medium text-neutral-500">Active Projects</h3>
+      {activeProjects.length === 0 ? (
+        <p className="text-sm text-neutral-500">No active projects yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {activeProjects.map((p) => (
+            <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+          ))}
+        </div>
+      )}
+
+      {completedProjects.length > 0 && (
+        <>
+          <h3 className="mb-2 mt-5 text-xs font-medium text-neutral-500">Completed Projects</h3>
+          <div className="flex flex-wrap gap-4">
+            {completedProjects.map((p) => (
+              <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
