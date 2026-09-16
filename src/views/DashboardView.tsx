@@ -4,7 +4,7 @@ import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, staleNextActions } from '../lib/staleness'
-import { lacksNextAction } from '../lib/projectHealth'
+import { isProjectStalled } from '../lib/projectHealth'
 import { startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
@@ -85,7 +85,7 @@ export function DashboardView({
 
   const stalledProjectIds = useMemo(() => {
     return new Set(
-      (activeProjects ?? []).filter((p) => lacksNextAction(p, allActions ?? [])).map((p) => p.id),
+      (activeProjects ?? []).filter((p) => isProjectStalled(p, allActions ?? [])).map((p) => p.id),
     )
   }, [activeProjects, allActions])
 
@@ -289,7 +289,7 @@ function ProjectRings({
         <h3 className="text-xs font-medium text-neutral-500">Active Projects</h3>
         {stalledProjectIds.size > 0 && (
           <span className="text-xs text-amber-400">
-            ⚠ {stalledProjectIds.size} stalled — no next action
+            ⚠ {stalledProjectIds.size} stalled — nothing next or pending
           </span>
         )}
       </div>
@@ -343,7 +343,7 @@ function ProjectRing({
     <button
       onClick={onOpen}
       className="flex w-20 flex-col items-center gap-1 text-center"
-      title={stalled ? `${project.title} — no next action, can't move forward` : project.title}
+      title={stalled ? `${project.title} — nothing next or pending, can't move forward` : project.title}
     >
       <div className="relative">
         <svg viewBox="0 0 72 72" className="h-16 w-16">
