@@ -92,7 +92,7 @@ function App() {
         content = <RecurringView />
         break
       case 'review':
-        content = <WeeklyReviewView />
+        content = <WeeklyReviewView onNavigate={selectView} />
         break
       case 'settings':
         content = <SettingsView />

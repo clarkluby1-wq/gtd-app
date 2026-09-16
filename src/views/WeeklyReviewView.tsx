@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
 import { getLastBackupAt } from '../db/backup'
+import type { ViewKey } from '../components/Sidebar'
 import type { WeeklyReview, WeeklyReviewChecklistItem } from '../db/types'
 
 const TEMPLATE: Omit<WeeklyReviewChecklistItem, 'done'>[] = [
@@ -18,6 +19,48 @@ const TEMPLATE: Omit<WeeklyReviewChecklistItem, 'done'>[] = [
   { key: 'creative', label: 'Any new projects, ideas, or commitments to capture?' },
 ]
 
+/** Which substring(s) of each checklist label link to which view. Matched in order, first occurrence only. */
+const LABEL_LINKS: Record<string, { text: string; view: ViewKey }[]> = {
+  collect: [{ text: 'Inbox', view: 'inbox' }],
+  'inbox-zero': [{ text: 'Inbox', view: 'inbox' }],
+  'next-actions': [{ text: 'Next Actions', view: 'next' }],
+  'previous-calendar': [{ text: 'calendar', view: 'calendar' }],
+  'upcoming-calendar': [{ text: 'calendar', view: 'calendar' }],
+  'waiting-for': [{ text: 'Waiting For', view: 'waiting' }],
+  projects: [{ text: 'Project', view: 'projects' }],
+  'someday-maybe': [{ text: 'Someday/Maybe', view: 'someday' }],
+  'areas-of-focus': [{ text: 'Areas of Focus', view: 'areas' }],
+}
+
+function renderChecklistLabel(item: WeeklyReviewChecklistItem, onNavigate: (view: ViewKey) => void): ReactNode {
+  const links = LABEL_LINKS[item.key]
+  if (!links) return item.label
+
+  const nodes: ReactNode[] = []
+  let cursor = 0
+  for (const link of links) {
+    const idx = item.label.indexOf(link.text, cursor)
+    if (idx === -1) continue
+    nodes.push(item.label.slice(cursor, idx))
+    nodes.push(
+      <button
+        key={link.view}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onNavigate(link.view)
+        }}
+        className="underline decoration-dotted underline-offset-2 hover:text-emerald-400"
+      >
+        {link.text}
+      </button>,
+    )
+    cursor = idx + link.text.length
+  }
+  nodes.push(item.label.slice(cursor))
+  return nodes
+}
+
 function startOfWeek(d: Date) {
   const date = new Date(d)
   const day = date.getDay()
@@ -27,7 +70,7 @@ function startOfWeek(d: Date) {
   return date.getTime()
 }
 
-export function WeeklyReviewView() {
+export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) => void }) {
   const [weekStart] = useState(() => startOfWeek(new Date()))
   const review = useLiveQuery(
     () => db.weeklyReviews.where('date').equals(weekStart).first(),
@@ -110,17 +153,21 @@ export function WeeklyReviewView() {
 
       <div className="flex flex-col divide-y divide-neutral-900">
         {checklist.map((c) => (
-          <label key={c.key} className="flex items-center gap-3 py-3">
+          <div key={c.key} className="flex items-center gap-3 py-3">
             <input
               type="checkbox"
+              id={`review-${c.key}`}
               checked={c.done}
               onChange={() => toggle(c.key)}
               className="h-4 w-4 accent-emerald-600"
             />
-            <span className={`text-sm ${c.done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>
-              {c.label}
-            </span>
-          </label>
+            <label
+              htmlFor={`review-${c.key}`}
+              className={`cursor-pointer text-sm ${c.done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}
+            >
+              {renderChecklistLabel(c, onNavigate)}
+            </label>
+          </div>
         ))}
       </div>
     </div>
