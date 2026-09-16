@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
@@ -273,6 +273,8 @@ function ProjectRings({
   stalledProjectIds: Set<string>
   onOpen: (id: string) => void
 }) {
+  const [showCompleted, setShowCompleted] = useState(false)
+
   if (activeProjects.length === 0 && completedProjects.length === 0) {
     return (
       <div className="mb-6 rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
@@ -310,14 +312,22 @@ function ProjectRings({
       )}
 
       {completedProjects.length > 0 && (
-        <>
-          <h3 className="mb-2 mt-5 text-xs font-medium text-neutral-500">Completed Projects</h3>
-          <div className="flex flex-wrap gap-4">
-            {completedProjects.map((p) => (
-              <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
-            ))}
-          </div>
-        </>
+        <div className="mt-5">
+          <button
+            onClick={() => setShowCompleted((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-300"
+          >
+            <span className="text-[10px]">{showCompleted ? '▾' : '▸'}</span>
+            Completed Projects ({completedProjects.length})
+          </button>
+          {showCompleted && (
+            <div className="mt-2 flex flex-wrap gap-4">
+              {completedProjects.map((p) => (
+                <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
