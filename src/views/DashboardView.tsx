@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, staleNextActions } from '../lib/staleness'
+import { lacksNextAction } from '../lib/projectHealth'
 import { startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
@@ -82,6 +83,12 @@ export function DashboardView({
     return (allActions ?? []).filter((a) => a.bigThreeDate === today)
   }, [allActions])
 
+  const stalledProjectIds = useMemo(() => {
+    return new Set(
+      (activeProjects ?? []).filter((p) => lacksNextAction(p, allActions ?? [])).map((p) => p.id),
+    )
+  }, [activeProjects, allActions])
+
   const progress = (projectId: string) => {
     const items = allActions?.filter((a) => a.projectId === projectId) ?? []
     const done = items.filter((a) => a.status === 'done').length
@@ -103,6 +110,7 @@ export function DashboardView({
         activeProjects={activeProjects ?? []}
         completedProjects={completedProjects ?? []}
         progress={progress}
+        stalledProjectIds={stalledProjectIds}
         onOpen={onOpenProject}
       />
 
@@ -256,11 +264,13 @@ function ProjectRings({
   activeProjects,
   completedProjects,
   progress,
+  stalledProjectIds,
   onOpen,
 }: {
   activeProjects: Project[]
   completedProjects: Project[]
   progress: (id: string) => { done: number; total: number }
+  stalledProjectIds: Set<string>
   onOpen: (id: string) => void
 }) {
   if (activeProjects.length === 0 && completedProjects.length === 0) {
@@ -275,13 +285,26 @@ function ProjectRings({
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <h2 className="mb-3 text-sm font-medium text-neutral-300">Project Progress</h2>
 
-      <h3 className="mb-2 text-xs font-medium text-neutral-500">Active Projects</h3>
+      <div className="mb-2 flex items-baseline justify-between">
+        <h3 className="text-xs font-medium text-neutral-500">Active Projects</h3>
+        {stalledProjectIds.size > 0 && (
+          <span className="text-xs text-amber-400">
+            ⚠ {stalledProjectIds.size} stalled — no next action
+          </span>
+        )}
+      </div>
       {activeProjects.length === 0 ? (
         <p className="text-sm text-neutral-500">No active projects yet.</p>
       ) : (
         <div className="flex flex-wrap gap-4">
           {activeProjects.map((p) => (
-            <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+            <ProjectRing
+              key={p.id}
+              project={p}
+              progress={progress(p.id)}
+              stalled={stalledProjectIds.has(p.id)}
+              onOpen={() => onOpen(p.id)}
+            />
           ))}
         </div>
       )}
@@ -303,10 +326,12 @@ function ProjectRings({
 function ProjectRing({
   project,
   progress,
+  stalled,
   onOpen,
 }: {
   project: Project
   progress: { done: number; total: number }
+  stalled?: boolean
   onOpen: () => void
 }) {
   const { done, total } = progress
@@ -315,25 +340,36 @@ function ProjectRing({
   const circumference = 2 * Math.PI * r
 
   return (
-    <button onClick={onOpen} className="flex w-20 flex-col items-center gap-1 text-center" title={project.title}>
-      <svg viewBox="0 0 72 72" className="h-16 w-16">
-        <circle cx={36} cy={36} r={r} fill="none" stroke={TRACK} strokeWidth={7} />
-        <circle
-          cx={36}
-          cy={36}
-          r={r}
-          fill="none"
-          stroke={ACCENT}
-          strokeWidth={7}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - pct)}
-          transform="rotate(-90 36 36)"
-        />
-        <text x={36} y={40} textAnchor="middle" className="fill-neutral-100 text-[15px] font-semibold">
-          {Math.round(pct * 100)}%
-        </text>
-      </svg>
+    <button
+      onClick={onOpen}
+      className="flex w-20 flex-col items-center gap-1 text-center"
+      title={stalled ? `${project.title} — no next action, can't move forward` : project.title}
+    >
+      <div className="relative">
+        <svg viewBox="0 0 72 72" className="h-16 w-16">
+          <circle cx={36} cy={36} r={r} fill="none" stroke={TRACK} strokeWidth={7} />
+          <circle
+            cx={36}
+            cy={36}
+            r={r}
+            fill="none"
+            stroke={ACCENT}
+            strokeWidth={7}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - pct)}
+            transform="rotate(-90 36 36)"
+          />
+          <text x={36} y={40} textAnchor="middle" className="fill-neutral-100 text-[15px] font-semibold">
+            {Math.round(pct * 100)}%
+          </text>
+        </svg>
+        {stalled && (
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950">
+            !
+          </span>
+        )}
+      </div>
       <span className="w-full truncate text-xs text-neutral-400">{project.title}</span>
     </button>
   )

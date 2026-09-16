@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
 import { getLastBackupAt } from '../db/backup'
 import { ageInDays, staleNextActions } from '../lib/staleness'
+import { lacksNextAction } from '../lib/projectHealth'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { ViewKey } from '../components/Sidebar'
 import type { WeeklyReview, WeeklyReviewChecklistItem } from '../db/types'
@@ -204,8 +205,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     ? Math.max(...waitingActions.map((a) => ageInDays(a.createdAt)))
     : null
   const projectsMissingNextAction = useMemo(
-    () =>
-      (activeProjects ?? []).filter((p) => !(allActions ?? []).some((a) => a.projectId === p.id && a.status === 'next')),
+    () => (activeProjects ?? []).filter((p) => lacksNextAction(p, allActions ?? [])),
     [activeProjects, allActions],
   )
 
