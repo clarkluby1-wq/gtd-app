@@ -63,6 +63,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [goalId, setGoalId] = useState<string | undefined>()
   const [firstActionTitle, setFirstActionTitle] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(TWO_MINUTES)
+  const [paused, setPaused] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const finish = async (action: () => Promise<unknown>) => {
@@ -70,26 +71,46 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
     onClose()
   }
 
-  const startTimer = () => {
-    setSecondsLeft(TWO_MINUTES)
-    setStep('doingItNow')
-    if (intervalRef.current) clearInterval(intervalRef.current)
+  const stopInterval = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }
+
+  const runInterval = () => {
+    stopInterval()
     intervalRef.current = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0))
     }, 1000)
   }
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+  const startTimer = () => {
+    setSecondsLeft(TWO_MINUTES)
+    setPaused(false)
+    setStep('doingItNow')
+    runInterval()
+  }
+
+  const togglePause = () => {
+    if (paused) {
+      setPaused(false)
+      runInterval()
+    } else {
+      setPaused(true)
+      stopInterval()
     }
+  }
+
+  /** Not confirmed done at the 2-minute mark — don't lose it, just route it into the normal system. */
+  const sendToNextActions = () => finish(() => clarifyAsNextAction(item.id, {}))
+
+  useEffect(() => {
+    return () => stopInterval()
   }, [])
 
   useEffect(() => {
-    if (secondsLeft === 0 && intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
+    if (secondsLeft === 0) stopInterval()
   }, [secondsLeft])
 
   return (
@@ -146,19 +167,35 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
           <div className="flex flex-col items-center gap-4 py-2">
             <div
               className={`text-5xl font-semibold tabular-nums ${
-                secondsLeft === 0 ? 'text-amber-400' : 'text-emerald-400'
+                secondsLeft === 0 ? 'text-amber-400' : paused ? 'text-neutral-500' : 'text-emerald-400'
               }`}
             >
               {formatCountdown(secondsLeft)}
             </div>
-            <p className="text-center text-xs text-neutral-500">
-              {secondsLeft === 0
-                ? "Time's up — still working on it? That's fine, just mark it done when you're finished."
-                : 'Go do it — this stays open until you mark it done.'}
-            </p>
-            <Btn primary onClick={() => finish(() => doItNow(item.id))}>
-              ✓ Mark Done
-            </Btn>
+
+            {secondsLeft > 0 ? (
+              <>
+                <p className="text-center text-xs text-neutral-500">
+                  {paused ? "Paused — resume when you're back on it." : 'Go do it — this stays open until you mark it done.'}
+                </p>
+                <div className="flex w-full gap-2">
+                  <Btn onClick={togglePause}>{paused ? '▶ Resume' : '⏸ Pause'}</Btn>
+                  <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+                    ✓ Mark Done
+                  </Btn>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-center text-xs text-neutral-500">Time's up — did you finish it?</p>
+                <div className="flex w-full gap-2">
+                  <Btn onClick={sendToNextActions}>Not yet → Next Actions</Btn>
+                  <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+                    ✓ Yes, it's done
+                  </Btn>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -372,7 +409,13 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
             Cancel
           </button>
           {step !== 'actionable' && (
-            <button onClick={() => setStep('actionable')} className="text-xs text-neutral-500 hover:text-neutral-300">
+            <button
+              onClick={() => {
+                stopInterval()
+                setStep('actionable')
+              }}
+              className="text-xs text-neutral-500 hover:text-neutral-300"
+            >
               Restart
             </button>
           )}
