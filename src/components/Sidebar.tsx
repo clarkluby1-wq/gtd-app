@@ -9,6 +9,7 @@ export type ViewKey =
   | 'completed'
   | 'inbox'
   | 'next'
+  | 'whatnow'
   | 'projects'
   | 'waiting'
   | 'someday'
@@ -27,6 +28,7 @@ const MAIN_NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'completed', label: 'Recently Completed', icon: '☑️' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
+  { key: 'whatnow', label: 'What Now?', icon: '❓' },
   { key: 'projects', label: 'Projects', icon: '📁' },
   { key: 'waiting', label: 'Waiting For', icon: '⏳' },
   { key: 'someday', label: 'Someday / Maybe', icon: '🌙' },

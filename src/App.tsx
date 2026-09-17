@@ -10,6 +10,7 @@ import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { InboxView } from './views/InboxView'
 import { NextActionsView } from './views/NextActionsView'
+import { WhatNowView } from './views/WhatNowView'
 import { ProjectsView } from './views/ProjectsView'
 import { ProjectDetailView } from './views/ProjectDetailView'
 import { WaitingForView } from './views/WaitingForView'
@@ -66,6 +67,9 @@ function App() {
         break
       case 'next':
         content = <NextActionsView onOpenProject={openProject} />
+        break
+      case 'whatnow':
+        content = <WhatNowView onOpenProject={openProject} onViewNextActions={() => selectView('next')} />
         break
       case 'projects':
         content = <ProjectsView onOpen={openProject} />
