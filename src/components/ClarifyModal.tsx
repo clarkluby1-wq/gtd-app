@@ -50,8 +50,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
+  const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
 
   const [contextId, setContextId] = useState<string | undefined>()
+  const [linkedProjectId, setLinkedProjectId] = useState<string | undefined>()
   const [energy, setEnergy] = useState<EnergyLevel | undefined>()
   const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
   const [dueDate, setDueDate] = useState('')
@@ -213,10 +215,23 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               placeholder="Who is it delegated to?"
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
+            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
+            <select
+              value={linkedProjectId ?? ''}
+              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
+              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+            >
+              <option value="">No project</option>
+              {projects?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
             <Btn
               primary
               disabled={!waitingOn.trim()}
-              onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim()))}
+              onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim(), linkedProjectId))}
             >
               Confirm — Waiting For {waitingOn.trim() || '…'}
             </Btn>
@@ -242,11 +257,24 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               onChange={(e) => setScheduledDate(e.target.value)}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
+            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
+            <select
+              value={linkedProjectId ?? ''}
+              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
+              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+            >
+              <option value="">No project</option>
+              {projects?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
             <Btn
               primary
               disabled={!scheduledDate}
               onClick={() =>
-                finish(() => clarifyAsScheduled(item.id, parseLocalDate(scheduledDate)))
+                finish(() => clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId))
               }
             >
               Confirm — schedule for {scheduledDate || '…'}
@@ -296,6 +324,20 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
 
+            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
+            <select
+              value={linkedProjectId ?? ''}
+              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
+              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+            >
+              <option value="">No project</option>
+              {projects?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+
             <Btn
               primary
               onClick={() =>
@@ -305,6 +347,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     energy,
                     timeEstimateMin,
                     dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
+                    projectId: linkedProjectId,
                   }),
                 )
               }

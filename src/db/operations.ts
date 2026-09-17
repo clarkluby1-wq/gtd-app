@@ -66,7 +66,7 @@ export async function clarifyAsReference(actionId: string, opts: { title: string
 /** Clarify into a single next action with a context (and optional metadata). */
 export async function clarifyAsNextAction(
   actionId: string,
-  opts: { contextId?: string; energy?: EnergyLevel; timeEstimateMin?: number; dueDate?: number },
+  opts: { contextId?: string; energy?: EnergyLevel; timeEstimateMin?: number; dueDate?: number; projectId?: string },
 ) {
   const now = Date.now()
   await db.actions.update(actionId, {
@@ -79,11 +79,12 @@ export async function clarifyAsNextAction(
 }
 
 /** Clarify into a scheduled (calendar) item for a specific date. */
-export async function clarifyAsScheduled(actionId: string, scheduledDate: number) {
+export async function clarifyAsScheduled(actionId: string, scheduledDate: number, projectId?: string) {
   const now = Date.now()
   await db.actions.update(actionId, {
     status: 'scheduled',
     scheduledDate,
+    projectId,
     clarifiedAt: now,
     touchedAt: now,
     order: await nextOrder(),
@@ -91,11 +92,12 @@ export async function clarifyAsScheduled(actionId: string, scheduledDate: number
 }
 
 /** Clarify into a delegated item, waiting on someone else. */
-export async function clarifyAsWaitingFor(actionId: string, waitingOn: string) {
+export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, projectId?: string) {
   const now = Date.now()
   await db.actions.update(actionId, {
     status: 'waiting',
     waitingOn,
+    projectId,
     clarifiedAt: now,
     touchedAt: now,
     order: await nextOrder(),
