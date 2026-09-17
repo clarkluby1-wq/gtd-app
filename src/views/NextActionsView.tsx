@@ -14,23 +14,28 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
-  const pinnedTodayCount = (actions ?? []).filter((a) => a.bigThreeDate === startOfToday()).length
+  const today = startOfToday()
+  const pinnedTodayCount = (actions ?? []).filter((a) => a.bigThreeDate === today).length
 
   const [contextId, setContextId] = useState<string>('all')
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')
   const [maxTime, setMaxTime] = useState<number | 'all'>('all')
 
+  // Today's Big Three float to the top of whatever's left after filtering — Array.sort is
+  // stable, so everything else keeps its existing (drag-reorderable) order underneath them.
   const filtered = useMemo(() => {
     if (!actions) return []
-    return actions.filter((a) => {
-      if (a.projectId && somedayProjectIds.has(a.projectId)) return false
-      if (contextId === 'none' && a.contextId) return false
-      if (contextId !== 'all' && contextId !== 'none' && a.contextId !== contextId) return false
-      if (energy !== 'all' && a.energy !== energy) return false
-      if (maxTime !== 'all' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
-      return true
-    })
-  }, [actions, contextId, energy, maxTime, somedayProjectIds])
+    return actions
+      .filter((a) => {
+        if (a.projectId && somedayProjectIds.has(a.projectId)) return false
+        if (contextId === 'none' && a.contextId) return false
+        if (contextId !== 'all' && contextId !== 'none' && a.contextId !== contextId) return false
+        if (energy !== 'all' && a.energy !== energy) return false
+        if (maxTime !== 'all' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
+        return true
+      })
+      .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
+  }, [actions, contextId, energy, maxTime, somedayProjectIds, today])
 
   const { sensors, handleDragEnd } = useDragReorder(filtered, (id, order) => {
     void updateAction(id, { order })
@@ -41,7 +46,8 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Next Actions</h1>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
-        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to pin up to three as today's focus.
+        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to pin up to three as today's focus
+        — pinned items always float to the top, within any filter.
       </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
