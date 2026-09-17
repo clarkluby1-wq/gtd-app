@@ -24,7 +24,8 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
     if (!actions) return []
     return actions.filter((a) => {
       if (a.projectId && somedayProjectIds.has(a.projectId)) return false
-      if (contextId !== 'all' && a.contextId !== contextId) return false
+      if (contextId === 'none' && a.contextId) return false
+      if (contextId !== 'all' && contextId !== 'none' && a.contextId !== contextId) return false
       if (energy !== 'all' && a.energy !== energy) return false
       if (maxTime !== 'all' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
       return true
@@ -50,6 +51,7 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
           className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-200"
         >
           <option value="all">Any context</option>
+          <option value="none">None</option>
           {contexts?.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
