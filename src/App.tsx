@@ -65,19 +65,19 @@ function App() {
         content = <InboxView />
         break
       case 'next':
-        content = <NextActionsView />
+        content = <NextActionsView onOpenProject={openProject} />
         break
       case 'projects':
         content = <ProjectsView onOpen={openProject} />
         break
       case 'waiting':
-        content = <WaitingForView />
+        content = <WaitingForView onOpenProject={openProject} />
         break
       case 'someday':
         content = <SomedayMaybeView onOpenProject={openProject} />
         break
       case 'calendar':
-        content = <CalendarView />
+        content = <CalendarView onOpenProject={openProject} />
         break
       case 'reference':
         content = <ReferenceView />

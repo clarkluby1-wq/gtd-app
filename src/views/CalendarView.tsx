@@ -13,7 +13,7 @@ function groupByDay(actions: Action[]) {
   return [...groups.entries()].sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
 }
 
-export function CalendarView() {
+export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').sortBy('scheduledDate'))
   const withDue = useLiveQuery(() =>
     db.actions
@@ -46,7 +46,7 @@ export function CalendarView() {
           </div>
           <div className="flex flex-col divide-y divide-neutral-900">
             {items.map((a) => (
-              <TaskRow key={a.id} action={a} showProject />
+              <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
             ))}
           </div>
         </div>
@@ -57,7 +57,7 @@ export function CalendarView() {
           <h2 className="mb-2 mt-6 text-sm font-medium text-amber-500">Upcoming Deadlines</h2>
           <div className="flex flex-col divide-y divide-neutral-900">
             {dueFiltered.map((a) => (
-              <TaskRow key={a.id} action={a} showProject />
+              <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
             ))}
           </div>
         </>

@@ -8,7 +8,7 @@ import { SortableTaskRow } from '../components/SortableTaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
-export function WaitingForView() {
+export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('waiting').sortBy('order'))
   const somedayProjectIds = useSomedayProjectIds()
 
@@ -38,7 +38,7 @@ export function WaitingForView() {
         <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col divide-y divide-neutral-900">
             {filtered.map((a) => (
-              <SortableTaskRow key={a.id} action={a} showProject showCreatedDate />
+              <SortableTaskRow key={a.id} action={a} showProject showCreatedDate onOpenProject={onOpenProject} />
             ))}
           </div>
         </SortableContext>

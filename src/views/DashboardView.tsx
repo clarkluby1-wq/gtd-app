@@ -100,7 +100,7 @@ export function DashboardView({
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Dashboard</h1>
       <p className="mb-6 text-sm text-neutral-500">A glance at the whole system, not just one list.</p>
 
-      <BigThree actions={bigThreeActions} onViewNextActions={onViewNextActions} />
+      <BigThree actions={bigThreeActions} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
 
       <CaptureReward count={capturedToday ?? 0} />
 
@@ -121,7 +121,15 @@ export function DashboardView({
   )
 }
 
-function BigThree({ actions, onViewNextActions }: { actions: Action[]; onViewNextActions: () => void }) {
+function BigThree({
+  actions,
+  onViewNextActions,
+  onOpenProject,
+}: {
+  actions: Action[]
+  onViewNextActions: () => void
+  onOpenProject: (id: string) => void
+}) {
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div className="mb-3 flex items-center gap-1.5">
@@ -144,7 +152,7 @@ function BigThree({ actions, onViewNextActions }: { actions: Action[]; onViewNex
       ) : (
         <div className="flex flex-col divide-y divide-neutral-900">
           {actions.map((a) => (
-            <TaskRow key={a.id} action={a} showProject />
+            <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
           ))}
         </div>
       )}

@@ -101,7 +101,7 @@ function entryKey(e: Entry) {
 
 function EntryRow({ entry, onOpenProject }: { entry: Entry; onOpenProject: (id: string) => void }) {
   if (entry.kind === 'action') {
-    return <TaskRow action={entry.action} showProject />
+    return <TaskRow action={entry.action} showProject onOpenProject={onOpenProject} />
   }
   return <CompletedProjectRow project={entry.project} onOpen={() => onOpenProject(entry.project.id)} />
 }

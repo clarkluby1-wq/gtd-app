@@ -22,6 +22,7 @@ export function TaskRow({
   dragHandle,
   showBigThreePin,
   pinnedTodayCount,
+  onOpenProject,
 }: {
   action: Action
   showProject?: boolean
@@ -32,6 +33,8 @@ export function TaskRow({
   showBigThreePin?: boolean
   /** How many actions are pinned for today, to enforce the 3-item cap. Only used when showBigThreePin is true. */
   pinnedTodayCount?: number
+  /** Makes the "↳ Project" badge (when showProject is set) clickable, jumping into that project. */
+  onOpenProject?: (projectId: string) => void
 }) {
   const context = useLiveQuery(() => (action.contextId ? db.contexts.get(action.contextId) : undefined), [
     action.contextId,
@@ -118,7 +121,21 @@ export function TaskRow({
           )}
           {action.status === 'waiting' && action.waitingOn && <span>waiting on {action.waitingOn}</span>}
           {showCreatedDate && <span>captured {formatDate(action.createdAt)}</span>}
-          {showProject && project && <span className="text-neutral-400">↳ {project.title}</span>}
+          {showProject && project && (
+            onOpenProject ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onOpenProject(project.id)
+                }}
+                className="text-neutral-400 hover:text-emerald-400 hover:underline"
+              >
+                ↳ {project.title}
+              </button>
+            ) : (
+              <span className="text-neutral-400">↳ {project.title}</span>
+            )
+          )}
         </div>
 
         {action.notes && (

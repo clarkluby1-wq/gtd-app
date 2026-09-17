@@ -10,7 +10,7 @@ import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
-export function NextActionsView() {
+export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
@@ -90,7 +90,14 @@ export function NextActionsView() {
         <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col divide-y divide-neutral-900">
             {filtered.map((a) => (
-              <SortableTaskRow key={a.id} action={a} showProject showBigThreePin pinnedTodayCount={pinnedTodayCount} />
+              <SortableTaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showBigThreePin
+                pinnedTodayCount={pinnedTodayCount}
+                onOpenProject={onOpenProject}
+              />
             ))}
           </div>
         </SortableContext>
