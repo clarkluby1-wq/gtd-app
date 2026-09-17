@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
-import { createGoal, createVision, updatePurpose } from '../db/horizons'
+import { PURPOSE_ID, createGoal, createVision, updateGoal, updatePurpose, updateVision } from '../db/horizons'
 
 type Step = 'intro' | 'areas' | 'goals' | 'vision' | 'purpose' | 'done'
 
@@ -11,14 +11,50 @@ const STEPS: Step[] = ['areas', 'goals', 'vision', 'purpose']
 export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('intro')
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
+  const purpose = useLiveQuery(() => db.purposes.get(PURPOSE_ID))
+  const visions = useLiveQuery(() => db.visions.toArray())
+  const goals = useLiveQuery(() => db.goals.toArray())
 
   const [newArea, setNewArea] = useState('')
   const [goalDrafts, setGoalDrafts] = useState<Record<string, string>>({})
+  const [goalIds, setGoalIds] = useState<Record<string, string>>({})
+  const [visionId, setVisionId] = useState<string | undefined>()
   const [visionStatement, setVisionStatement] = useState('')
   const [purposeStatement, setPurposeStatement] = useState('')
   const [principlesText, setPrinciplesText] = useState('')
+  const [seeded, setSeeded] = useState(false)
 
   const stepIndex = STEPS.indexOf(step)
+
+  // Pre-fill every field from whatever's already saved, once, the first time everything has
+  // loaded — so reopening the wizard after a previous pass (or after using the Horizons views
+  // directly) shows what's actually there instead of blank inputs implying nothing was kept.
+  useEffect(() => {
+    if (seeded || !areas || !purpose || !visions || !goals) return
+
+    setPurposeStatement(purpose.statement)
+    setPrinciplesText(purpose.principles.join('\n'))
+
+    const overarchingVision = visions.find((v) => !v.areaOfFocusId)
+    if (overarchingVision) {
+      setVisionId(overarchingVision.id)
+      setVisionStatement(overarchingVision.statement)
+    }
+
+    const nextGoalIds: Record<string, string> = {}
+    const nextGoalDrafts: Record<string, string> = {}
+    for (const area of areas) {
+      const existing = goals.find((g) => g.areaOfFocusId === area.id)
+      if (existing) {
+        nextGoalIds[area.id] = existing.id
+        nextGoalDrafts[area.id] = existing.title
+      }
+    }
+    setGoalIds(nextGoalIds)
+    setGoalDrafts(nextGoalDrafts)
+
+    setSeeded(true)
+  }, [seeded, areas, purpose, visions, goals])
 
   const addArea = async () => {
     if (!newArea.trim()) return
@@ -36,25 +72,30 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
     void updatePurpose({ statement: nextStatement.trim(), principles })
   }
 
-  const goNext = async () => {
-    if (step === 'goals') {
-      for (const [areaOfFocusId, title] of Object.entries(goalDrafts)) {
-        if (title.trim()) {
-          await createGoal({ title: title.trim(), areaOfFocusId })
-        }
-      }
+  /** Update the existing overarching vision in place once created, rather than creating a new one on every blur. */
+  const saveVision = (nextStatement: string) => {
+    const trimmed = nextStatement.trim()
+    if (visionId) {
+      void updateVision(visionId, { statement: trimmed })
+    } else if (trimmed) {
+      void createVision({ statement: trimmed }).then((v) => setVisionId(v.id))
     }
-    if (step === 'vision' && visionStatement.trim()) {
-      await createVision({ statement: visionStatement.trim() })
-    }
-    if (step === 'purpose') {
-      const principles = principlesText
-        .split('\n')
-        .map((p) => p.trim())
-        .filter(Boolean)
-      await updatePurpose({ statement: purposeStatement.trim(), principles })
-    }
+  }
 
+  /** Same create-once-then-update pattern per area. */
+  const saveGoal = (areaId: string, nextTitle: string) => {
+    const trimmed = nextTitle.trim()
+    const existingId = goalIds[areaId]
+    if (existingId) {
+      void updateGoal(existingId, { title: trimmed })
+    } else if (trimmed) {
+      void createGoal({ title: trimmed, areaOfFocusId: areaId }).then((g) =>
+        setGoalIds((prev) => ({ ...prev, [areaId]: g.id })),
+      )
+    }
+  }
+
+  const goNext = () => {
     const next = STEPS[stepIndex + 1]
     setStep(next ?? 'done')
   }
@@ -134,9 +175,10 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
                 <h2 className="text-lg font-medium text-neutral-100">Goals</h2>
                 <span className="text-xs text-neutral-600">30k ft</span>
               </div>
-              <p className="mb-4 text-sm text-neutral-400">
+              <p className="mb-1 text-sm text-neutral-400">
                 What do you want from each area in the next year or two?
               </p>
+              <p className="mb-4 text-xs text-neutral-600">Saves as you go — safe to close anytime.</p>
               <div className="flex flex-col gap-3">
                 {areas?.map((a) => (
                   <div key={a.id}>
@@ -144,6 +186,7 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
                     <input
                       value={goalDrafts[a.id] ?? ''}
                       onChange={(e) => setGoalDrafts((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                      onBlur={(e) => saveGoal(a.id, e.target.value)}
                       placeholder={`A 1-2 year goal for ${a.name}…`}
                       className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                     />
@@ -159,13 +202,15 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
                 <h2 className="text-lg font-medium text-neutral-100">Vision</h2>
                 <span className="text-xs text-neutral-600">40k ft</span>
               </div>
-              <p className="mb-4 text-sm text-neutral-400">
+              <p className="mb-1 text-sm text-neutral-400">
                 3-5 years from now, if it all went wildly well — what would it look like?
               </p>
+              <p className="mb-4 text-xs text-neutral-600">Saves as you go — safe to close anytime.</p>
               <textarea
                 autoFocus
                 value={visionStatement}
                 onChange={(e) => setVisionStatement(e.target.value)}
+                onBlur={() => saveVision(visionStatement)}
                 rows={5}
                 placeholder="In 3-5 years…"
                 className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
