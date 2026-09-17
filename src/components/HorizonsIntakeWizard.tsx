@@ -67,13 +67,12 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto p-6">
           {step === 'intro' && (
             <div>
-              <h2 className="mb-3 text-lg font-medium text-neutral-100">
+              <h2 className="mb-2 text-lg font-medium text-neutral-100">
                 Let's build up your Horizons of Focus
               </h2>
+              <div className="mb-3 text-sm text-neutral-500">Areas → Goals → Vision → Purpose</div>
               <p className="mb-4 text-sm text-neutral-400">
-                We'll start concrete and climb: first the roles you're already juggling (Areas of Focus), then
-                what you want from each in the next year or two (Goals), then the bigger picture (Vision), and
-                finally why any of it matters (Purpose). Skip anything — you can always come back.
+                About 5 minutes. Skip anything — you can always come back.
               </p>
               <button
                 onClick={() => setStep('areas')}
@@ -86,10 +85,12 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
 
           {step === 'areas' && (
             <div>
-              <h2 className="mb-1 text-lg font-medium text-neutral-100">Areas of Focus</h2>
+              <div className="mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-medium text-neutral-100">Areas of Focus</h2>
+                <span className="text-xs text-neutral-600">20k ft</span>
+              </div>
               <p className="mb-4 text-sm text-neutral-400">
-                Horizon 2 — the ongoing roles you maintain standards for. Here's a starter set; edit it so it
-                actually matches your life.
+                The roles you're already juggling. Edit this starter set to fit your life.
               </p>
               <div className="mb-3 flex flex-col gap-1">
                 {areas?.map((a) => (
@@ -120,10 +121,12 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
 
           {step === 'goals' && (
             <div>
-              <h2 className="mb-1 text-lg font-medium text-neutral-100">Goals</h2>
+              <div className="mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-medium text-neutral-100">Goals</h2>
+                <span className="text-xs text-neutral-600">30k ft</span>
+              </div>
               <p className="mb-4 text-sm text-neutral-400">
-                Horizon 3 — for each area, what would you like to accomplish in the next 1-2 years? Leave any
-                blank if nothing comes to mind yet.
+                What do you want from each area in the next year or two?
               </p>
               <div className="flex flex-col gap-3">
                 {areas?.map((a) => (
@@ -143,10 +146,12 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
 
           {step === 'vision' && (
             <div>
-              <h2 className="mb-1 text-lg font-medium text-neutral-100">Vision</h2>
+              <div className="mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-medium text-neutral-100">Vision</h2>
+                <span className="text-xs text-neutral-600">40k ft</span>
+              </div>
               <p className="mb-4 text-sm text-neutral-400">
-                Horizon 4 — 3-5 years from now, if things went wildly well, what would your life look like? Be
-                vivid; you can add more specific, per-area visions later.
+                3-5 years from now, if it all went wildly well — what would it look like?
               </p>
               <textarea
                 autoFocus
@@ -161,11 +166,11 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
 
           {step === 'purpose' && (
             <div>
-              <h2 className="mb-1 text-lg font-medium text-neutral-100">Purpose & Principles</h2>
-              <p className="mb-4 text-sm text-neutral-400">
-                Horizon 5 — why does any of this matter? And what are the standards you won't compromise, no
-                matter the pressure?
-              </p>
+              <div className="mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-medium text-neutral-100">Purpose & Principles</h2>
+                <span className="text-xs text-neutral-600">50k ft</span>
+              </div>
+              <p className="mb-4 text-sm text-neutral-400">Why does any of this matter?</p>
               <textarea
                 value={purposeStatement}
                 onChange={(e) => setPurposeStatement(e.target.value)}
@@ -188,8 +193,7 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
             <div>
               <h2 className="mb-3 text-lg font-medium text-neutral-100">Your Horizons are set</h2>
               <p className="mb-4 text-sm text-neutral-400">
-                Nothing here is permanent — revisit any level whenever it stops feeling true, especially during a
-                Weekly Review. You'll find them all under "Horizons of Focus" in the sidebar.
+                Nothing's permanent — revisit anytime from "Horizons of Focus" in the sidebar.
               </p>
               <button
                 onClick={onClose}
