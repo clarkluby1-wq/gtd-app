@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
-import { createAction } from '../db/operations'
+import { createAction, reopenAction } from '../db/operations'
 import { parseLocalDate } from '../lib/date'
 import type { Action, ActionStatus } from '../db/types'
 
@@ -29,6 +29,12 @@ export function CompletionToast({
   const [scheduledDate, setScheduledDate] = useState('')
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
 
+  /** Marked done by mistake — put it back exactly where it was and close the toast. */
+  const undo = () => {
+    void reopenAction(completedAction.id, completedAction.status)
+    onDismiss()
+  }
+
   const submit = async () => {
     if (!title.trim()) return
     const status = TYPES.find((t) => t.key === type)!.status
@@ -49,18 +55,26 @@ export function CompletionToast({
         <div className="text-sm">
           <span className="text-emerald-400">✓ Done:</span> {completedAction.title}
         </div>
-        <button onClick={onDismiss} className="shrink-0 text-neutral-600 hover:text-neutral-300">
+        <button onClick={undo} title="Undo — wasn't actually done" className="shrink-0 text-neutral-600 hover:text-red-400">
           ✕
         </button>
       </div>
 
       {!expanded ? (
-        <button
-          onClick={() => setExpanded(true)}
-          className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
-        >
-          + Add follow-up
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onDismiss}
+            className="w-full rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
+          >
+            No Further Action
+          </button>
+          <button
+            onClick={() => setExpanded(true)}
+            className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+          >
+            + Add follow-up
+          </button>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           <input
