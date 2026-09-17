@@ -212,9 +212,9 @@ function CaptureReward({
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3 border-t border-neutral-800 pt-3">
-        <TodayStat label="Captured" count={count} />
+        <TodayStat label="Captures" count={count} />
         <TodayStat label="Actions Done" count={actionsCompleted} />
-        <TodayStat label="Projects Done" count={projectsCompleted} />
+        <TodayStat label="Projects Completed" count={projectsCompleted} />
       </div>
     </div>
   )
