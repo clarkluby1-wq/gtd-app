@@ -153,8 +153,11 @@ function VisionRow({
           className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm outline-none"
         />
       ) : (
-        <p onClick={() => setEditing(true)} className="cursor-pointer text-sm text-neutral-200">
-          {statement}
+        <p onClick={() => setEditing(true)} className="flex items-start gap-1.5 cursor-pointer text-sm text-neutral-200 hover:text-neutral-100">
+          <span>{statement}</span>
+          <span className="shrink-0 text-xs text-neutral-600" aria-hidden>
+            ✏️
+          </span>
         </p>
       )}
 

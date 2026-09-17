@@ -147,11 +147,12 @@ function ReferenceRow({ item, projectTitle }: { item: ReferenceItem; projectTitl
           className="mt-2 w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm outline-none"
         />
       ) : (
-        item.content && (
-          <p onClick={() => setEditing(true)} className="mt-1 cursor-pointer text-sm text-neutral-400">
-            {item.content}
-          </p>
-        )
+        <p onClick={() => setEditing(true)} className="mt-1 flex items-start gap-1.5 cursor-pointer text-sm text-neutral-400 hover:text-neutral-300">
+          <span>{item.content || 'Click to add notes…'}</span>
+          <span className="shrink-0 text-xs text-neutral-600" aria-hidden>
+            ✏️
+          </span>
+        </p>
       )}
       {projectTitle && <div className="mt-2 text-xs text-neutral-500">↳ {projectTitle}</div>}
     </div>

@@ -86,6 +86,9 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
             className="flex items-center gap-2 cursor-pointer text-xl font-semibold text-neutral-100 hover:underline"
           >
             {project.title}
+            <span className="text-sm text-neutral-600" aria-hidden>
+              ✏️
+            </span>
             {project.status === 'someday' && (
               <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-xs font-normal text-neutral-400 no-underline">
                 🌙 Someday
@@ -150,9 +153,12 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
             setOutcomeDraft(project.outcome)
             setEditingOutcome(true)
           }}
-          className="mb-4 cursor-pointer text-sm text-neutral-400 hover:text-neutral-300"
+          className="mb-4 flex items-start gap-1.5 cursor-pointer text-sm text-neutral-400 hover:text-neutral-300"
         >
-          {project.outcome || 'Click to define what "done" looks like for this project…'}
+          <span>{project.outcome || 'Click to define what "done" looks like for this project…'}</span>
+          <span className="shrink-0 text-xs text-neutral-600" aria-hidden>
+            ✏️
+          </span>
         </p>
       )}
 
