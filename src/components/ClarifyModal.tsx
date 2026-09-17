@@ -115,9 +115,13 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-neutral-800 bg-neutral-900 p-5 text-neutral-100 shadow-xl">
-        <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">Clarify</div>
-        <div className="mb-4 text-lg font-medium">{item.title}</div>
+      <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 shadow-xl">
+        <div className="border-b border-neutral-800 px-5 py-3">
+          <div className="text-xs uppercase tracking-wide text-neutral-500">Clarify</div>
+          <div className="mt-1 text-lg font-medium">{item.title}</div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
         <div className="mb-4 text-sm text-neutral-400">{STEP_QUESTION[step]}</div>
 
         {step === 'actionable' && (
@@ -403,8 +407,9 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
             </Btn>
           </div>
         )}
+        </div>
 
-        <div className="mt-5 flex justify-between border-t border-neutral-800 pt-3">
+        <div className="flex justify-between border-t border-neutral-800 px-5 py-3">
           <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
             Cancel
           </button>
