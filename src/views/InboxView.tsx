@@ -8,7 +8,6 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { MindSweepWizard } from '../components/MindSweepWizard'
 import { deleteAction, updateAction } from '../db/operations'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
@@ -16,7 +15,6 @@ import type { Action } from '../db/types'
 export function InboxView() {
   const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
-  const [showMindSweep, setShowMindSweep] = useState(false)
 
   const { sensors, handleDragEnd } = useDragReorder(items ?? [], (id, order) => {
     void updateAction(id, { order })
@@ -24,15 +22,7 @@ export function InboxView() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-neutral-100">Inbox</h1>
-        <button
-          onClick={() => setShowMindSweep(true)}
-          className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
-        >
-          🧹 Mind Sweep
-        </button>
-      </div>
+      <h1 className="mb-1 text-xl font-semibold text-neutral-100">Inbox</h1>
       <p className="mb-6 text-sm text-neutral-500">
         Capture everything here first. Then process each item, one at a time, from the top — decide what it is and
         what to do with it before moving to the next.
@@ -55,7 +45,6 @@ export function InboxView() {
       </DndContext>
 
       {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
-      {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
     </div>
   )
 }

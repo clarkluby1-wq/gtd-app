@@ -41,17 +41,18 @@ const HORIZONS_NAV: { key: ViewKey; label: string; icon: string; altitude: strin
 const BOTTOM_NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'recurring', label: 'Recurring', icon: '🔁' },
   { key: 'review', label: 'Weekly Review', icon: '🔄' },
-  { key: 'settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export function Sidebar({
   current,
   onSelect,
   onStartIntake,
+  onStartMindSweep,
 }: {
   current: ViewKey
   onSelect: (v: ViewKey) => void
   onStartIntake: () => void
+  onStartMindSweep: () => void
 }) {
   const [horizonsOpen, setHorizonsOpen] = useState(true)
   const somedayProjectIds = useSomedayProjectIds()
@@ -112,6 +113,14 @@ export function Sidebar({
 
       <div className="mt-4 border-t border-neutral-800 pt-2">
         {BOTTOM_NAV.map((n) => item(n.key, n.label, n.icon))}
+        <button
+          onClick={onStartMindSweep}
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+        >
+          <span>🧹</span>
+          <span>Mind Sweep</span>
+        </button>
+        {item('settings', 'Settings', '⚙️')}
       </div>
     </nav>
   )

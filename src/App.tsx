@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Sidebar, type ViewKey } from './components/Sidebar'
 import { CaptureBar } from './components/CaptureBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
+import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
@@ -26,6 +27,7 @@ function App() {
   const [view, setView] = useState<ViewKey>('inbox')
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
+  const [showMindSweep, setShowMindSweep] = useState(false)
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
@@ -103,12 +105,18 @@ function App() {
   return (
     <CompletionToastProvider>
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
-        <Sidebar current={view} onSelect={selectView} onStartIntake={() => setShowIntake(true)} />
+        <Sidebar
+          current={view}
+          onSelect={selectView}
+          onStartIntake={() => setShowIntake(true)}
+          onStartMindSweep={() => setShowMindSweep(true)}
+        />
         <div className="flex flex-1 flex-col overflow-hidden">
           <CaptureBar />
           <div className="flex-1 overflow-y-auto">{content}</div>
         </div>
         {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
+        {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
       </div>
     </CompletionToastProvider>
   )
