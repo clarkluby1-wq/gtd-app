@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { downloadBackup, exportBackup, getLastBackupAt, importBackup } from '../db/backup'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 function formatRelative(ts: number) {
   const days = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24))
@@ -12,6 +13,7 @@ export function SettingsView() {
   const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
   const [importError, setImportError] = useState<string | null>(null)
   const [importedOk, setImportedOk] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleExport = async () => {
@@ -67,7 +69,7 @@ export function SettingsView() {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) void handleImportFile(file)
+            if (file) setPendingFile(file)
             e.target.value = ''
           }}
         />
@@ -77,9 +79,30 @@ export function SettingsView() {
         >
           Restore from file…
         </button>
-        {importedOk && <p className="mt-2 text-xs text-emerald-400">Restored. Reload the app to see it everywhere.</p>}
+        {importedOk && (
+          <p className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
+            Restored.
+            <button onClick={() => window.location.reload()} className="underline hover:text-emerald-300">
+              Reload now to see it everywhere
+            </button>
+          </p>
+        )}
         {importError && <p className="mt-2 text-xs text-red-400">{importError}</p>}
       </div>
+
+      {pendingFile && (
+        <ConfirmDialog
+          title="Restore from backup?"
+          message={`Replace everything currently in the app with the contents of "${pendingFile.name}"? This can't be undone.`}
+          confirmLabel="Restore"
+          onConfirm={() => {
+            const file = pendingFile
+            setPendingFile(null)
+            void handleImportFile(file)
+          }}
+          onCancel={() => setPendingFile(null)}
+        />
+      )}
     </div>
   )
 }
