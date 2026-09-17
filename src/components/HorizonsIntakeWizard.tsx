@@ -27,6 +27,15 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
     setNewArea('')
   }
 
+  /** Saves immediately on blur, same as the standalone Purpose page — closing the wizard mid-step never loses this. */
+  const savePurpose = (nextStatement: string, nextPrinciplesText: string) => {
+    const principles = nextPrinciplesText
+      .split('\n')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    void updatePurpose({ statement: nextStatement.trim(), principles })
+  }
+
   const goNext = async () => {
     if (step === 'goals') {
       for (const [areaOfFocusId, title] of Object.entries(goalDrafts)) {
@@ -170,10 +179,12 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
                 <h2 className="text-lg font-medium text-neutral-100">Purpose & Principles</h2>
                 <span className="text-xs text-neutral-600">50k ft</span>
               </div>
-              <p className="mb-4 text-sm text-neutral-400">Why does any of this matter?</p>
+              <p className="mb-1 text-sm text-neutral-400">Why does any of this matter?</p>
+              <p className="mb-4 text-xs text-neutral-600">Saves as you go — safe to close anytime.</p>
               <textarea
                 value={purposeStatement}
                 onChange={(e) => setPurposeStatement(e.target.value)}
+                onBlur={() => savePurpose(purposeStatement, principlesText)}
                 rows={3}
                 placeholder="The deeper reason behind it all…"
                 className="mb-3 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
@@ -182,6 +193,7 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
               <textarea
                 value={principlesText}
                 onChange={(e) => setPrinciplesText(e.target.value)}
+                onBlur={() => savePurpose(purposeStatement, principlesText)}
                 rows={3}
                 placeholder={'e.g. Family comes before work emergencies\nNever compromise on sleep'}
                 className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
