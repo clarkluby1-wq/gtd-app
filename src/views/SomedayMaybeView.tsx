@@ -4,8 +4,9 @@ import { CSS } from '@dnd-kit/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
-import { updateAction, updateProject } from '../db/operations'
+import { deleteAction, deleteProject, updateAction, updateProject } from '../db/operations'
 import { ClarifyModal } from '../components/ClarifyModal'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action, Project } from '../db/types'
@@ -99,18 +100,39 @@ function SortableSomedayRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   if (item.kind === 'action') {
+    const action = item.action
     return (
       <div ref={setNodeRef} style={style} className="flex items-center justify-between py-2">
-        <TaskRow action={item.action} dragHandle={{ attributes, listeners }} />
-        <button
-          onClick={() => onClarifyAction(item.action)}
-          title="Reopen Clarify — decide what this becomes now that you're ready"
-          className="ml-2 shrink-0 rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
-        >
-          Activate
-        </button>
+        <TaskRow action={action} dragHandle={{ attributes, listeners }} />
+        <div className="ml-2 flex shrink-0 gap-2">
+          <button
+            onClick={() => onClarifyAction(action)}
+            title="Reopen Clarify — decide what this becomes now that you're ready"
+            className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
+          >
+            Activate
+          </button>
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            title="No longer something you want to do"
+            className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-400 hover:bg-red-600/80 hover:text-white"
+          >
+            Delete
+          </button>
+        </div>
+        {confirmingDelete && (
+          <ConfirmDialog
+            message={`Delete "${action.title}"? This can't be undone.`}
+            onConfirm={() => {
+              setConfirmingDelete(false)
+              void deleteAction(action.id)
+            }}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        )}
       </div>
     )
   }
@@ -138,12 +160,31 @@ function SortableSomedayRow({
           {project.title}
         </button>
       </div>
-      <button
-        onClick={() => updateProject(project.id, { status: 'active' })}
-        className="ml-2 shrink-0 rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
-      >
-        Activate
-      </button>
+      <div className="ml-2 flex shrink-0 gap-2">
+        <button
+          onClick={() => updateProject(project.id, { status: 'active' })}
+          className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
+        >
+          Activate
+        </button>
+        <button
+          onClick={() => setConfirmingDelete(true)}
+          title="No longer something you want to do"
+          className="rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-400 hover:bg-red-600/80 hover:text-white"
+        >
+          Delete
+        </button>
+      </div>
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={`Delete project "${project.title}" and all its actions? This can't be undone.`}
+          onConfirm={() => {
+            setConfirmingDelete(false)
+            void deleteProject(project.id)
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   )
 }
