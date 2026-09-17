@@ -66,6 +66,13 @@ export function DashboardView({
     () => db.captureEvents.where('createdAt').aboveOrEqual(startOfToday()).count(),
     [],
   )
+  const todayStart = startOfToday()
+  const actionsCompletedToday = (allActions ?? []).filter(
+    (a) => a.status === 'done' && (a.completedAt ?? 0) >= todayStart,
+  ).length
+  const projectsCompletedToday = (completedProjects ?? []).filter(
+    (p) => (p.completedAt ?? 0) >= todayStart,
+  ).length
 
   const waitingActions = useMemo(() => {
     return (waitingActionsRaw ?? [])
@@ -102,7 +109,11 @@ export function DashboardView({
 
       <BigThree actions={bigThreeActions} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
 
-      <CaptureReward count={capturedToday ?? 0} />
+      <CaptureReward
+        count={capturedToday ?? 0}
+        actionsCompleted={actionsCompletedToday}
+        projectsCompleted={projectsCompletedToday}
+      />
 
       <BalanceWheel areas={areas ?? []} projects={activeProjects ?? []} />
 
@@ -152,7 +163,14 @@ function BigThree({
       ) : (
         <div className="flex flex-col divide-y divide-neutral-900">
           {actions.map((a) => (
-            <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
+            <TaskRow
+              key={a.id}
+              action={a}
+              showProject
+              showBigThreePin
+              pinnedTodayCount={actions.length}
+              onOpenProject={onOpenProject}
+            />
           ))}
         </div>
       )}
@@ -160,7 +178,15 @@ function BigThree({
   )
 }
 
-function CaptureReward({ count }: { count: number }) {
+function CaptureReward({
+  count,
+  actionsCompleted,
+  projectsCompleted,
+}: {
+  count: number
+  actionsCompleted: number
+  projectsCompleted: number
+}) {
   const { icon, message } = captureTier(count)
   const fillPct = Math.min(count, CAPTURE_FILL_CAP) / CAPTURE_FILL_CAP
 
@@ -184,6 +210,21 @@ function CaptureReward({ count }: { count: number }) {
           </div>
         </div>
       </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-neutral-800 pt-3">
+        <TodayStat label="Captured" count={count} />
+        <TodayStat label="Actions Done" count={actionsCompleted} />
+        <TodayStat label="Projects Done" count={projectsCompleted} />
+      </div>
+    </div>
+  )
+}
+
+function TodayStat({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="text-center">
+      <div className="text-lg font-semibold text-neutral-100">{count}</div>
+      <div className="text-[11px] text-neutral-500">{label}</div>
     </div>
   )
 }
