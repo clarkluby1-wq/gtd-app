@@ -291,32 +291,43 @@ function ProjectRings({
     )
   }
 
+  const stalled = activeProjects.filter((p) => stalledProjectIds.has(p.id))
+  const onTrack = activeProjects.filter((p) => !stalledProjectIds.has(p.id))
+
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <h2 className="mb-3 text-sm font-medium text-neutral-300">Project Progress</h2>
 
-      <div className="mb-2 flex items-baseline justify-between">
-        <h3 className="text-xs font-medium text-neutral-500">Active Projects</h3>
-        {stalledProjectIds.size > 0 && (
-          <span className="text-xs text-amber-400">
-            ⚠ {stalledProjectIds.size} stalled — nothing next or pending
-          </span>
-        )}
-      </div>
+      <h3 className="mb-2 text-xs font-medium text-neutral-500">Active Projects</h3>
       {activeProjects.length === 0 ? (
         <p className="text-sm text-neutral-500">No active projects yet.</p>
       ) : (
-        <div className="flex flex-wrap gap-4">
-          {activeProjects.map((p) => (
-            <ProjectRing
-              key={p.id}
-              project={p}
-              progress={progress(p.id)}
-              stalled={stalledProjectIds.has(p.id)}
-              onOpen={() => onOpen(p.id)}
-            />
-          ))}
-        </div>
+        <>
+          {stalled.length > 0 && (
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs text-amber-400">
+                ⚠ Stalled — nothing next or pending ({stalled.length})
+              </h4>
+              <div className="flex flex-wrap gap-4">
+                {stalled.map((p) => (
+                  <ProjectRing key={p.id} project={p} progress={progress(p.id)} stalled onOpen={() => onOpen(p.id)} />
+                ))}
+              </div>
+            </div>
+          )}
+          {onTrack.length > 0 && (
+            <div>
+              {stalled.length > 0 && (
+                <h4 className="mb-2 text-xs text-neutral-500">On Track ({onTrack.length})</h4>
+              )}
+              <div className="flex flex-wrap gap-4">
+                {onTrack.map((p) => (
+                  <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {completedProjects.length > 0 && (
