@@ -24,8 +24,8 @@ export type ViewKey =
 
 const MAIN_NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { key: 'completed', label: 'Recently Completed', icon: '☑️' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
+  { key: 'completed', label: 'Recently Completed', icon: '☑️' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
   { key: 'projects', label: 'Projects', icon: '📁' },
   { key: 'waiting', label: 'Waiting For', icon: '⏳' },
