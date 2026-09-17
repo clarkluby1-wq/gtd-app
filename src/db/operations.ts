@@ -106,7 +106,10 @@ export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, p
 
 /**
  * Clarify into a project: the inbox item becomes the project's definition,
- * and a fresh next action is created and linked to it.
+ * and (when given) a fresh next action is created and linked to it.
+ *
+ * `firstActionTitle` is omitted when parking the project on Someday/Maybe —
+ * GTD reserves "next action" for things you've actually committed to move on.
  */
 export async function clarifyAsProject(
   actionId: string,
@@ -115,7 +118,8 @@ export async function clarifyAsProject(
     outcome: string
     areaOfFocusId?: string
     goalId?: string
-    firstActionTitle: string
+    status?: ProjectStatus
+    firstActionTitle?: string
     contextId?: string
   },
 ) {
@@ -124,7 +128,7 @@ export async function clarifyAsProject(
     id: uuid(),
     title: opts.title,
     outcome: opts.outcome,
-    status: 'active',
+    status: opts.status ?? 'active',
     areaOfFocusId: opts.areaOfFocusId,
     goalId: opts.goalId,
     createdAt: now,
@@ -132,18 +136,21 @@ export async function clarifyAsProject(
   }
   await db.projects.add(project)
 
-  const firstAction: Action = {
-    id: uuid(),
-    title: opts.firstActionTitle,
-    status: 'next',
-    projectId: project.id,
-    contextId: opts.contextId,
-    createdAt: now,
-    clarifiedAt: now,
-    touchedAt: now,
-    order: now,
+  let firstAction: Action | undefined
+  if (opts.firstActionTitle?.trim()) {
+    firstAction = {
+      id: uuid(),
+      title: opts.firstActionTitle,
+      status: 'next',
+      projectId: project.id,
+      contextId: opts.contextId,
+      createdAt: now,
+      clarifiedAt: now,
+      touchedAt: now,
+      order: now,
+    }
+    await db.actions.add(firstAction)
   }
-  await db.actions.add(firstAction)
 
   // The original inbox capture is now reference material describing the project; remove it.
   await db.actions.delete(actionId)

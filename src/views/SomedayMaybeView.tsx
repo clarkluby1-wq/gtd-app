@@ -2,9 +2,10 @@ import { closestCenter, DndContext } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { db } from '../db/db'
-import { clarifyAsNextAction, updateAction, updateProject } from '../db/operations'
+import { updateAction, updateProject } from '../db/operations'
+import { ClarifyModal } from '../components/ClarifyModal'
 import { TaskRow } from '../components/TaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action, Project } from '../db/types'
@@ -13,6 +14,7 @@ import type { Action, Project } from '../db/types'
 type OrderedProject = Project & { order: number }
 
 export function SomedayMaybeView({ onOpenProject }: { onOpenProject: (id: string) => void }) {
+  const [clarifying, setClarifying] = useState<Action | null>(null)
   const actions = useLiveQuery(() => db.actions.where('status').equals('someday').sortBy('order'))
   const somedayProjectsRaw = useLiveQuery(() => db.projects.where('status').equals('someday').toArray())
   const somedayProjects = useMemo(
@@ -45,7 +47,7 @@ export function SomedayMaybeView({ onOpenProject }: { onOpenProject: (id: string
         <SortableContext items={(actions ?? []).map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col divide-y divide-neutral-900">
             {actions?.map((a) => (
-              <SortableSomedayActionRow key={a.id} action={a} />
+              <SortableSomedayActionRow key={a.id} action={a} onClarify={() => setClarifying(a)} />
             ))}
           </div>
         </SortableContext>
@@ -75,18 +77,21 @@ export function SomedayMaybeView({ onOpenProject }: { onOpenProject: (id: string
           Nothing parked here.
         </div>
       )}
+
+      {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
     </div>
   )
 }
 
-function SortableSomedayActionRow({ action }: { action: Action }) {
+function SortableSomedayActionRow({ action, onClarify }: { action: Action; onClarify: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: action.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center justify-between py-2">
       <TaskRow action={action} dragHandle={{ attributes, listeners }} />
       <button
-        onClick={() => clarifyAsNextAction(action.id, {})}
+        onClick={onClarify}
+        title="Reopen Clarify — decide what this becomes now that you're ready"
         className="ml-2 shrink-0 rounded-md bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
       >
         Activate

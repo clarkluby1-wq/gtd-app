@@ -64,6 +64,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
   const [goalId, setGoalId] = useState<string | undefined>()
   const [firstActionTitle, setFirstActionTitle] = useState('')
+  const [projectCommitment, setProjectCommitment] = useState<'now' | 'someday'>('now')
   const [secondsLeft, setSecondsLeft] = useState(TWO_MINUTES)
   const [paused, setPaused] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -208,6 +209,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
         {step === 'delegate' && (
           <div className="flex flex-col gap-3">
             <Btn onClick={() => setStep('singleOrProject')}>Yes, I'll do it myself</Btn>
+            <Btn onClick={() => finish(() => sendToSomeday(item.id))}>Not sure yet — decide later</Btn>
             <div className="my-1 text-center text-xs text-neutral-600">— or delegate it —</div>
             <input
               value={waitingOn}
@@ -374,6 +376,17 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               rows={2}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
+
+            <label className="text-xs text-neutral-500">When do you want to commit to this?</label>
+            <div className="flex gap-2">
+              <Btn primary={projectCommitment === 'now'} onClick={() => setProjectCommitment('now')}>
+                Now
+              </Btn>
+              <Btn primary={projectCommitment === 'someday'} onClick={() => setProjectCommitment('someday')}>
+                Someday / Maybe
+              </Btn>
+            </div>
+
             <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
             <select
               value={areaOfFocusId ?? ''}
@@ -409,30 +422,38 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 </select>
               </>
             )}
-            <label className="text-xs text-neutral-500">
-              What's the very next physical action to move this forward?
-            </label>
-            <input
-              value={firstActionTitle}
-              onChange={(e) => setFirstActionTitle(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-            <label className="text-xs text-neutral-500">Context for that action (optional)</label>
-            <select
-              value={contextId ?? ''}
-              onChange={(e) => setContextId(e.target.value || undefined)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">No context</option>
-              {contexts?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {projectCommitment === 'now' ? (
+              <>
+                <label className="text-xs text-neutral-500">
+                  What's the very next physical action to move this forward?
+                </label>
+                <input
+                  value={firstActionTitle}
+                  onChange={(e) => setFirstActionTitle(e.target.value)}
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                />
+                <label className="text-xs text-neutral-500">Context for that action (optional)</label>
+                <select
+                  value={contextId ?? ''}
+                  onChange={(e) => setContextId(e.target.value || undefined)}
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                >
+                  <option value="">No context</option>
+                  {contexts?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <p className="text-xs text-neutral-600">
+                No next action needed yet — this parks the project on Someday/Maybe until you're ready to plan it.
+              </p>
+            )}
             <Btn
               primary
-              disabled={!projectTitle.trim() || !firstActionTitle.trim()}
+              disabled={!projectTitle.trim() || (projectCommitment === 'now' && !firstActionTitle.trim())}
               onClick={() =>
                 finish(() =>
                   clarifyAsProject(item.id, {
@@ -440,13 +461,14 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     outcome: outcome.trim(),
                     areaOfFocusId,
                     goalId,
-                    firstActionTitle: firstActionTitle.trim(),
-                    contextId,
+                    status: projectCommitment === 'now' ? 'active' : 'someday',
+                    firstActionTitle: projectCommitment === 'now' ? firstActionTitle.trim() : undefined,
+                    contextId: projectCommitment === 'now' ? contextId : undefined,
                   }),
                 )
               }
             >
-              Create Project
+              {projectCommitment === 'now' ? 'Create Project' : 'Park in Someday / Maybe'}
             </Btn>
           </div>
         )}
