@@ -104,12 +104,19 @@ export function TaskRow({
           {action.title}
         </div>
         <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-neutral-500">
-          {context && <span className="rounded bg-neutral-800 px-1.5 py-0.5">{context.name}</span>}
-          {action.energy && <span>⚡ {action.energy}</span>}
-          {action.timeEstimateMin != null && <span>⏱ {action.timeEstimateMin}m</span>}
+          {/* Context/energy/time only mean something while this is an actionable Next Action — EditActionModal
+              keeps them in the record when you switch tabs so they aren't lost, but they shouldn't visually
+              leak onto a Waiting For / Someday / Scheduled row and imply this is currently engageable. */}
+          {action.status === 'next' && context && (
+            <span className="rounded bg-neutral-800 px-1.5 py-0.5">{context.name}</span>
+          )}
+          {action.status === 'next' && action.energy && <span>⚡ {action.energy}</span>}
+          {action.status === 'next' && action.timeEstimateMin != null && <span>⏱ {action.timeEstimateMin}m</span>}
           {action.dueDate && <span className="text-amber-500">due {formatDate(action.dueDate)}</span>}
-          {action.scheduledDate && <span className="text-sky-400">{formatDate(action.scheduledDate)}</span>}
-          {action.waitingOn && <span>waiting on {action.waitingOn}</span>}
+          {action.status === 'scheduled' && action.scheduledDate && (
+            <span className="text-sky-400">{formatDate(action.scheduledDate)}</span>
+          )}
+          {action.status === 'waiting' && action.waitingOn && <span>waiting on {action.waitingOn}</span>}
           {showCreatedDate && <span>captured {formatDate(action.createdAt)}</span>}
           {showProject && project && <span className="text-neutral-400">↳ {project.title}</span>}
         </div>

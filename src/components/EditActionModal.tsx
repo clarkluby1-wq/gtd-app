@@ -44,16 +44,19 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
 
   const save = async () => {
     const status = TYPES.find((t) => t.key === type)!.status
+    // Fields not relevant to the current type are kept, not wiped — switching tabs while
+    // deciding shouldn't silently lose what you already typed under another type. They're
+    // simply unused until (if ever) that type is selected again.
     await updateAction(action.id, {
       title: title.trim() || action.title,
       status,
       projectId: projectId || undefined,
-      contextId: type === 'next' ? contextId || undefined : undefined,
-      energy: type === 'next' ? energy : undefined,
-      timeEstimateMin: type === 'next' && timeEstimateMin ? Number(timeEstimateMin) : undefined,
-      dueDate: type === 'next' && dueDate ? parseLocalDate(dueDate) : undefined,
-      waitingOn: type === 'waiting' ? waitingOn.trim() || undefined : undefined,
-      scheduledDate: type === 'scheduled' && scheduledDate ? parseLocalDate(scheduledDate) : undefined,
+      contextId: contextId || undefined,
+      energy,
+      timeEstimateMin: timeEstimateMin ? Number(timeEstimateMin) : undefined,
+      dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
+      waitingOn: waitingOn.trim() || undefined,
+      scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
     })
     onClose()
