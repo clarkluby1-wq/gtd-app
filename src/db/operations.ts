@@ -28,10 +28,16 @@ async function nextOrder() {
   return Date.now()
 }
 
-/** Clarify: mark an inbox item done immediately (the 2-minute rule). */
+/** Clarify: mark an inbox item done immediately (the 2-minute rule, or the Inbox "already handled" shortcut). Always from status 'inbox'. */
 export async function doItNow(actionId: string) {
   const now = Date.now()
-  await db.actions.update(actionId, { status: 'done', completedAt: now, clarifiedAt: now, touchedAt: now })
+  await db.actions.update(actionId, {
+    status: 'done',
+    completedAt: now,
+    clarifiedAt: now,
+    touchedAt: now,
+    previousStatus: 'inbox',
+  })
 }
 
 export async function trashItem(actionId: string) {
@@ -177,11 +183,31 @@ export async function createProject(opts: {
 
 export async function completeAction(actionId: string) {
   const now = Date.now()
-  await db.actions.update(actionId, { status: 'done', completedAt: now, touchedAt: now })
+  const current = await db.actions.get(actionId)
+  await db.actions.update(actionId, {
+    status: 'done',
+    completedAt: now,
+    touchedAt: now,
+    previousStatus: current?.status,
+  })
 }
 
-export async function reopenAction(actionId: string, status: ActionStatus = 'next') {
-  await db.actions.update(actionId, { status, completedAt: undefined, touchedAt: Date.now() })
+/**
+ * Reopen a done action. With no explicit status, restores whatever status it had right before
+ * completion (falling back to 'next' for older records that predate previousStatus tracking).
+ */
+export async function reopenAction(actionId: string, status?: ActionStatus) {
+  let resolvedStatus = status
+  if (!resolvedStatus) {
+    const current = await db.actions.get(actionId)
+    resolvedStatus = current?.previousStatus ?? 'next'
+  }
+  await db.actions.update(actionId, {
+    status: resolvedStatus,
+    completedAt: undefined,
+    previousStatus: undefined,
+    touchedAt: Date.now(),
+  })
 }
 
 export async function updateAction(actionId: string, changes: Partial<Action>) {

@@ -94,6 +94,8 @@ export interface Action {
   createdAt: number
   clarifiedAt?: number
   completedAt?: number
+  /** The status this action had right before it was marked done — lets reopening restore it precisely instead of defaulting to Next. */
+  previousStatus?: ActionStatus
   /** Last time this action's status or fields changed — drives the Dashboard's stale Next Actions section. */
   touchedAt?: number
   /** Start-of-day timestamp if pinned as one of today's Big Three. Stops applying once the day changes — no explicit reset needed. */

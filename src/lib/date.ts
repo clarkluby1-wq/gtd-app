@@ -4,8 +4,12 @@ export function parseLocalDate(dateStr: string): number {
   return new Date(year, month - 1, day).getTime()
 }
 
-export function startOfToday(): number {
-  const d = new Date()
+export function startOfDay(timestamp: number): number {
+  const d = new Date(timestamp)
   d.setHours(0, 0, 0, 0)
   return d.getTime()
+}
+
+export function startOfToday(): number {
+  return startOfDay(Date.now())
 }

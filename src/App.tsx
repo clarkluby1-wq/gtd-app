@@ -7,6 +7,7 @@ import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
+import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { InboxView } from './views/InboxView'
 import { NextActionsView } from './views/NextActionsView'
 import { ProjectsView } from './views/ProjectsView'
@@ -56,6 +57,9 @@ function App() {
             onViewNextActions={() => selectView('next')}
           />
         )
+        break
+      case 'completed':
+        content = <RecentlyCompletedView onOpenProject={openProject} />
         break
       case 'inbox':
         content = <InboxView />

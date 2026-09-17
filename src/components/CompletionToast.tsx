@@ -31,7 +31,7 @@ export function CompletionToast({
 
   /** Marked done by mistake — put it back exactly where it was and close the toast. */
   const undo = () => {
-    void reopenAction(completedAction.id, completedAction.status)
+    void reopenAction(completedAction.id)
     onDismiss()
   }
 
