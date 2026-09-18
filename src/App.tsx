@@ -9,6 +9,7 @@ import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { InboxView } from './views/InboxView'
+import { SearchView } from './views/SearchView'
 import { NextActionsView } from './views/NextActionsView'
 import { WhatNowView } from './views/WhatNowView'
 import { ProjectsView } from './views/ProjectsView'
@@ -30,9 +31,24 @@ function App() {
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [showMindSweep, setShowMindSweep] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocusTick, setSearchFocusTick] = useState(0)
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setOpenProjectId(null)
+        setView('search')
+        setSearchFocusTick((t) => t + 1)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   const openProject = (id: string) => {
@@ -50,6 +66,17 @@ function App() {
     content = <ProjectDetailView projectId={openProjectId} onBack={() => setOpenProjectId(null)} />
   } else {
     switch (view) {
+      case 'search':
+        content = (
+          <SearchView
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            focusTick={searchFocusTick}
+            onOpenProject={openProject}
+            onNavigate={selectView}
+          />
+        )
+        break
       case 'dashboard':
         content = (
           <DashboardView

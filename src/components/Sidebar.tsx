@@ -5,6 +5,7 @@ import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
+  | 'search'
   | 'dashboard'
   | 'completed'
   | 'inbox'
@@ -23,7 +24,11 @@ export type ViewKey =
   | 'review'
   | 'settings'
 
-const MAIN_NAV: { key: ViewKey; label: string; icon: string }[] = [
+const SEARCH_SHORTCUT =
+  typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl K'
+
+const MAIN_NAV: { key: ViewKey; label: string; icon: string; extra?: string }[] = [
+  { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT },
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'completed', label: 'Recently Completed', icon: '☑️' },
@@ -104,7 +109,7 @@ export function Sidebar({
   return (
     <nav className="flex h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200">
       <div className="mb-4 px-2 text-lg font-semibold tracking-tight text-white">GTD</div>
-      {MAIN_NAV.map((n) => item(n.key, n.label, n.icon))}
+      {MAIN_NAV.map((n) => item(n.key, n.label, n.icon, n.extra))}
 
       <div className="mt-4 flex items-center justify-between px-3 py-1">
         <button
