@@ -16,7 +16,15 @@ const NEW_ACTION_TYPES: { key: NewActionType; label: string; status: ActionStatu
   { key: 'scheduled', label: 'Scheduled', status: 'scheduled', placeholder: 'What needs to happen on a specific day?' },
 ]
 
-export function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: () => void }) {
+export function ProjectDetailView({
+  projectId,
+  onBack,
+  onOpenGoal,
+}: {
+  projectId: string
+  onBack: () => void
+  onOpenGoal: (goalId: string) => void
+}) {
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId])
   const actions = useLiveQuery(() => db.actions.where('projectId').equals(projectId).sortBy('createdAt'), [
     projectId,
@@ -198,8 +206,21 @@ export function ProjectDetailView({ projectId, onBack }: { projectId: string; on
 
       {(linkedGoal || linkedVision) && (
         <div className="mb-4 flex flex-wrap items-center gap-1 text-xs text-neutral-500">
-          <span>↳ ladders up to:</span>
-          {linkedGoal && <span className="text-amber-300">🎯 {linkedGoal.title}</span>}
+          {linkedGoal ? (
+            <button
+              onClick={() => onOpenGoal(linkedGoal.id)}
+              title="Open this goal to edit it"
+              className="group flex items-center gap-1 text-left"
+            >
+              <span>↳ ladders up to:</span>
+              <span className="text-amber-300 group-hover:underline">🎯 {linkedGoal.title}</span>
+              <span className="text-neutral-600" aria-hidden>
+                ✏️
+              </span>
+            </button>
+          ) : (
+            <span>↳ ladders up to:</span>
+          )}
           {linkedVision && <span className="text-neutral-400">→ 🔭 {linkedVision.statement.slice(0, 40)}…</span>}
         </div>
       )}

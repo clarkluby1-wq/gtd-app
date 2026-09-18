@@ -31,6 +31,8 @@ function App() {
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [showMindSweep, setShowMindSweep] = useState(false)
+  const [editGoalId, setEditGoalId] = useState<string | null>(null)
+  const [goalReturnProjectId, setGoalReturnProjectId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocusTick, setSearchFocusTick] = useState(0)
 
@@ -53,17 +55,34 @@ function App() {
 
   const openProject = (id: string) => {
     setOpenProjectId(id)
+    setEditGoalId(null)
+    setGoalReturnProjectId(null)
     setView('projects')
+  }
+
+  const openGoal = (goalId: string, fromProjectId: string) => {
+    setOpenProjectId(null)
+    setEditGoalId(goalId)
+    setGoalReturnProjectId(fromProjectId)
+    setView('goals')
   }
 
   const selectView = (v: ViewKey) => {
     setOpenProjectId(null)
+    setEditGoalId(null)
+    setGoalReturnProjectId(null)
     setView(v)
   }
 
   let content: ReactNode
   if (view === 'projects' && openProjectId) {
-    content = <ProjectDetailView projectId={openProjectId} onBack={() => setOpenProjectId(null)} />
+    content = (
+      <ProjectDetailView
+        projectId={openProjectId}
+        onBack={() => setOpenProjectId(null)}
+        onOpenGoal={(goalId) => openGoal(goalId, openProjectId)}
+      />
+    )
   } else {
     switch (view) {
       case 'search':
@@ -120,7 +139,12 @@ function App() {
         content = <VisionView />
         break
       case 'goals':
-        content = <GoalsView />
+        content = (
+          <GoalsView
+            editGoalId={editGoalId}
+            onBackToProject={goalReturnProjectId ? () => openProject(goalReturnProjectId) : undefined}
+          />
+        )
         break
       case 'areas':
         content = <AreasOfFocusView onOpenProject={openProject} />
