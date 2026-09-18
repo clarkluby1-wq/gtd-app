@@ -9,9 +9,11 @@ Local-first: all data lives in the browser's IndexedDB (via Dexie). No server, n
 ## Workflow implemented
 
 - **Capture** — a persistent quick-add bar dumps anything into the Inbox.
-- **Clarify** — process each inbox item through the standard decision tree: actionable?
-  the 2-minute rule, delegate vs. do it yourself, single action vs. project, date-specific
-  vs. next time you get to it, or file as Reference.
+- **Clarify** — process each inbox item through the standard decision tree. Actionable?
+  If not: trash, Someday/Maybe, Reference, or Waiting For. If so: one step, or a project
+  (outcome plus its very next action)? Then the next action — the item itself, or the
+  project's first — gets one choice: do it now (under 2 minutes), someone else does it
+  (Waiting For), a specific day (Calendar), or next time you get to it (Next Actions).
 - **Organize** — Next Actions (by context/energy/time), Projects (with a defined outcome
   and linked actions), Waiting For, Someday/Maybe, Calendar, Reference.
 - **Engage** — filter Next Actions by context, energy, and time available.

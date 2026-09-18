@@ -10,9 +10,11 @@ import {
   doItNow,
   sendToSomeday,
   trashItem,
+  type FirstActionSpec,
 } from '../db/operations'
-import type { Action, EnergyLevel, Project } from '../db/types'
+import type { Action, EnergyLevel, Project, ProjectStatus } from '../db/types'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
+import { useCompletionToast } from '../lib/completionToastContext'
 import { parseLocalDate } from '../lib/date'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -46,24 +48,38 @@ function rememberContextId(id: string | undefined) {
 type Step =
   | 'actionable'
   | 'notActionable'
-  | 'twoMinute'
+  | 'singleOrProject'
+  | 'defineProject'
+  | 'howDone'
   | 'doingItNow'
   | 'delegate'
-  | 'singleOrProject'
-  | 'dateSpecific'
+  | 'schedule'
   | 'assignNextAction'
-  | 'defineProject'
 
-const STEP_QUESTION: Record<Step, string> = {
-  actionable: 'Is it actionable — does it require you to do something?',
-  notActionable: "It's not actionable. What should happen to it?",
-  twoMinute: 'Will doing it take less than two minutes?',
-  doingItNow: 'Go do it now — mark it done when you actually finish.',
-  delegate: 'Are you the right person to do this?',
-  singleOrProject: 'Can it be done in one step, or does it need more than one action?',
-  dateSpecific: 'Does this need to happen on a specific day, or is it just the next time you get to it?',
-  assignNextAction: 'Anything that will help you pick this up later? All optional.',
-  defineProject: 'Define the project.',
+/** The steps that clarify one next action — the item itself, or a new project's first action. */
+const ACTION_STEPS: Step[] = ['howDone', 'doingItNow', 'delegate', 'schedule', 'assignNextAction']
+
+function stepQuestion(step: Step, isProject: boolean): string {
+  switch (step) {
+    case 'actionable':
+      return 'Is it actionable — does it require you to do something?'
+    case 'notActionable':
+      return "It's not actionable. What should happen to it?"
+    case 'singleOrProject':
+      return 'Can it be done in one step, or does it need more than one action?'
+    case 'defineProject':
+      return 'Define the project and its very next action.'
+    case 'howDone':
+      return isProject ? 'How will that first action get done?' : 'How will this get done?'
+    case 'doingItNow':
+      return 'Go do it now — mark it done when you actually finish.'
+    case 'delegate':
+      return "Who's going to do it?"
+    case 'schedule':
+      return 'Which day does it need to happen?'
+    case 'assignNextAction':
+      return 'Anything that will help you pick this up later? All optional.'
+  }
 }
 
 const TWO_MINUTES = 120
@@ -76,6 +92,9 @@ function formatCountdown(seconds: number) {
 
 export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => void }) {
   const [step, setStep] = useState<Step>('actionable')
+  const [history, setHistory] = useState<Step[]>([])
+  const [kind, setKind] = useState<'single' | 'project'>('single')
+  const { notify } = useCompletionToast()
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
@@ -98,6 +117,11 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [secondsLeft, setSecondsLeft] = useState(TWO_MINUTES)
   const [paused, setPaused] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const submittingRef = useRef(false)
+
+  const isProject = kind === 'project'
+  /** What the action steps are about: the item itself, or the project's first action. */
+  const actionTitle = isProject ? firstActionTitle.trim() : item.title
 
   // A remembered context may have been deleted since; never save (or show) one that no longer exists.
   const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
@@ -108,10 +132,47 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   }
   const projectTitleOf = (id?: string) => projects?.find((p) => p.id === id)?.title
 
-  const finish = async (action: () => Promise<unknown>) => {
-    await action()
-    onClose()
+  const go = (next: Step) => {
+    setHistory((h) => [...h, step])
+    setStep(next)
   }
+
+  const goBack = () => {
+    const previous = history[history.length - 1]
+    if (!previous) return
+    stopInterval()
+    setStep(previous)
+    setHistory(history.slice(0, -1))
+  }
+
+  const restart = () => {
+    stopInterval()
+    setStep('actionable')
+    setHistory([])
+  }
+
+  /** Runs a save once, then closes. The guard stops a double-click from creating a project twice. */
+  const finish = async (action: () => Promise<unknown>) => {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    try {
+      await action()
+      onClose()
+    } catch (err) {
+      submittingRef.current = false
+      throw err
+    }
+  }
+
+  const saveProject = (status: ProjectStatus, firstAction?: FirstActionSpec) =>
+    clarifyAsProject(item.id, {
+      title: projectTitle.trim(),
+      outcome: outcome.trim(),
+      areaOfFocusId,
+      goalId,
+      status,
+      firstAction,
+    })
 
   const stopInterval = () => {
     if (intervalRef.current) {
@@ -130,7 +191,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const startTimer = () => {
     setSecondsLeft(TWO_MINUTES)
     setPaused(false)
-    setStep('doingItNow')
+    go('doingItNow')
     runInterval()
   }
 
@@ -145,12 +206,63 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   }
 
   const markDoneNow = (from: Element) => {
-    void celebrateCompletion(item, from)
-    void finish(() => doItNow(item.id))
+    if (!isProject) {
+      void celebrateCompletion(item, from)
+      void finish(() => doItNow(item.id))
+      return
+    }
+    // A project needs a next action, so the completion toast asks "what's next?" and can close it out.
+    void finish(async () => {
+      const { firstAction } = await saveProject('active', { title: actionTitle, status: 'done' })
+      if (firstAction) {
+        notify(firstAction)
+        void celebrateCompletion(firstAction, from)
+      }
+    })
   }
 
   /** Not confirmed done at the 2-minute mark — don't lose it, just route it into the normal system. */
-  const sendToNextActions = () => finish(() => clarifyAsNextAction(item.id, {}))
+  const sendToNextActions = () =>
+    finish(() =>
+      isProject ? saveProject('active', { title: actionTitle, status: 'next' }) : clarifyAsNextAction(item.id, {}),
+    )
+
+  const confirmDelegate = () =>
+    finish(() =>
+      isProject
+        ? saveProject('active', { title: actionTitle, status: 'waiting', waitingOn: waitingOn.trim() })
+        : clarifyAsWaitingFor(item.id, waitingOn.trim(), linkedProjectId),
+    )
+
+  /** Undecided who does it: park the whole thing. On a project, the typed first action stays inside it. */
+  const notSureWhoDoesIt = () =>
+    finish(() => (isProject ? saveProject('someday', { title: actionTitle, status: 'someday' }) : sendToSomeday(item.id)))
+
+  const confirmSchedule = () =>
+    finish(() =>
+      isProject
+        ? saveProject('active', {
+            title: actionTitle,
+            status: 'scheduled',
+            scheduledDate: parseLocalDate(scheduledDate),
+          })
+        : clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId),
+    )
+
+  const confirmNextAction = () => {
+    rememberContextId(activeContextId)
+    const details = {
+      contextId: activeContextId,
+      energy,
+      timeEstimateMin,
+      dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
+    }
+    void finish(() =>
+      isProject
+        ? saveProject('active', { title: actionTitle, status: 'next', ...details })
+        : clarifyAsNextAction(item.id, { ...details, projectId: linkedProjectId }),
+    )
+  }
 
   useEffect(() => {
     return () => stopInterval()
@@ -160,364 +272,357 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
     if (secondsLeft === 0) stopInterval()
   }, [secondsLeft])
 
+  const projectNote = (where: string) =>
+    isProject ? (
+      <p className="text-xs text-neutral-600">
+        Creates the project “{projectTitle.trim()}” and puts its first action {where}.
+      </p>
+    ) : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 shadow-xl">
         <div className="border-b border-neutral-800 px-5 py-3">
           <div className="text-xs uppercase tracking-wide text-neutral-500">Clarify</div>
           <div className="mt-1 text-lg font-medium">{item.title}</div>
+          {isProject && ACTION_STEPS.includes(step) && (
+            <div className="mt-1 text-xs text-neutral-500">
+              First action: <span className="text-neutral-300">{actionTitle}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
-        <div className="mb-4 text-sm text-neutral-400">{STEP_QUESTION[step]}</div>
+          <div className="mb-4 text-sm text-neutral-400">{stepQuestion(step, isProject)}</div>
 
-        {step === 'actionable' && (
-          <div className="flex gap-2">
-            <Btn onClick={() => setStep('notActionable')}>No</Btn>
-            <Btn primary onClick={() => setStep('twoMinute')}>
-              Yes
-            </Btn>
-          </div>
-        )}
-
-        {step === 'notActionable' && (
-          <div className="flex flex-col gap-2">
-            <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
-            <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
-            <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title: item.title }))}>
-              📎 File as Reference
-            </Btn>
-            <div className="my-1 text-center text-xs text-neutral-600">
-              — or already waiting on someone for this? —
-            </div>
-            <input
-              value={waitingOn}
-              onChange={(e) => setWaitingOn(e.target.value)}
-              placeholder="Who is it waiting on?"
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-            <Btn
-              disabled={!waitingOn.trim()}
-              onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim()))}
-            >
-              ⏳ Confirm — Waiting For {waitingOn.trim() || '…'}
-            </Btn>
-          </div>
-        )}
-
-        {step === 'twoMinute' && (
-          <div className="flex gap-2">
-            <Btn primary onClick={startTimer}>
-              Yes — do it now
-            </Btn>
-            <Btn onClick={() => setStep('delegate')}>No</Btn>
-          </div>
-        )}
-
-        {step === 'doingItNow' && (
-          <div className="flex flex-col items-center gap-4 py-2">
-            <div
-              className={`text-5xl font-semibold tabular-nums ${
-                secondsLeft === 0 ? 'text-amber-400' : paused ? 'text-neutral-500' : 'text-emerald-400'
-              }`}
-            >
-              {formatCountdown(secondsLeft)}
-            </div>
-
-            {secondsLeft > 0 ? (
-              <>
-                <p className="text-center text-xs text-neutral-500">
-                  {paused ? "Paused — resume when you're back on it." : 'Go do it — this stays open until you mark it done.'}
-                </p>
-                <div className="flex w-full gap-2">
-                  <Btn onClick={togglePause}>{paused ? '▶ Resume' : '⏸ Pause'}</Btn>
-                  <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
-                    ✓ Mark Done
-                  </Btn>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-center text-xs text-neutral-500">Time's up — did you finish it?</p>
-                <div className="flex w-full gap-2">
-                  <Btn onClick={sendToNextActions}>Not yet → Next Actions</Btn>
-                  <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
-                    ✓ Yes, it's done
-                  </Btn>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {step === 'delegate' && (
-          <div className="flex flex-col gap-3">
-            <Btn onClick={() => setStep('singleOrProject')}>Yes, I'll do it myself</Btn>
-            <Btn onClick={() => finish(() => sendToSomeday(item.id))}>Not sure yet — decide later</Btn>
-            <div className="my-1 text-center text-xs text-neutral-600">— or delegate it —</div>
-            <input
-              value={waitingOn}
-              onChange={(e) => setWaitingOn(e.target.value)}
-              placeholder="Who is it delegated to?"
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-            <MoreOptions summary={projectTitleOf(linkedProjectId)}>
-              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
-            </MoreOptions>
-            <Btn
-              primary
-              disabled={!waitingOn.trim()}
-              onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim(), linkedProjectId))}
-            >
-              Confirm — Waiting For {waitingOn.trim() || '…'}
-            </Btn>
-          </div>
-        )}
-
-        {step === 'singleOrProject' && (
-          <div className="flex gap-2">
-            <Btn primary onClick={() => setStep('dateSpecific')}>
-              One step
-            </Btn>
-            <Btn onClick={() => setStep('defineProject')}>Multiple steps (project)</Btn>
-          </div>
-        )}
-
-        {step === 'dateSpecific' && (
-          <div className="flex flex-col gap-3">
-            <Btn onClick={() => setStep('assignNextAction')}>Next time I get to it</Btn>
-            <div className="my-1 text-center text-xs text-neutral-600">— or schedule it —</div>
-            <input
-              type="date"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-            <MoreOptions summary={projectTitleOf(linkedProjectId)}>
-              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
-            </MoreOptions>
-            <Btn
-              primary
-              disabled={!scheduledDate}
-              onClick={() =>
-                finish(() => clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId))
-              }
-            >
-              Confirm — schedule for {scheduledDate || '…'}
-            </Btn>
-          </div>
-        )}
-
-        {step === 'assignNextAction' && (
-          <div className="flex flex-col gap-3">
-            <label className="text-xs text-neutral-500">Context</label>
-            <select
-              value={activeContextId ?? ''}
-              onChange={(e) => pickContext(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">No context</option>
-              {contexts?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {contextIsRemembered && (
-              <p className="-mt-2 text-xs text-neutral-600">Same as your last item — change it if this one's different.</p>
-            )}
-
-            <label className="text-xs text-neutral-500">Energy needed</label>
+          {step === 'actionable' && (
             <div className="flex gap-2">
-              {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (
-                <Btn key={e} primary={energy === e} onClick={() => setEnergy(energy === e ? undefined : e)}>
-                  {e}
-                </Btn>
-              ))}
+              <Btn onClick={() => go('notActionable')}>No</Btn>
+              <Btn primary onClick={() => go('singleOrProject')}>
+                Yes
+              </Btn>
             </div>
+          )}
 
-            <label className="text-xs text-neutral-500">Time needed</label>
-            <div className="flex gap-2">
-              {TIME_CHIPS.map((t) => (
-                <Btn
-                  key={t.minutes}
-                  primary={timeEstimateMin === t.minutes}
-                  onClick={() => setTimeEstimateMin(timeEstimateMin === t.minutes ? undefined : t.minutes)}
-                >
-                  {t.label}
-                </Btn>
-              ))}
-            </div>
-
-            <MoreOptions
-              summary={[dueDate && `due ${dueDate}`, projectTitleOf(linkedProjectId)].filter(Boolean).join(', ')}
-            >
-              <label className="text-xs text-neutral-500">Due date (optional — a real deadline)</label>
+          {step === 'notActionable' && (
+            <div className="flex flex-col gap-2">
+              <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
+              <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
+              <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title: item.title }))}>
+                📎 File as Reference
+              </Btn>
+              <div className="my-1 text-center text-xs text-neutral-600">
+                — or already waiting on someone for this? —
+              </div>
               <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                value={waitingOn}
+                onChange={(e) => setWaitingOn(e.target.value)}
+                placeholder="Who is it waiting on?"
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
-              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
-            </MoreOptions>
-
-            <Btn
-              primary
-              onClick={() => {
-                rememberContextId(activeContextId)
-                void finish(() =>
-                  clarifyAsNextAction(item.id, {
-                    contextId: activeContextId,
-                    energy,
-                    timeEstimateMin,
-                    dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
-                    projectId: linkedProjectId,
-                  }),
-                )
-              }}
-            >
-              Add to Next Actions
-            </Btn>
-          </div>
-        )}
-
-        {step === 'defineProject' && (
-          <div className="flex flex-col gap-3">
-            <label className="text-xs text-neutral-500">Project title</label>
-            <input
-              value={projectTitle}
-              onChange={(e) => setProjectTitle(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-            <label className="text-xs text-neutral-500">
-              Outcome — what does "done" look like when this is successfully complete?
-            </label>
-            <textarea
-              value={outcome}
-              onChange={(e) => setOutcome(e.target.value)}
-              rows={2}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-
-            <label className="text-xs text-neutral-500">When do you want to commit to this?</label>
-            <div className="flex gap-2">
-              <Btn primary={projectCommitment === 'now'} onClick={() => setProjectCommitment('now')}>
-                Now
-              </Btn>
-              <Btn primary={projectCommitment === 'someday'} onClick={() => setProjectCommitment('someday')}>
-                Someday / Maybe
+              <Btn
+                disabled={!waitingOn.trim()}
+                onClick={() => finish(() => clarifyAsWaitingFor(item.id, waitingOn.trim()))}
+              >
+                ⏳ Confirm — Waiting For {waitingOn.trim() || '…'}
               </Btn>
             </div>
+          )}
 
-            <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
-            <select
-              value={areaOfFocusId ?? ''}
-              onChange={(e) => {
-                setAreaOfFocusId(e.target.value || undefined)
-                setGoalId(undefined)
-              }}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">None</option>
-              {areas?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            {areaOfFocusId && (
-              <>
-                <label className="text-xs text-neutral-500">Which Goal does this serve? (optional)</label>
-                <select
-                  value={goalId ?? ''}
-                  onChange={(e) => setGoalId(e.target.value || undefined)}
-                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                >
-                  <option value="">None</option>
-                  {goals
-                    ?.filter((g) => g.areaOfFocusId === areaOfFocusId)
-                    .map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.title}
-                      </option>
-                    ))}
-                </select>
-              </>
-            )}
-            {projectCommitment === 'now' ? (
-              <>
-                <label className="text-xs text-neutral-500">
-                  What's the very next physical action to move this forward?
-                </label>
+          {step === 'singleOrProject' && (
+            <div className="flex gap-2">
+              <Btn
+                primary
+                onClick={() => {
+                  setKind('single')
+                  go('howDone')
+                }}
+              >
+                One step
+              </Btn>
+              <Btn
+                onClick={() => {
+                  setKind('project')
+                  go('defineProject')
+                }}
+              >
+                Multiple steps (project)
+              </Btn>
+            </div>
+          )}
+
+          {step === 'defineProject' && (
+            <div className="flex flex-col gap-3">
+              <label className="text-xs text-neutral-500">Project title</label>
+              <input
+                value={projectTitle}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              <label className="text-xs text-neutral-500">
+                Outcome — what does "done" look like when this is successfully complete?
+              </label>
+              <textarea
+                value={outcome}
+                onChange={(e) => setOutcome(e.target.value)}
+                rows={2}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+
+              <label className="text-xs text-neutral-500">When do you want to commit to this?</label>
+              <div className="flex gap-2">
+                <Btn primary={projectCommitment === 'now'} onClick={() => setProjectCommitment('now')}>
+                  Now
+                </Btn>
+                <Btn primary={projectCommitment === 'someday'} onClick={() => setProjectCommitment('someday')}>
+                  Someday / Maybe
+                </Btn>
+              </div>
+
+              <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
+              <select
+                value={areaOfFocusId ?? ''}
+                onChange={(e) => {
+                  setAreaOfFocusId(e.target.value || undefined)
+                  setGoalId(undefined)
+                }}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              >
+                <option value="">None</option>
+                {areas?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              {areaOfFocusId && (
+                <>
+                  <label className="text-xs text-neutral-500">Which Goal does this serve? (optional)</label>
+                  <select
+                    value={goalId ?? ''}
+                    onChange={(e) => setGoalId(e.target.value || undefined)}
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                  >
+                    <option value="">None</option>
+                    {goals
+                      ?.filter((g) => g.areaOfFocusId === areaOfFocusId)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
+                  </select>
+                </>
+              )}
+
+              {projectCommitment === 'now' ? (
+                <>
+                  <label className="text-xs text-neutral-500">
+                    What's the very next physical action to move this forward?
+                  </label>
+                  <input
+                    value={firstActionTitle}
+                    onChange={(e) => setFirstActionTitle(e.target.value)}
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                  />
+                  <Btn
+                    primary
+                    disabled={!projectTitle.trim() || !firstActionTitle.trim()}
+                    onClick={() => go('howDone')}
+                  >
+                    Next →
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-neutral-600">
+                    No next action needed yet — this parks the project on Someday/Maybe until you're ready to plan it.
+                  </p>
+                  <Btn primary disabled={!projectTitle.trim()} onClick={() => finish(() => saveProject('someday'))}>
+                    Park in Someday / Maybe
+                  </Btn>
+                </>
+              )}
+            </div>
+          )}
+
+          {step === 'howDone' && (
+            <div className="flex flex-col gap-2">
+              <Btn onClick={startTimer}>⏱ Do it now — under 2 minutes</Btn>
+              <Btn onClick={() => go('delegate')}>👤 Someone else does it</Btn>
+              <Btn onClick={() => go('schedule')}>📅 On a specific day</Btn>
+              <Btn primary onClick={() => go('assignNextAction')}>
+                ✅ Next time I get to it
+              </Btn>
+            </div>
+          )}
+
+          {step === 'doingItNow' && (
+            <div className="flex flex-col items-center gap-4 py-2">
+              <div
+                className={`text-5xl font-semibold tabular-nums ${
+                  secondsLeft === 0 ? 'text-amber-400' : paused ? 'text-neutral-500' : 'text-emerald-400'
+                }`}
+              >
+                {formatCountdown(secondsLeft)}
+              </div>
+
+              {secondsLeft > 0 ? (
+                <>
+                  <p className="text-center text-xs text-neutral-500">
+                    {paused
+                      ? "Paused — resume when you're back on it."
+                      : 'Go do it — this stays open until you mark it done.'}
+                  </p>
+                  <div className="flex w-full gap-2">
+                    <Btn onClick={togglePause}>{paused ? '▶ Resume' : '⏸ Pause'}</Btn>
+                    <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
+                      ✓ Mark Done
+                    </Btn>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-center text-xs text-neutral-500">Time's up — did you finish it?</p>
+                  <div className="flex w-full gap-2">
+                    <Btn onClick={sendToNextActions}>Not yet → Next Actions</Btn>
+                    <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
+                      ✓ Yes, it's done
+                    </Btn>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {step === 'delegate' && (
+            <div className="flex flex-col gap-3">
+              <input
+                autoFocus
+                value={waitingOn}
+                onChange={(e) => setWaitingOn(e.target.value)}
+                placeholder="Who is it delegated to?"
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              {!isProject && (
+                <MoreOptions summary={projectTitleOf(linkedProjectId)}>
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+                </MoreOptions>
+              )}
+              {projectNote('in Waiting For')}
+              <Btn primary disabled={!waitingOn.trim()} onClick={confirmDelegate}>
+                Confirm — Waiting For {waitingOn.trim() || '…'}
+              </Btn>
+              <div className="my-1 text-center text-xs text-neutral-600">— not sure who'll do it yet? —</div>
+              <Btn onClick={notSureWhoDoesIt}>Not sure yet — decide later</Btn>
+            </div>
+          )}
+
+          {step === 'schedule' && (
+            <div className="flex flex-col gap-3">
+              <input
+                autoFocus
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              {!isProject && (
+                <MoreOptions summary={projectTitleOf(linkedProjectId)}>
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+                </MoreOptions>
+              )}
+              {projectNote('on the Calendar')}
+              <Btn primary disabled={!scheduledDate} onClick={confirmSchedule}>
+                Confirm — schedule for {scheduledDate || '…'}
+              </Btn>
+            </div>
+          )}
+
+          {step === 'assignNextAction' && (
+            <div className="flex flex-col gap-3">
+              <label className="text-xs text-neutral-500">Context</label>
+              <select
+                value={activeContextId ?? ''}
+                onChange={(e) => pickContext(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              >
+                <option value="">No context</option>
+                {contexts?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {contextIsRemembered && (
+                <p className="-mt-2 text-xs text-neutral-600">
+                  Same as your last item — change it if this one's different.
+                </p>
+              )}
+
+              <label className="text-xs text-neutral-500">Energy needed</label>
+              <div className="flex gap-2">
+                {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (
+                  <Btn key={e} primary={energy === e} onClick={() => setEnergy(energy === e ? undefined : e)}>
+                    {e}
+                  </Btn>
+                ))}
+              </div>
+
+              <label className="text-xs text-neutral-500">Time needed</label>
+              <div className="flex gap-2">
+                {TIME_CHIPS.map((t) => (
+                  <Btn
+                    key={t.minutes}
+                    primary={timeEstimateMin === t.minutes}
+                    onClick={() => setTimeEstimateMin(timeEstimateMin === t.minutes ? undefined : t.minutes)}
+                  >
+                    {t.label}
+                  </Btn>
+                ))}
+              </div>
+
+              <MoreOptions
+                summary={[dueDate && `due ${dueDate}`, !isProject && projectTitleOf(linkedProjectId)]
+                  .filter(Boolean)
+                  .join(', ')}
+              >
+                <label className="text-xs text-neutral-500">Due date (optional — a real deadline)</label>
                 <input
-                  value={firstActionTitle}
-                  onChange={(e) => setFirstActionTitle(e.target.value)}
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
                   className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                 />
-                <label className="text-xs text-neutral-500">Context for that action (optional)</label>
-                <select
-                  value={activeContextId ?? ''}
-                  onChange={(e) => pickContext(e.target.value)}
-                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                >
-                  <option value="">No context</option>
-                  {contexts?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                {contextIsRemembered && (
-                  <p className="-mt-2 text-xs text-neutral-600">
-                    Same as your last item — change it if this one's different.
-                  </p>
+                {!isProject && (
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
                 )}
-              </>
-            ) : (
-              <p className="text-xs text-neutral-600">
-                No next action needed yet — this parks the project on Someday/Maybe until you're ready to plan it.
-              </p>
-            )}
-            <Btn
-              primary
-              disabled={!projectTitle.trim() || (projectCommitment === 'now' && !firstActionTitle.trim())}
-              onClick={() => {
-                if (projectCommitment === 'now') rememberContextId(activeContextId)
-                void finish(() =>
-                  clarifyAsProject(item.id, {
-                    title: projectTitle.trim(),
-                    outcome: outcome.trim(),
-                    areaOfFocusId,
-                    goalId,
-                    status: projectCommitment === 'now' ? 'active' : 'someday',
-                    firstActionTitle: projectCommitment === 'now' ? firstActionTitle.trim() : undefined,
-                    contextId: projectCommitment === 'now' ? activeContextId : undefined,
-                  }),
-                )
-              }}
-            >
-              {projectCommitment === 'now' ? 'Create Project' : 'Park in Someday / Maybe'}
-            </Btn>
-          </div>
-        )}
+              </MoreOptions>
+
+              {projectNote('in Next Actions')}
+              <Btn primary onClick={confirmNextAction}>
+                {isProject ? 'Create project' : 'Add to Next Actions'}
+              </Btn>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between border-t border-neutral-800 px-5 py-3">
           <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
             Cancel
           </button>
-          {step !== 'actionable' && (
-            <button
-              onClick={() => {
-                stopInterval()
-                setStep('actionable')
-              }}
-              className="text-xs text-neutral-500 hover:text-neutral-300"
-            >
-              Restart
-            </button>
-          )}
+          <div className="flex gap-4">
+            {history.length > 0 && (
+              <button onClick={goBack} className="text-xs text-neutral-500 hover:text-neutral-300">
+                ← Back
+              </button>
+            )}
+            {step !== 'actionable' && (
+              <button onClick={restart} className="text-xs text-neutral-500 hover:text-neutral-300">
+                Restart
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

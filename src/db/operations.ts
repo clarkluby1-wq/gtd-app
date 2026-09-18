@@ -104,12 +104,26 @@ export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, p
   })
 }
 
+/** A new project's first action, already run through the same checks as any other next action. */
+export interface FirstActionSpec {
+  title: string
+  status: 'next' | 'waiting' | 'scheduled' | 'done' | 'someday'
+  contextId?: string
+  energy?: EnergyLevel
+  timeEstimateMin?: number
+  dueDate?: number
+  waitingOn?: string
+  scheduledDate?: number
+}
+
 /**
  * Clarify into a project: the inbox item becomes the project's definition,
- * and (when given) a fresh next action is created and linked to it.
+ * and (when given) its first action is created and linked to it.
  *
- * `firstActionTitle` is omitted when parking the project on Someday/Maybe —
- * GTD reserves "next action" for things you've actually committed to move on.
+ * The first action can land anywhere a next action can — Next Actions, Waiting For, the Calendar, or
+ * already done (a two-minute first step). It's omitted when parking the project on Someday/Maybe,
+ * since GTD reserves "next action" for things you've actually committed to move on.
+ * One transaction, so a failure can't leave a project without its action or a leftover inbox item.
  */
 export async function clarifyAsProject(
   actionId: string,
@@ -119,8 +133,7 @@ export async function clarifyAsProject(
     areaOfFocusId?: string
     goalId?: string
     status?: ProjectStatus
-    firstActionTitle?: string
-    contextId?: string
+    firstAction?: FirstActionSpec
   },
 ) {
   const now = Date.now()
@@ -134,26 +147,35 @@ export async function clarifyAsProject(
     createdAt: now,
     order: now,
   }
-  await db.projects.add(project)
 
   let firstAction: Action | undefined
-  if (opts.firstActionTitle?.trim()) {
+  const spec = opts.firstAction
+  if (spec?.title.trim()) {
     firstAction = {
       id: uuid(),
-      title: opts.firstActionTitle,
-      status: 'next',
+      title: spec.title.trim(),
+      status: spec.status,
       projectId: project.id,
-      contextId: opts.contextId,
+      contextId: spec.contextId,
+      energy: spec.energy,
+      timeEstimateMin: spec.timeEstimateMin,
+      dueDate: spec.dueDate,
+      waitingOn: spec.waitingOn,
+      scheduledDate: spec.scheduledDate,
       createdAt: now,
       clarifiedAt: now,
       touchedAt: now,
       order: now,
+      ...(spec.status === 'done' ? { completedAt: now, previousStatus: 'next' as const } : {}),
     }
-    await db.actions.add(firstAction)
   }
 
-  // The original inbox capture is now reference material describing the project; remove it.
-  await db.actions.delete(actionId)
+  await db.transaction('rw', db.projects, db.actions, async () => {
+    await db.projects.add(project)
+    if (firstAction) await db.actions.add(firstAction)
+    // The original inbox capture is now reference material describing the project; remove it.
+    await db.actions.delete(actionId)
+  })
 
   return { project, firstAction }
 }
