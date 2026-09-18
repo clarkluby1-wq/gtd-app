@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { db } from '../db/db'
 import {
   clarifyAsNextAction,
@@ -12,6 +12,7 @@ import {
   trashItem,
 } from '../db/operations'
 import type { Action, EnergyLevel } from '../db/types'
+import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { parseLocalDate } from '../lib/date'
 
 type Step =
@@ -105,6 +106,11 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
     }
   }
 
+  const markDoneNow = (from: Element) => {
+    void celebrateCompletion(item, from)
+    void finish(() => doItNow(item.id))
+  }
+
   /** Not confirmed done at the 2-minute mark — don't lose it, just route it into the normal system. */
   const sendToNextActions = () => finish(() => clarifyAsNextAction(item.id, {}))
 
@@ -187,7 +193,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 </p>
                 <div className="flex w-full gap-2">
                   <Btn onClick={togglePause}>{paused ? '▶ Resume' : '⏸ Pause'}</Btn>
-                  <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+                  <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
                     ✓ Mark Done
                   </Btn>
                 </div>
@@ -197,7 +203,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 <p className="text-center text-xs text-neutral-500">Time's up — did you finish it?</p>
                 <div className="flex w-full gap-2">
                   <Btn onClick={sendToNextActions}>Not yet → Next Actions</Btn>
-                  <Btn primary onClick={() => finish(() => doItNow(item.id))}>
+                  <Btn primary onClick={(e) => markDoneNow(e.currentTarget)}>
                     ✓ Yes, it's done
                   </Btn>
                 </div>
@@ -502,7 +508,7 @@ function Btn({
   disabled,
 }: {
   children: ReactNode
-  onClick: () => void
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void
   primary?: boolean
   disabled?: boolean
 }) {

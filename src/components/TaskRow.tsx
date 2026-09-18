@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
+import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { startOfToday } from '../lib/date'
 import type { Action } from '../db/types'
@@ -65,12 +66,13 @@ export function TaskRow({
         </button>
       )}
       <button
-        onClick={() => {
+        onClick={(e) => {
           if (done) {
             reopenAction(action.id)
           } else {
             completeAction(action.id)
             notify(action)
+            void celebrateCompletion(action, e.currentTarget)
           }
         }}
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs transition ${

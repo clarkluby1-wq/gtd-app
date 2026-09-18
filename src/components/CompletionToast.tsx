@@ -1,9 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
-import { createAction, reopenAction } from '../db/operations'
-import { parseLocalDate } from '../lib/date'
+import { completeProject, createAction, reopenAction } from '../db/operations'
+import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
+import { isLastOpenAction } from '../lib/celebrateCompletion'
+import { parseLocalDate, startOfToday } from '../lib/date'
 import type { Action, ActionStatus } from '../db/types'
+
+const PHRASES = ['Nice.', 'One down.', 'Momentum.', 'Progress counts.', "That's a win.", 'Done and dusted.']
 
 type FollowUpType = 'next' | 'waiting' | 'someday' | 'scheduled'
 
@@ -28,6 +32,17 @@ export function CompletionToast({
   const [waitingOn, setWaitingOn] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
+  const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
+  const doneToday = useLiveQuery(() =>
+    db.actions
+      .where('status')
+      .equals('done')
+      .filter((a) => (a.completedAt ?? 0) >= startOfToday())
+      .count(),
+  )
+  const projectFinished = useLiveQuery(() => isLastOpenAction(completedAction), [completedAction.id])
+  const projectId = completedAction.projectId
+  const showAcknowledgement = getCelebrationLevel() !== 'off' && doneToday !== undefined
 
   /** Marked done by mistake — put it back exactly where it was and close the toast. */
   const undo = () => {
@@ -60,8 +75,26 @@ export function CompletionToast({
         </button>
       </div>
 
+      {showAcknowledgement && (
+        <div className="-mt-1 mb-3 text-xs text-neutral-500">
+          {phrase} · {doneToday} done today
+        </div>
+      )}
+
       {!expanded ? (
         <div className="flex flex-col gap-2">
+          {projectFinished && projectId && (
+            <button
+              onClick={(e) => {
+                celebrate(originOf(e.currentTarget), 'big')
+                void completeProject(projectId)
+                onDismiss()
+              }}
+              className="w-full rounded-md bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500 hover:text-neutral-950"
+            >
+              ✓ Nothing else open — mark project complete
+            </button>
+          )}
           <button
             onClick={onDismiss}
             className="w-full rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"

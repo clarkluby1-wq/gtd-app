@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
+import { celebrate, originOf } from '../lib/celebrate'
 import { parseLocalDate } from '../lib/date'
 import type { ActionStatus } from '../db/types'
 
@@ -122,7 +123,10 @@ export function ProjectDetailView({
             </button>
           )}
           <button
-            onClick={() => completeProject(projectId).then(onBack)}
+            onClick={(e) => {
+              celebrate(originOf(e.currentTarget), 'big')
+              void completeProject(projectId).then(onBack)
+            }}
             className="rounded-md bg-emerald-600/20 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-600 hover:text-white"
           >
             Mark complete

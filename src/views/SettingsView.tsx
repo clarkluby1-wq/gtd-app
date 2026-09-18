@@ -1,6 +1,19 @@
 import { useRef, useState } from 'react'
 import { downloadBackup, exportBackup, getLastBackupAt, importBackup } from '../db/backup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import {
+  celebrate,
+  getCelebrationLevel,
+  originOf,
+  setCelebrationLevel,
+  type CelebrationLevel,
+} from '../lib/celebrate'
+
+const CELEBRATION_OPTIONS: { level: CelebrationLevel; label: string; hint: string }[] = [
+  { level: 'full', label: 'Full', hint: 'A small confetti burst on every completion; a big one for milestones.' },
+  { level: 'subtle', label: 'Subtle', hint: 'A quick check pulse on every completion; confetti only for milestones.' },
+  { level: 'off', label: 'Off', hint: 'No effects.' },
+]
 
 function formatRelative(ts: number) {
   const days = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24))
@@ -14,7 +27,14 @@ export function SettingsView() {
   const [importError, setImportError] = useState<string | null>(null)
   const [importedOk, setImportedOk] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [celebration, setCelebration] = useState(getCelebrationLevel())
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const chooseCelebration = (level: CelebrationLevel, from: Element) => {
+    setCelebrationLevel(level)
+    setCelebration(level)
+    celebrate(originOf(from), 'normal')
+  }
 
   const handleExport = async () => {
     const json = await exportBackup()
@@ -41,6 +61,34 @@ export function SettingsView() {
         Everything lives only in this browser. Back up regularly, especially before clearing site data or
         switching browsers/devices.
       </p>
+
+      <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <div className="mb-2 font-medium text-neutral-100">Celebrations</div>
+        <p className="mb-3 text-sm text-neutral-500">
+          A little reward when you finish something. Milestones are clearing today's Big Three or finishing a
+          project's last open step. Stored on this device only, and it respects your system's reduced-motion
+          setting.
+        </p>
+        <div className="flex gap-2">
+          {CELEBRATION_OPTIONS.map((o) => (
+            <button
+              key={o.level}
+              onClick={(e) => chooseCelebration(o.level, e.currentTarget)}
+              title={o.hint}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                celebration === o.level
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-neutral-600">
+          {CELEBRATION_OPTIONS.find((o) => o.level === celebration)?.hint}
+        </p>
+      </div>
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Backup</div>
