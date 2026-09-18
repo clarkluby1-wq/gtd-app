@@ -30,8 +30,9 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
         if (a.projectId && somedayProjectIds.has(a.projectId)) return false
         if (contextId === 'none' && a.contextId) return false
         if (contextId !== 'all' && contextId !== 'none' && a.contextId !== contextId) return false
-        if (energy !== 'all' && a.energy !== energy) return false
-        if (maxTime !== 'all' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
+        // Unset energy/time means "unknown", not "doesn't fit" — an untagged action stays visible.
+        if (energy !== 'all' && a.energy !== undefined && a.energy !== energy) return false
+        if (maxTime !== 'all' && a.timeEstimateMin != null && a.timeEstimateMin > maxTime) return false
         return true
       })
       .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
@@ -87,6 +88,11 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
           <option value="60">≤ 1 hour</option>
         </select>
       </div>
+      {(energy !== 'all' || maxTime !== 'all') && (
+        <p className="-mt-2 mb-4 text-xs text-neutral-600">
+          Actions with no energy or time estimate still show — they might fit.
+        </p>
+      )}
 
       {filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">

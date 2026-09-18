@@ -11,9 +11,37 @@ import {
   sendToSomeday,
   trashItem,
 } from '../db/operations'
-import type { Action, EnergyLevel } from '../db/types'
+import type { Action, EnergyLevel, Project } from '../db/types'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { parseLocalDate } from '../lib/date'
+
+/** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
+const TIME_CHIPS: { minutes: number; label: string }[] = [
+  { minutes: 5, label: '5 min' },
+  { minutes: 15, label: '15 min' },
+  { minutes: 30, label: '30 min' },
+  { minutes: 60, label: '1 hr' },
+]
+
+// Inbox processing usually comes in batches ("ten @computer items in a row"), so the last context is preselected.
+const LAST_CONTEXT_KEY = 'gtd.lastContextId'
+
+function readLastContextId(): string | undefined {
+  try {
+    return localStorage.getItem(LAST_CONTEXT_KEY) || undefined
+  } catch {
+    return undefined
+  }
+}
+
+function rememberContextId(id: string | undefined) {
+  try {
+    if (id) localStorage.setItem(LAST_CONTEXT_KEY, id)
+    else localStorage.removeItem(LAST_CONTEXT_KEY)
+  } catch {
+    // Not remembering is fine; the picker just starts empty next time.
+  }
+}
 
 type Step =
   | 'actionable'
@@ -34,7 +62,7 @@ const STEP_QUESTION: Record<Step, string> = {
   delegate: 'Are you the right person to do this?',
   singleOrProject: 'Can it be done in one step, or does it need more than one action?',
   dateSpecific: 'Does this need to happen on a specific day, or is it just the next time you get to it?',
-  assignNextAction: 'What context and details for this next action?',
+  assignNextAction: 'Anything that will help you pick this up later? All optional.',
   defineProject: 'Define the project.',
 }
 
@@ -53,7 +81,8 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
 
-  const [contextId, setContextId] = useState<string | undefined>()
+  const [contextId, setContextId] = useState<string | undefined>(readLastContextId)
+  const [contextTouched, setContextTouched] = useState(false)
   const [linkedProjectId, setLinkedProjectId] = useState<string | undefined>()
   const [energy, setEnergy] = useState<EnergyLevel | undefined>()
   const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
@@ -69,6 +98,15 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [secondsLeft, setSecondsLeft] = useState(TWO_MINUTES)
   const [paused, setPaused] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // A remembered context may have been deleted since; never save (or show) one that no longer exists.
+  const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
+  const contextIsRemembered = !contextTouched && activeContextId !== undefined
+  const pickContext = (id: string) => {
+    setContextId(id || undefined)
+    setContextTouched(true)
+  }
+  const projectTitleOf = (id?: string) => projects?.find((p) => p.id === id)?.title
 
   const finish = async (action: () => Promise<unknown>) => {
     await action()
@@ -223,19 +261,9 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               placeholder="Who is it delegated to?"
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
-            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
-            <select
-              value={linkedProjectId ?? ''}
-              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">No project</option>
-              {projects?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <MoreOptions summary={projectTitleOf(linkedProjectId)}>
+              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+            </MoreOptions>
             <Btn
               primary
               disabled={!waitingOn.trim()}
@@ -265,19 +293,9 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
               onChange={(e) => setScheduledDate(e.target.value)}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             />
-            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
-            <select
-              value={linkedProjectId ?? ''}
-              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">No project</option>
-              {projects?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <MoreOptions summary={projectTitleOf(linkedProjectId)}>
+              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+            </MoreOptions>
             <Btn
               primary
               disabled={!scheduledDate}
@@ -294,8 +312,8 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
           <div className="flex flex-col gap-3">
             <label className="text-xs text-neutral-500">Context</label>
             <select
-              value={contextId ?? ''}
-              onChange={(e) => setContextId(e.target.value || undefined)}
+              value={activeContextId ?? ''}
+              onChange={(e) => pickContext(e.target.value)}
               className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
             >
               <option value="">No context</option>
@@ -305,60 +323,59 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 </option>
               ))}
             </select>
+            {contextIsRemembered && (
+              <p className="-mt-2 text-xs text-neutral-600">Same as your last item — change it if this one's different.</p>
+            )}
 
-            <label className="text-xs text-neutral-500">Energy required</label>
+            <label className="text-xs text-neutral-500">Energy needed</label>
             <div className="flex gap-2">
               {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (
-                <Btn key={e} primary={energy === e} onClick={() => setEnergy(e)}>
+                <Btn key={e} primary={energy === e} onClick={() => setEnergy(energy === e ? undefined : e)}>
                   {e}
                 </Btn>
               ))}
             </div>
 
-            <label className="text-xs text-neutral-500">Time estimate (minutes)</label>
-            <input
-              type="number"
-              min={0}
-              value={timeEstimateMin ?? ''}
-              onChange={(e) => setTimeEstimateMin(e.target.value ? Number(e.target.value) : undefined)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-
-            <label className="text-xs text-neutral-500">Due date (optional — a real deadline)</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            />
-
-            <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
-            <select
-              value={linkedProjectId ?? ''}
-              onChange={(e) => setLinkedProjectId(e.target.value || undefined)}
-              className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-            >
-              <option value="">No project</option>
-              {projects?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
+            <label className="text-xs text-neutral-500">Time needed</label>
+            <div className="flex gap-2">
+              {TIME_CHIPS.map((t) => (
+                <Btn
+                  key={t.minutes}
+                  primary={timeEstimateMin === t.minutes}
+                  onClick={() => setTimeEstimateMin(timeEstimateMin === t.minutes ? undefined : t.minutes)}
+                >
+                  {t.label}
+                </Btn>
               ))}
-            </select>
+            </div>
+
+            <MoreOptions
+              summary={[dueDate && `due ${dueDate}`, projectTitleOf(linkedProjectId)].filter(Boolean).join(', ')}
+            >
+              <label className="text-xs text-neutral-500">Due date (optional — a real deadline)</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+            </MoreOptions>
 
             <Btn
               primary
-              onClick={() =>
-                finish(() =>
+              onClick={() => {
+                rememberContextId(activeContextId)
+                void finish(() =>
                   clarifyAsNextAction(item.id, {
-                    contextId,
+                    contextId: activeContextId,
                     energy,
                     timeEstimateMin,
                     dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
                     projectId: linkedProjectId,
                   }),
                 )
-              }
+              }}
             >
               Add to Next Actions
             </Btn>
@@ -440,8 +457,8 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                 />
                 <label className="text-xs text-neutral-500">Context for that action (optional)</label>
                 <select
-                  value={contextId ?? ''}
-                  onChange={(e) => setContextId(e.target.value || undefined)}
+                  value={activeContextId ?? ''}
+                  onChange={(e) => pickContext(e.target.value)}
                   className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                 >
                   <option value="">No context</option>
@@ -451,6 +468,11 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     </option>
                   ))}
                 </select>
+                {contextIsRemembered && (
+                  <p className="-mt-2 text-xs text-neutral-600">
+                    Same as your last item — change it if this one's different.
+                  </p>
+                )}
               </>
             ) : (
               <p className="text-xs text-neutral-600">
@@ -460,8 +482,9 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
             <Btn
               primary
               disabled={!projectTitle.trim() || (projectCommitment === 'now' && !firstActionTitle.trim())}
-              onClick={() =>
-                finish(() =>
+              onClick={() => {
+                if (projectCommitment === 'now') rememberContextId(activeContextId)
+                void finish(() =>
                   clarifyAsProject(item.id, {
                     title: projectTitle.trim(),
                     outcome: outcome.trim(),
@@ -469,10 +492,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
                     goalId,
                     status: projectCommitment === 'now' ? 'active' : 'someday',
                     firstActionTitle: projectCommitment === 'now' ? firstActionTitle.trim() : undefined,
-                    contextId: projectCommitment === 'now' ? contextId : undefined,
+                    contextId: projectCommitment === 'now' ? activeContextId : undefined,
                   }),
                 )
-              }
+              }}
             >
               {projectCommitment === 'now' ? 'Create Project' : 'Park in Someday / Maybe'}
             </Btn>
@@ -498,6 +521,52 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
         </div>
       </div>
     </div>
+  )
+}
+
+/** Collapsed by default; if anything inside is already set, it opens and the toggle names what's set so nothing hides silently. */
+function MoreOptions({ summary, children }: { summary?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(!!summary)
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="self-start text-xs text-neutral-500 hover:text-neutral-300"
+      >
+        {open ? '▾' : '▸'} More options
+        {summary && !open ? <span className="text-emerald-500"> · {summary}</span> : null}
+      </button>
+      {open && children}
+    </div>
+  )
+}
+
+function ProjectSelect({
+  value,
+  onChange,
+  projects,
+}: {
+  value: string | undefined
+  onChange: (id: string | undefined) => void
+  projects: Project[] | undefined
+}) {
+  return (
+    <>
+      <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
+      <select
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+      >
+        <option value="">No project</option>
+        {projects?.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.title}
+          </option>
+        ))}
+      </select>
+    </>
   )
 }
 

@@ -62,8 +62,9 @@ export function WhatNowView({
       .filter((a) => {
         if (a.projectId && somedayProjectIds.has(a.projectId)) return false
         if (contextId !== 'any' && a.contextId !== contextId) return false
-        if (energy !== 'any' && a.energy !== energy) return false
-        if (maxTime !== 'any' && (a.timeEstimateMin == null || a.timeEstimateMin > maxTime)) return false
+        // Unset energy/time means "unknown", not "doesn't fit" — an untagged action stays visible.
+        if (energy !== 'any' && a.energy !== undefined && a.energy !== energy) return false
+        if (maxTime !== 'any' && a.timeEstimateMin != null && a.timeEstimateMin > maxTime) return false
         return true
       })
       .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
@@ -175,6 +176,11 @@ export function WhatNowView({
             <RecapPill onClick={() => setStep('time')}>⏱ {timeLabel}</RecapPill>
             <RecapPill onClick={() => setStep('energy')}>⚡ {energyLabel}</RecapPill>
           </div>
+          {(energy !== 'any' || maxTime !== 'any') && (
+            <p className="-mt-2 mb-4 text-xs text-neutral-600">
+              Actions with no energy or time estimate still show — they might fit.
+            </p>
+          )}
 
           {results.length === 0 ? (
             <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
