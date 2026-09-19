@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { db } from '../db/db'
 import { completeProject, createAction, reopenAction } from '../db/operations'
 import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
@@ -21,13 +21,17 @@ const TYPES: { key: FollowUpType; label: string; status: ActionStatus }[] = [
 export function CompletionToast({
   completedAction,
   celebrateOnDismiss,
+  nudgeCount,
   onDismiss,
 }: {
   completedAction: Action
   /** The reward was held back at completion; give it now that the "what's next?" prompt is answered. */
   celebrateOnDismiss: boolean
+  /** How many times someone tried to mark something else done while this card was still open. */
+  nudgeCount: number
   onDismiss: () => void
 }) {
+  const cardRef = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<FollowUpType>('next')
@@ -46,6 +50,28 @@ export function CompletionToast({
   const projectFinished = useLiveQuery(() => isLastOpenAction(completedAction), [completedAction.id])
   const projectId = completedAction.projectId
   const showAcknowledgement = getCelebrationLevel() !== 'off' && doneToday !== undefined
+
+  // A blocked completion attempt shakes the card (or, for reduced motion, flashes its outline) so it's clear why nothing happened.
+  useEffect(() => {
+    if (nudgeCount === 0) return
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    cardRef.current?.animate(
+      calm
+        ? [
+            { boxShadow: '0 0 0 0 rgba(251,191,36,0)' },
+            { boxShadow: '0 0 0 4px rgba(251,191,36,0.8)' },
+            { boxShadow: '0 0 0 0 rgba(251,191,36,0)' },
+          ]
+        : [
+            { transform: 'translateX(0)' },
+            { transform: 'translateX(-7px)' },
+            { transform: 'translateX(7px)' },
+            { transform: 'translateX(-4px)' },
+            { transform: 'translateX(0)' },
+          ],
+      { duration: 320 },
+    )
+  }, [nudgeCount])
 
   /** Marked done by mistake — put it back exactly where it was and close the toast. */
   const undo = () => {
@@ -74,7 +100,10 @@ export function CompletionToast({
   }
 
   return (
-    <div className="w-80 rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-neutral-100 shadow-xl">
+    <div
+      ref={cardRef}
+      className="w-80 rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-neutral-100 shadow-xl"
+    >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="text-sm">
           <span className="text-emerald-400">✓ Done:</span> {completedAction.title}
@@ -88,6 +117,10 @@ export function CompletionToast({
         <div className="-mt-1 mb-3 text-xs text-neutral-500">
           {phrase} · {doneToday} done today
         </div>
+      )}
+
+      {nudgeCount > 0 && (
+        <div className="mb-3 text-xs text-amber-400">Answer this first — then you can mark the next one done.</div>
       )}
 
       {!expanded ? (

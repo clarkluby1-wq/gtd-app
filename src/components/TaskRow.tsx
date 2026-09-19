@@ -46,7 +46,7 @@ export function TaskRow({
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const { notify } = useCompletionToast()
+  const { notify, blocked, nudge } = useCompletionToast()
 
   const done = action.status === 'done'
   const pinnedToday = action.bigThreeDate === startOfToday()
@@ -69,14 +69,21 @@ export function TaskRow({
         onClick={(e) => {
           if (done) {
             reopenAction(action.id)
+          } else if (blocked) {
+            nudge()
           } else {
             completeAction(action.id)
             notify(action)
             void celebrateCompletion(action, e.currentTarget)
           }
         }}
+        title={!done && blocked ? 'Answer the "what\'s next?" card first' : undefined}
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs transition ${
-          done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-neutral-600 hover:border-emerald-500'
+          done
+            ? 'border-emerald-500 bg-emerald-500 text-white'
+            : blocked
+              ? 'border-neutral-700 opacity-40'
+              : 'border-neutral-600 hover:border-emerald-500'
         }`}
       >
         {done ? '✓' : ''}

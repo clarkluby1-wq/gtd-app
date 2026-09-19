@@ -94,7 +94,7 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   const [step, setStep] = useState<Step>('actionable')
   const [history, setHistory] = useState<Step[]>([])
   const [kind, setKind] = useState<'single' | 'project'>('single')
-  const { notify } = useCompletionToast()
+  const { notify, blocked, nudge } = useCompletionToast()
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
@@ -206,6 +206,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
   }
 
   const markDoneNow = (from: Element) => {
+    if (blocked) {
+      nudge()
+      return
+    }
     if (!isProject) {
       void celebrateCompletion(item, from)
       void finish(() => doItNow(item.id))
