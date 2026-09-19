@@ -72,13 +72,9 @@ function InboxRow({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.title)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const { notify, blocked, nudge } = useCompletionToast()
+  const { notify } = useCompletionToast()
 
   const markDone = () => {
-    if (blocked) {
-      nudge()
-      return
-    }
     void doItNow(item.id)
     // The confetti waits for the "what's next?" answer, so the follow-up question gets your full attention first.
     notify(item, { celebrateOnDismiss: true })
@@ -133,16 +129,8 @@ function InboxRow({
       <div className="flex shrink-0 items-center gap-2">
         <button
           onClick={markDone}
-          title={
-            blocked
-              ? 'Answer the "what\'s next?" card first'
-              : 'Already handled this — mark it done without processing'
-          }
-          className={`rounded-md border px-3 py-1 text-xs font-medium ${
-            blocked
-              ? 'border-neutral-800 text-neutral-600 opacity-40'
-              : 'border-emerald-800 text-emerald-400 hover:bg-emerald-600 hover:text-white'
-          }`}
+          title="Already handled this — mark it done without processing"
+          className="rounded-md border border-emerald-800 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-600 hover:text-white"
         >
           ✓ Done
         </button>

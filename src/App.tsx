@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCompletionToast } from './lib/completionToastContext'
 import { Sidebar, type ViewKey } from './components/Sidebar'
 import { CaptureBar } from './components/CaptureBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
@@ -40,17 +41,10 @@ function App() {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
   }, [])
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setOpenProjectId(null)
-        setView('search')
-        setSearchFocusTick((t) => t + 1)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+  const openSearch = useCallback(() => {
+    setOpenProjectId(null)
+    setView('search')
+    setSearchFocusTick((t) => t + 1)
   }, [])
 
   const openProject = (id: string) => {
@@ -163,6 +157,7 @@ function App() {
 
   return (
     <CompletionToastProvider>
+      <SearchHotkey onTrigger={openSearch} />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
           current={view}
@@ -172,12 +167,38 @@ function App() {
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           <CaptureBar />
-          <div className="flex-1 overflow-y-auto">{content}</div>
+          <ContentArea>{content}</ContentArea>
         </div>
         {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
         {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
       </div>
     </CompletionToastProvider>
+  )
+}
+
+/** Ctrl/Cmd+K jumps to Search — except while a "what's next?" card is waiting, when only capture is allowed. */
+function SearchHotkey({ onTrigger }: { onTrigger: () => void }) {
+  const { blocked } = useCompletionToast()
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        if (!blocked) onTrigger()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [blocked, onTrigger])
+  return null
+}
+
+/** `inert` while a card is waiting: no clicks, and no keyboard route in either. */
+function ContentArea({ children }: { children: ReactNode }) {
+  const { blocked } = useCompletionToast()
+  return (
+    <div inert={blocked} className="flex-1 overflow-y-auto">
+      {children}
+    </div>
   )
 }
 

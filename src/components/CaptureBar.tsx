@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react'
 import { captureToInbox } from '../db/operations'
+import { useCompletionToast } from '../lib/completionToastContext'
 
 export function CaptureBar() {
+  const { blocked } = useCompletionToast()
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -19,7 +21,10 @@ export function CaptureBar() {
         e.preventDefault()
         void submit()
       }}
-      className="flex items-center gap-2 border-b border-neutral-800 bg-neutral-900 px-4 py-3"
+      // Capture is the one thing that stays open while a "what's next?" card is waiting, so it sits above the shield.
+      className={`flex items-center gap-2 border-b border-neutral-800 bg-neutral-900 px-4 py-3 ${
+        blocked ? 'relative z-[56]' : ''
+      }`}
     >
       <span className="text-neutral-500">+</span>
       <input

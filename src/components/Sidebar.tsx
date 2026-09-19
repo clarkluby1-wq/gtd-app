@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
+import { useCompletionToast } from '../lib/completionToastContext'
 import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
@@ -64,6 +65,7 @@ export function Sidebar({
   onStartIntake: () => void
   onStartMindSweep: () => void
 }) {
+  const { blocked } = useCompletionToast()
   const [horizonsOpen, setHorizonsOpen] = useState(true)
   const somedayProjectIds = useSomedayProjectIds()
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
@@ -107,7 +109,10 @@ export function Sidebar({
   }
 
   return (
-    <nav className="flex h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200">
+    <nav
+      inert={blocked}
+      className="flex h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200"
+    >
       <div className="mb-4 px-2 text-lg font-semibold tracking-tight text-white">GTD</div>
       {MAIN_NAV.map((n) => item(n.key, n.label, n.icon, n.extra))}
 
