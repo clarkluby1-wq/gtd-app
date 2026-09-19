@@ -2,7 +2,8 @@ import { createContext, useContext } from 'react'
 import type { Action } from '../db/types'
 
 export interface CompletionToastCtx {
-  notify: (action: Action) => void
+  /** `celebrateOnDismiss` holds the confetti until the "what's next?" prompt is answered, instead of firing on completion. */
+  notify: (action: Action, opts?: { celebrateOnDismiss?: boolean }) => void
 }
 
 export const CompletionToastContext = createContext<CompletionToastCtx | null>(null)

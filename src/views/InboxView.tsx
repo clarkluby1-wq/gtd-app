@@ -9,7 +9,6 @@ import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { deleteAction, doItNow, updateAction } from '../db/operations'
-import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
@@ -75,10 +74,10 @@ function InboxRow({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const { notify } = useCompletionToast()
 
-  const markDone = (from: Element) => {
+  const markDone = () => {
     void doItNow(item.id)
-    notify(item)
-    void celebrateCompletion(item, from)
+    // The confetti waits for the "what's next?" answer, so the follow-up question gets your full attention first.
+    notify(item, { celebrateOnDismiss: true })
   }
 
   const save = () => {
@@ -129,7 +128,7 @@ function InboxRow({
 
       <div className="flex shrink-0 items-center gap-2">
         <button
-          onClick={(e) => markDone(e.currentTarget)}
+          onClick={markDone}
           title="Already handled this — mark it done without processing"
           className="rounded-md border border-emerald-800 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-600 hover:text-white"
         >

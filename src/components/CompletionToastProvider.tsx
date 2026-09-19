@@ -1,26 +1,35 @@
 import { useState, type ReactNode } from 'react'
-import { CompletionToastContext } from '../lib/completionToastContext'
+import { CompletionToastContext, type CompletionToastCtx } from '../lib/completionToastContext'
 import { CompletionToast } from './CompletionToast'
 import type { Action } from '../db/types'
 
-export function CompletionToastProvider({ children }: { children: ReactNode }) {
-  const [pending, setPending] = useState<Action[]>([])
+interface PendingToast {
+  action: Action
+  celebrateOnDismiss: boolean
+}
 
-  const notify = (action: Action) => {
-    setPending((prev) => [...prev, action])
+export function CompletionToastProvider({ children }: { children: ReactNode }) {
+  const [pending, setPending] = useState<PendingToast[]>([])
+
+  const notify: CompletionToastCtx['notify'] = (action, opts) => {
+    setPending((prev) => [...prev, { action, celebrateOnDismiss: opts?.celebrateOnDismiss ?? false }])
   }
 
   const dismiss = (id: string) => {
-    setPending((prev) => prev.filter((a) => a.id !== id))
+    setPending((prev) => prev.filter((p) => p.action.id !== id))
   }
 
   return (
     <CompletionToastContext.Provider value={{ notify }}>
       {children}
       <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center gap-2">
-        {pending.map((action) => (
+        {pending.map(({ action, celebrateOnDismiss }) => (
           <div key={action.id} className="pointer-events-auto">
-            <CompletionToast completedAction={action} onDismiss={() => dismiss(action.id)} />
+            <CompletionToast
+              completedAction={action}
+              celebrateOnDismiss={celebrateOnDismiss}
+              onDismiss={() => dismiss(action.id)}
+            />
           </div>
         ))}
       </div>

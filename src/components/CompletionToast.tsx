@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { completeProject, createAction, reopenAction } from '../db/operations'
 import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
-import { isLastOpenAction } from '../lib/celebrateCompletion'
+import { celebrateCompletion, isLastOpenAction } from '../lib/celebrateCompletion'
 import { parseLocalDate, startOfToday } from '../lib/date'
 import type { Action, ActionStatus } from '../db/types'
 
@@ -20,9 +20,12 @@ const TYPES: { key: FollowUpType; label: string; status: ActionStatus }[] = [
 
 export function CompletionToast({
   completedAction,
+  celebrateOnDismiss,
   onDismiss,
 }: {
   completedAction: Action
+  /** The reward was held back at completion; give it now that the "what's next?" prompt is answered. */
+  celebrateOnDismiss: boolean
   onDismiss: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -50,7 +53,13 @@ export function CompletionToast({
     onDismiss()
   }
 
-  const submit = async () => {
+  /** Answering the prompt (any way but Undo) closes the toast, and is when a held-back reward finally fires. */
+  const closeWithReward = (from: Element) => {
+    if (celebrateOnDismiss) void celebrateCompletion(completedAction, from)
+    onDismiss()
+  }
+
+  const submit = async (from: Element) => {
     if (!title.trim()) return
     const status = TYPES.find((t) => t.key === type)!.status
     await createAction({
@@ -61,7 +70,7 @@ export function CompletionToast({
       waitingOn: type === 'waiting' ? waitingOn.trim() || undefined : undefined,
       scheduledDate: type === 'scheduled' && scheduledDate ? parseLocalDate(scheduledDate) : undefined,
     })
-    onDismiss()
+    closeWithReward(from)
   }
 
   return (
@@ -96,7 +105,7 @@ export function CompletionToast({
             </button>
           )}
           <button
-            onClick={onDismiss}
+            onClick={(e) => closeWithReward(e.currentTarget)}
             className="w-full rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
           >
             No Further Action
@@ -166,11 +175,14 @@ export function CompletionToast({
           )}
 
           <div className="flex justify-between pt-1">
-            <button onClick={onDismiss} className="text-xs text-neutral-500 hover:text-neutral-300">
+            <button
+              onClick={(e) => closeWithReward(e.currentTarget)}
+              className="text-xs text-neutral-500 hover:text-neutral-300"
+            >
               Cancel
             </button>
             <button
-              onClick={submit}
+              onClick={(e) => void submit(e.currentTarget)}
               disabled={!title.trim()}
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
             >
