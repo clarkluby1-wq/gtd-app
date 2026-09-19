@@ -8,7 +8,7 @@ import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatShortDate, startOfToday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
-import { lastContactAt, waitingStartedAt } from '../lib/waiting'
+import { needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -22,10 +22,9 @@ function formatDate(ts?: number) {
 function WaitingClock({ action }: { action: Action }) {
   const waited = ageInDays(waitingStartedAt(action))
   const lastFollowUp = action.followUps?.[action.followUps.length - 1]
-  const quiet = ageInDays(lastContactAt(action))
   return (
     <>
-      <span className={quiet > 7 ? 'text-amber-500' : undefined} title={`Waiting since ${formatShortDate(waitingStartedAt(action))}`}>
+      <span className={needsNudge(action) ? 'text-amber-500' : undefined} title={`Waiting since ${formatShortDate(waitingStartedAt(action))}`}>
         waiting {ageLabel(waited)}
       </span>
       {lastFollowUp !== undefined && (
