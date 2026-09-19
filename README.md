@@ -37,6 +37,13 @@ npm install
 npm run dev
 ```
 
+## Publishing
+
+Pushing to `main` builds the app and deploys it to GitHub Pages automatically
+(`.github/workflows/deploy.yml`). The hosted copy is just the static app — everyone who opens it
+gets their own private, empty database in their own browser, so nobody's data is ever shared.
+Use Settings → Download backup to keep a copy of your own data.
+
 ## Ideas for next iterations
 
 - Keyboard-only capture (global shortcut) and command palette
