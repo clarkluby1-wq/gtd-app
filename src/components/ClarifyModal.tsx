@@ -297,10 +297,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
 
           {step === 'actionable' && (
             <div className="flex gap-2">
-              <Btn onClick={() => go('notActionable')}>No</Btn>
               <Btn primary onClick={() => go('singleOrProject')}>
                 Yes
               </Btn>
+              <Btn onClick={() => go('notActionable')}>No</Btn>
             </div>
           )}
 
