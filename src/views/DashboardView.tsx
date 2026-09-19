@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { ageInDays, staleNextActions } from '../lib/staleness'
+import { ageInDays, ageLabel, staleNextActions } from '../lib/staleness'
+import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
 import { startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
@@ -23,12 +24,6 @@ function ageColor(days: number) {
   if (days < 3) return STATUS.good
   if (days <= 7) return STATUS.warning
   return STATUS.critical
-}
-
-function ageLabel(days: number) {
-  if (days === 0) return 'today'
-  if (days === 1) return '1 day'
-  return `${days} days`
 }
 
 const CAPTURE_FILL_CAP = 10
@@ -77,7 +72,7 @@ export function DashboardView({
   const waitingActions = useMemo(() => {
     return (waitingActionsRaw ?? [])
       .filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId))
-      .sort((a, b) => a.createdAt - b.createdAt)
+      .sort((a, b) => lastContactAt(a) - lastContactAt(b))
   }, [waitingActionsRaw, somedayProjectIds])
 
   const staleActions = useMemo(
@@ -502,19 +497,19 @@ function WaitingForAging({ actions, onViewAll }: { actions: Action[]; onViewAll:
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-      <h2 className="mb-3 text-sm font-medium text-neutral-300">Waiting For — oldest first</h2>
+      <h2 className="mb-3 text-sm font-medium text-neutral-300">Waiting For — longest since contact</h2>
 
       {shown.length === 0 && <p className="text-sm text-neutral-500">Nothing pending on anyone else.</p>}
 
       <div className="flex flex-col gap-2">
         {shown.map((a) => {
-          const days = ageInDays(a.createdAt)
+          const days = ageInDays(lastContactAt(a))
           return (
             <div key={a.id} className="flex items-center gap-2 text-sm">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: ageColor(days) }}
-                title={`${ageLabel(days)} old`}
+                title={`${ageLabel(days)} since ${a.followUps?.length ? 'you last followed up' : 'you started waiting'}`}
               />
               <span className="flex-1 truncate text-neutral-200">{a.title}</span>
               {a.waitingOn && <span className="shrink-0 text-neutral-500">on {a.waitingOn}</span>}

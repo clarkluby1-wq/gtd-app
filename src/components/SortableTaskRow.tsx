@@ -1,19 +1,22 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import type { ReactNode } from 'react'
 import { TaskRow } from './TaskRow'
 import type { Action } from '../db/types'
 
 export function SortableTaskRow({
   action,
   showProject,
-  showCreatedDate,
+  showWaitingClock,
+  extraAction,
   showBigThreePin,
   pinnedTodayCount,
   onOpenProject,
 }: {
   action: Action
   showProject?: boolean
-  showCreatedDate?: boolean
+  showWaitingClock?: boolean
+  extraAction?: ReactNode
   showBigThreePin?: boolean
   pinnedTodayCount?: number
   onOpenProject?: (projectId: string) => void
@@ -33,7 +36,8 @@ export function SortableTaskRow({
       <TaskRow
         action={action}
         showProject={showProject}
-        showCreatedDate={showCreatedDate}
+        showWaitingClock={showWaitingClock}
+        extraAction={extraAction}
         dragHandle={{ attributes, listeners }}
         showBigThreePin={showBigThreePin}
         pinnedTodayCount={pinnedTodayCount}

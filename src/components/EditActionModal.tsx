@@ -3,7 +3,21 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
-import { parseLocalDate } from '../lib/date'
+import { formatShortDate, parseLocalDate } from '../lib/date'
+import { waitingStartedAt } from '../lib/waiting'
+
+/** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
+function historyLine(a: Action): string {
+  const parts = [`Added ${formatShortDate(a.createdAt)}`]
+  if (a.status === 'waiting') parts.push(`Waiting since ${formatShortDate(waitingStartedAt(a))}`)
+  const followUps = a.followUps ?? []
+  if (followUps.length) {
+    const shown = followUps.slice(-6).map(formatShortDate).join(', ')
+    parts.push(`Followed up ${followUps.length > 6 ? '… ' : ''}${shown}`)
+  }
+  if (a.completedAt) parts.push(`Done ${formatShortDate(a.completedAt)}`)
+  return parts.join(' · ')
+}
 
 type EditType = 'next' | 'waiting' | 'someday' | 'scheduled'
 
@@ -75,8 +89,9 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="mb-3 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm font-medium outline-none"
+          className="mb-1 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm font-medium outline-none"
         />
+        <div className="mb-3 text-xs text-neutral-500">{historyLine(action)}</div>
 
         <div className="mb-3 flex gap-1">
           {TYPES.map((t) => (

@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
 import { getLastBackupAt } from '../db/backup'
 import { ageInDays, staleNextActions } from '../lib/staleness'
+import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { ViewKey } from '../components/Sidebar'
@@ -39,7 +40,7 @@ const TEMPLATE: TemplateItem[] = [
   },
   { key: 'previous-calendar', phase: 'current', label: "Scan last week's calendar for stray follow-ups" },
   { key: 'upcoming-calendar', phase: 'current', label: 'Scan the upcoming calendar for prep work or conflicts' },
-  { key: 'waiting-for', phase: 'current', label: 'Review Waiting For — follow up on anything overdue' },
+  { key: 'waiting-for', phase: 'current', label: 'Review Waiting For — follow up on anything overdue, then click "Followed up"' },
   { key: 'projects', phase: 'current', label: 'Review every active Project — does each still have a next action?' },
   {
     key: 'someday-maybe',
@@ -202,7 +203,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     [allActions, somedayProjectIds],
   )
   const oldestWaitingDays = waitingActions.length
-    ? Math.max(...waitingActions.map((a) => ageInDays(a.createdAt)))
+    ? Math.max(...waitingActions.map((a) => ageInDays(lastContactAt(a))))
     : null
   const stalledProjects = useMemo(
     () => (activeProjects ?? []).filter((p) => isProjectStalled(p, allActions ?? [])),
@@ -217,7 +218,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     'waiting-for':
       waitingActions.length === 0
         ? 'nothing pending'
-        : `${waitingActions.length} pending · oldest ${oldestWaitingDays}d`,
+        : `${waitingActions.length} pending · longest quiet ${oldestWaitingDays}d`,
     projects:
       (activeProjects?.length ?? 0) === 0
         ? 'no active projects'

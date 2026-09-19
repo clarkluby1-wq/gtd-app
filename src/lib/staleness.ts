@@ -4,6 +4,12 @@ export function ageInDays(timestamp: number) {
   return Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24))
 }
 
+export function ageLabel(days: number) {
+  if (days === 0) return 'today'
+  if (days === 1) return '1 day'
+  return `${days} days`
+}
+
 /** Next Actions untouched (created, edited, or reclarified) for more than 7 days. */
 export function staleNextActions(actions: Action[], somedayProjectIds: Set<string>) {
   return actions

@@ -97,6 +97,7 @@ export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, p
   await db.actions.update(actionId, {
     status: 'waiting',
     waitingOn,
+    waitingSince: now,
     projectId,
     clarifiedAt: now,
     touchedAt: now,
@@ -166,6 +167,7 @@ export async function clarifyAsProject(
       clarifiedAt: now,
       touchedAt: now,
       order: now,
+      ...(spec.status === 'waiting' ? { waitingSince: now } : {}),
       ...(spec.status === 'done' ? { completedAt: now, previousStatus: 'next' as const } : {}),
     }
   }
@@ -242,7 +244,30 @@ export async function reopenAction(actionId: string, status?: ActionStatus) {
 }
 
 export async function updateAction(actionId: string, changes: Partial<Action>) {
-  await db.actions.update(actionId, { ...changes, touchedAt: Date.now() })
+  const now = Date.now()
+  // Only a real move *into* Waiting For starts the follow-up clock — saving an edit to something already waiting must not reset it.
+  const becomingWaiting = changes.status === 'waiting' && (await db.actions.get(actionId))?.status !== 'waiting'
+  await db.actions.update(actionId, { ...changes, ...(becomingWaiting ? { waitingSince: now } : {}), touchedAt: now })
+}
+
+/** Record that you followed up with whoever this is waiting on (a reminder, a nudge, a call). */
+export async function logFollowUp(actionId: string) {
+  const now = Date.now()
+  await db.transaction('rw', db.actions, async () => {
+    const action = await db.actions.get(actionId)
+    if (!action) return
+    await db.actions.update(actionId, { followUps: [...(action.followUps ?? []), now], touchedAt: now })
+  })
+}
+
+/** Take back the most recent follow-up, e.g. logged by mistake. */
+export async function undoLastFollowUp(actionId: string) {
+  await db.transaction('rw', db.actions, async () => {
+    const action = await db.actions.get(actionId)
+    if (!action?.followUps?.length) return
+    const remaining = action.followUps.slice(0, -1)
+    await db.actions.update(actionId, { followUps: remaining.length ? remaining : undefined, touchedAt: Date.now() })
+  })
 }
 
 export async function deleteAction(actionId: string) {
@@ -280,6 +305,7 @@ export async function createAction(opts: {
     clarifiedAt: now,
     touchedAt: now,
     order: now,
+    ...(opts.status === 'waiting' ? { waitingSince: now } : {}),
   }
   await db.actions.add(action)
   return action

@@ -89,6 +89,10 @@ export interface Action {
   timeEstimateMin?: number
   /** Who or what this item is waiting on, when status === 'waiting'. */
   waitingOn?: string
+  /** When this became a Waiting For item — the follow-up clock starts here, not at capture. Older records fall back to clarifiedAt/createdAt. */
+  waitingSince?: number
+  /** Each time you followed up with whoever this is waiting on, oldest first. */
+  followUps?: number[]
   dueDate?: number
   scheduledDate?: number
   createdAt: number

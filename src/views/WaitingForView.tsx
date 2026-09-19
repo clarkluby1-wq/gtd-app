@@ -3,8 +3,10 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { db } from '../db/db'
-import { updateAction } from '../db/operations'
+import { logFollowUp, undoLastFollowUp, updateAction } from '../db/operations'
+import type { Action } from '../db/types'
 import { SortableTaskRow } from '../components/SortableTaskRow'
+import { startOfToday } from '../lib/date'
 import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
@@ -38,11 +40,44 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
         <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col divide-y divide-neutral-900">
             {filtered.map((a) => (
-              <SortableTaskRow key={a.id} action={a} showProject showCreatedDate onOpenProject={onOpenProject} />
+              <SortableTaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showWaitingClock
+                extraAction={<FollowUpControl action={a} />}
+                onOpenProject={onOpenProject}
+              />
             ))}
           </div>
         </SortableContext>
       </DndContext>
     </div>
+  )
+}
+
+/** One click records that you followed up. It's a day-level fact, so once it's logged today it shows as done, with an undo for mistakes. */
+function FollowUpControl({ action }: { action: Action }) {
+  const last = action.followUps?.[action.followUps.length - 1]
+  const followedUpToday = last !== undefined && last >= startOfToday()
+
+  if (followedUpToday) {
+    return (
+      <span className="flex shrink-0 items-center gap-2 text-xs text-emerald-400">
+        ✓ Followed up today
+        <button onClick={() => undoLastFollowUp(action.id)} className="text-neutral-500 hover:text-neutral-300">
+          undo
+        </button>
+      </span>
+    )
+  }
+  return (
+    <button
+      onClick={() => logFollowUp(action.id)}
+      title="Log that you followed up — a reminder, a nudge, a call"
+      className="shrink-0 rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-emerald-600 hover:text-white"
+    >
+      Followed up
+    </button>
   )
 }

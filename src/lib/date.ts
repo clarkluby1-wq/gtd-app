@@ -4,6 +4,13 @@ export function parseLocalDate(dateStr: string): number {
   return new Date(year, month - 1, day).getTime()
 }
 
+/** "Sep 10", or "Sep 10, 2025" when it isn't this year, so an old date is never ambiguous. */
+export function formatShortDate(timestamp: number): string {
+  const d = new Date(timestamp)
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  return d.toLocaleDateString(undefined, sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 /** Format a timestamp as the local "YYYY-MM-DD" an `<input type="date">` expects. */
 export function toDateInputValue(timestamp?: number): string {
   if (timestamp === undefined) return ''

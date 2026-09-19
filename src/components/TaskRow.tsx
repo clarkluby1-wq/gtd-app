@@ -1,12 +1,14 @@
 import type { DraggableAttributes } from '@dnd-kit/core'
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { startOfToday } from '../lib/date'
+import { formatShortDate, startOfToday } from '../lib/date'
+import { ageInDays, ageLabel } from '../lib/staleness'
+import { lastContactAt, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -16,10 +18,30 @@ function formatDate(ts?: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+/** "waiting 9 days · followed up 2 days ago". Turns amber once it's been a week since anyone made contact. */
+function WaitingClock({ action }: { action: Action }) {
+  const waited = ageInDays(waitingStartedAt(action))
+  const lastFollowUp = action.followUps?.[action.followUps.length - 1]
+  const quiet = ageInDays(lastContactAt(action))
+  return (
+    <>
+      <span className={quiet > 7 ? 'text-amber-500' : undefined} title={`Waiting since ${formatShortDate(waitingStartedAt(action))}`}>
+        waiting {ageLabel(waited)}
+      </span>
+      {lastFollowUp !== undefined && (
+        <span title={`Last followed up ${formatShortDate(lastFollowUp)}`}>
+          followed up {ageInDays(lastFollowUp) === 0 ? 'today' : `${ageLabel(ageInDays(lastFollowUp))} ago`}
+        </span>
+      )}
+    </>
+  )
+}
+
 export function TaskRow({
   action,
   showProject,
-  showCreatedDate,
+  showWaitingClock,
+  extraAction,
   dragHandle,
   showBigThreePin,
   pinnedTodayCount,
@@ -27,7 +49,10 @@ export function TaskRow({
 }: {
   action: Action
   showProject?: boolean
-  showCreatedDate?: boolean
+  /** On a Waiting For row: how long the wait has run, and when you last followed up. */
+  showWaitingClock?: boolean
+  /** An extra control shown at the end of the row, before delete. */
+  extraAction?: ReactNode
   /** Passed by a sortable wrapper to enable drag-to-reorder; omit to render no handle. */
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
   /** Show the Big Three pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
@@ -122,7 +147,7 @@ export function TaskRow({
             <span className="text-sky-400">{formatDate(action.scheduledDate)}</span>
           )}
           {action.status === 'waiting' && action.waitingOn && <span>waiting on {action.waitingOn}</span>}
-          {showCreatedDate && <span>captured {formatDate(action.createdAt)}</span>}
+          {showWaitingClock && action.status === 'waiting' && <WaitingClock action={action} />}
           {showProject && project && (
             onOpenProject ? (
               <button
@@ -157,6 +182,8 @@ export function TaskRow({
           </div>
         )}
       </div>
+
+      {extraAction}
 
       <button
         onClick={() => setConfirmingDelete(true)}
