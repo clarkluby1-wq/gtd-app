@@ -7,23 +7,20 @@ import { logFollowUp, undoLastFollowUp, updateAction } from '../db/operations'
 import type { Action } from '../db/types'
 import { SortableTaskRow } from '../components/SortableTaskRow'
 import { TaskRow } from '../components/TaskRow'
-import { startOfToday } from '../lib/date'
 import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { lastContactAt, needsNudge, NUDGE_AFTER_DAYS, waitingStartedAt } from '../lib/waiting'
+import { lastFollowUpAt, needsNudge, NUDGE_AFTER_DAYS, wasFollowedUpToday, waitingStartedAt } from '../lib/waiting'
 
-type SortMode = 'mine' | 'quietest' | 'longest' | 'newest'
+type SortMode = 'mine' | 'longest' | 'newest'
 type GroupMode = 'none' | 'project'
 
 const SORT_OPTIONS: { value: SortMode; label: string; hint: string }[] = [
   { value: 'mine', label: 'Sort: My order', hint: 'Drag the ⠿ handle to reorder.' },
-  { value: 'quietest', label: 'Sort: Quietest first', hint: 'Longest since anyone made contact comes first.' },
   { value: 'longest', label: 'Sort: Waiting longest', hint: 'Handed off the longest ago comes first.' },
   { value: 'newest', label: 'Sort: Most recent', hint: 'Handed off most recently comes first.' },
 ]
 
 const COMPARE: Record<Exclude<SortMode, 'mine'>, (a: Action, b: Action) => number> = {
-  quietest: (a, b) => lastContactAt(a) - lastContactAt(b),
   longest: (a, b) => waitingStartedAt(a) - waitingStartedAt(b),
   newest: (a, b) => waitingStartedAt(b) - waitingStartedAt(a),
 }
@@ -52,6 +49,20 @@ function saveView(view: { sort: SortMode; group: GroupMode }) {
   }
 }
 
+/**
+ * Followed up today = parked at the bottom until tomorrow. This is only how the list is displayed —
+ * the saved order is untouched, so an item snaps back to its own place tomorrow (or the instant you undo).
+ * Parked items are ordered by when you followed up, so the newest lands at the very bottom.
+ */
+function splitParked(items: Action[]) {
+  return {
+    active: items.filter((a) => !wasFollowedUpToday(a)),
+    parked: items
+      .filter(wasFollowedUpToday)
+      .sort((a, b) => (lastFollowUpAt(a) as number) - (lastFollowUpAt(b) as number)),
+  }
+}
+
 export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('waiting').sortBy('order'))
   const projects = useLiveQuery(() => db.projects.toArray())
@@ -75,14 +86,20 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
   const nudgeCount = all.filter(needsNudge).length
 
   const visible = useMemo(() => {
-    const list = nudgeOnly ? all.filter((a) => needsNudge(a) || justFollowedUp.has(a.id)) : all
+    // A row followed up this visit stays (with its undo) — but only while it still counts as followed up today,
+    // so undoing it lets it leave the filter again if it doesn't actually need a nudge.
+    const list = nudgeOnly
+      ? all.filter((a) => needsNudge(a) || (justFollowedUp.has(a.id) && wasFollowedUpToday(a)))
+      : all
     return view.sort === 'mine' ? list : [...list].sort(COMPARE[view.sort])
   }, [all, nudgeOnly, justFollowedUp, view.sort])
 
   const projectTitles = useMemo(() => new Map((projects ?? []).map((p) => [p.id, p.title])), [projects])
 
   const groups = useMemo(() => {
-    if (view.group === 'none') return [{ key: 'all', title: undefined, projectId: undefined, items: visible }]
+    if (view.group === 'none') {
+      return [{ key: 'all', title: undefined, projectId: undefined, ...splitParked(visible) }]
+    }
     const byProject = new Map<string, Action[]>()
     for (const a of visible) {
       const key = a.projectId && projectTitles.has(a.projectId) ? a.projectId : 'none'
@@ -93,20 +110,47 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
         key,
         title: key === 'none' ? 'No project' : (projectTitles.get(key) as string),
         projectId: key === 'none' ? undefined : key,
-        items,
+        ...splitParked(items),
       }))
       .sort((a, b) => (a.key === 'none' ? 1 : b.key === 'none' ? -1 : a.title.localeCompare(b.title)))
   }, [view.group, visible, projectTitles])
 
   // Dragging only makes sense in your own order, with nothing grouped — otherwise the two orders would fight.
+  // It only ever reorders the items not yet followed up today, so a parked row can't distort your saved order.
   const draggable = view.sort === 'mine' && view.group === 'none'
-  const { sensors, handleDragEnd } = useDragReorder(visible, (id, order) => {
+  const activeForDrag = draggable ? (groups[0]?.active ?? []) : []
+  const { sensors, handleDragEnd } = useDragReorder(activeForDrag, (id, order) => {
     void updateAction(id, { order })
   })
 
   const followUp = (a: Action) => (
     <FollowUpControl action={a} onLogged={() => setJustFollowedUp((prev) => new Set(prev).add(a.id))} />
   )
+
+  const plainRows = (items: Action[]) =>
+    items.map((a) => (
+      <TaskRow
+        key={a.id}
+        action={a}
+        showProject={view.group !== 'project'}
+        showWaitingClock
+        extraAction={followUp(a)}
+        onOpenProject={onOpenProject}
+      />
+    ))
+
+  const parkedRows = (parked: Action[]) =>
+    parked.length > 0 && (
+      <div>
+        <div
+          className="px-3 pb-1 pt-4 text-xs text-neutral-500"
+          title="Moved down for today. Back in its place tomorrow — or right away if you undo."
+        >
+          Followed up today · {parked.length}
+        </div>
+        <div className="flex flex-col divide-y divide-neutral-900">{plainRows(parked)}</div>
+      </div>
+    )
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -177,22 +221,25 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
       )}
 
       {draggable ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={visible.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col divide-y divide-neutral-900">
-              {visible.map((a) => (
-                <SortableTaskRow
-                  key={a.id}
-                  action={a}
-                  showProject
-                  showWaitingClock
-                  extraAction={followUp(a)}
-                  onOpenProject={onOpenProject}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={activeForDrag.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col divide-y divide-neutral-900">
+                {activeForDrag.map((a) => (
+                  <SortableTaskRow
+                    key={a.id}
+                    action={a}
+                    showProject
+                    showWaitingClock
+                    extraAction={followUp(a)}
+                    onOpenProject={onOpenProject}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          {parkedRows(groups[0]?.parked ?? [])}
+        </>
       ) : (
         groups.map((g) => (
           <section key={g.key} className="mb-2">
@@ -209,21 +256,11 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
                 ) : (
                   g.title
                 )}
-                <span className="text-neutral-600">{g.items.length}</span>
+                <span className="text-neutral-600">{g.active.length + g.parked.length}</span>
               </h2>
             )}
-            <div className="flex flex-col divide-y divide-neutral-900">
-              {g.items.map((a) => (
-                <TaskRow
-                  key={a.id}
-                  action={a}
-                  showProject={view.group !== 'project'}
-                  showWaitingClock
-                  extraAction={followUp(a)}
-                  onOpenProject={onOpenProject}
-                />
-              ))}
-            </div>
+            <div className="flex flex-col divide-y divide-neutral-900">{plainRows(g.active)}</div>
+            {parkedRows(g.parked)}
           </section>
         ))
       )}
@@ -233,10 +270,7 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
 
 /** One click records that you followed up. It's a day-level fact, so once it's logged today it shows as done, with an undo for mistakes. */
 function FollowUpControl({ action, onLogged }: { action: Action; onLogged: () => void }) {
-  const last = action.followUps?.[action.followUps.length - 1]
-  const followedUpToday = last !== undefined && last >= startOfToday()
-
-  if (followedUpToday) {
+  if (wasFollowedUpToday(action)) {
     return (
       <span className="flex shrink-0 items-center gap-2 text-xs text-emerald-400">
         ✓ Followed up today
