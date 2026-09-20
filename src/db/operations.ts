@@ -296,6 +296,11 @@ export async function deleteAction(actionId: string) {
   await db.actions.delete(actionId)
 }
 
+/** Put back an action exactly as it was — the "Undo" for a delete the user just made. */
+export async function restoreAction(action: Action) {
+  await db.actions.put(action)
+}
+
 /** Add an action to today's Short List. Caller is responsible for enforcing the 3-item cap. */
 export async function pinToBigThree(actionId: string) {
   await db.actions.update(actionId, { bigThreeDate: startOfToday(), touchedAt: Date.now() })

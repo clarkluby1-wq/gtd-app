@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { captureToInbox, deleteAction } from '../db/operations'
+import { captureToInbox, deleteAction, restoreAction } from '../db/operations'
 import type { Action } from '../db/types'
+import { findSweepDuplicates, type SweepDuplicate } from '../lib/sweepDuplicates'
 
 interface MindSweepCategory {
   key: string
@@ -88,10 +89,15 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
   const [categoryIndex, setCategoryIndex] = useState(0)
   const [draft, setDraft] = useState('')
   const [capturedByCategory, setCapturedByCategory] = useState<Record<string, Action[]>>({})
+  // Sweep items that look like something already in the system. Worked out once, when the sweep ends — never while typing.
+  const [lookalikes, setLookalikes] = useState<SweepDuplicate[]>([])
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   const category = CATEGORIES[categoryIndex]
   const captured = capturedByCategory[category?.key] ?? []
   const totalCaptured = Object.values(capturedByCategory).reduce((sum, items) => sum + items.length, 0)
+  // Items removed as duplicates on the last screen no longer count as captured.
+  const keptCount = totalCaptured - removedIds.size
 
   const addItem = () => {
     const title = draft.trim()
@@ -110,9 +116,29 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
     }))
   }
 
-  const goNext = () => {
-    if (categoryIndex < CATEGORIES.length - 1) setCategoryIndex(categoryIndex + 1)
-    else setPhase('done')
+  const goNext = async () => {
+    if (categoryIndex < CATEGORIES.length - 1) {
+      setCategoryIndex(categoryIndex + 1)
+      return
+    }
+    // A failed lookup just means no suggestions; it must never get in the way of finishing.
+    const sweepItems = Object.values(capturedByCategory).flat()
+    setLookalikes(await findSweepDuplicates(sweepItems).catch(() => []))
+    setPhase('done')
+  }
+
+  const removeDuplicate = async (action: Action) => {
+    await deleteAction(action.id)
+    setRemovedIds((prev) => new Set(prev).add(action.id))
+  }
+
+  const undoRemove = async (action: Action) => {
+    await restoreAction(action)
+    setRemovedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(action.id)
+      return next
+    })
   }
 
   const goBack = () => {
@@ -124,7 +150,7 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
       <div className="flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl">
         <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-3">
           <span className="text-xs uppercase tracking-wide text-neutral-500">
-            Mind Sweep{totalCaptured > 0 ? ` · ${totalCaptured} captured` : ''}
+            Mind Sweep{keptCount > 0 ? ` · ${keptCount} captured` : ''}
           </span>
           <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
             Close
@@ -215,9 +241,56 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
               <p className="mb-4 text-sm text-neutral-400">
                 {totalCaptured === 0
                   ? "Nothing surfaced this time — that's fine too, your head was already clear."
-                  : `You captured ${totalCaptured} item${totalCaptured === 1 ? '' : 's'} into your Inbox. Want to sort ${totalCaptured === 1 ? 'it' : 'them'} now, while it's fresh?`}
+                  : keptCount === 0
+                    ? 'Everything you captured was already in your system, so there is nothing new to sort.'
+                    : `You captured ${keptCount} item${keptCount === 1 ? '' : 's'} into your Inbox. Want to sort ${keptCount === 1 ? 'it' : 'them'} now, while it's fresh?`}
               </p>
-              {totalCaptured > 0 ? (
+
+              {lookalikes.length > 0 && (
+                <div className="mb-5 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
+                  <h3 className="mb-1 text-sm font-medium text-neutral-200">
+                    A few of these may already be in your system
+                  </h3>
+                  <p className="mb-2 text-xs text-neutral-500">
+                    Only remove one if it really is the same thing. Otherwise leave it — it will be waiting in your
+                    Inbox.
+                  </p>
+                  <div className="flex flex-col divide-y divide-neutral-800">
+                    {lookalikes.map(({ item, match }) => (
+                      <div key={item.id} className="flex items-start justify-between gap-3 py-2.5">
+                        {removedIds.has(item.id) ? (
+                          <>
+                            <span className="text-sm text-neutral-500">Removed “{item.title}”</span>
+                            <button
+                              onClick={() => void undoRemove(item)}
+                              className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300"
+                            >
+                              Undo
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="min-w-0">
+                              <div className="text-sm text-neutral-100">{item.title}</div>
+                              <div className="mt-0.5 text-xs text-neutral-500">
+                                Looks like: {match.title} <span className="text-neutral-600">({match.label})</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => void removeDuplicate(item)}
+                              className="shrink-0 rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                            >
+                              Already have this — remove mine
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {keptCount > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={onProcessInbox}
@@ -257,7 +330,7 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
               {categoryIndex + 1} / {CATEGORIES.length}
             </span>
             <button
-              onClick={goNext}
+              onClick={() => void goNext()}
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
             >
               {categoryIndex === CATEGORIES.length - 1 ? 'Finish' : 'Next →'}
