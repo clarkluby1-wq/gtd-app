@@ -30,32 +30,73 @@ export type ViewKey =
 const SEARCH_SHORTCUT =
   typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl K'
 
-const MAIN_NAV: { key: ViewKey; label: string; icon: string; extra?: string }[] = [
-  { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT },
+interface NavItem {
+  key: ViewKey
+  label: string
+  icon: string
+  extra?: string
+}
+
+// The menu is grouped by how often it's used: what you do every day, what you keep track of, then two folded-away
+// groups. What Now? isn't listed — it's reached from Next Actions and Start My Day.
+const SEARCH_ITEM: NavItem = { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT }
+
+const DO_NAV: NavItem[] = [
   { key: 'startday', label: 'Start My Day', icon: '☀️' },
-  { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
-  { key: 'completed', label: 'Recently Completed', icon: '☑️' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
-  { key: 'whatnow', label: 'What Now?', icon: '❓' },
-  { key: 'projects', label: 'Projects', icon: '📁' },
-  { key: 'waiting', label: 'Waiting For', icon: '⏳' },
-  { key: 'someday', label: 'Someday / Maybe', icon: '🌙' },
-  { key: 'calendar', label: 'Calendar', icon: '📅' },
-  { key: 'reference', label: 'Reference', icon: '📎' },
 ]
 
-const HORIZONS_NAV: { key: ViewKey; label: string; icon: string; altitude: string }[] = [
+const TRACK_NAV: NavItem[] = [
+  { key: 'projects', label: 'Projects', icon: '📁' },
+  { key: 'waiting', label: 'Waiting For', icon: '⏳' },
+  { key: 'calendar', label: 'Calendar', icon: '📅' },
+  { key: 'someday', label: 'Someday / Maybe', icon: '🌙' },
+]
+
+const REVIEW_NAV: NavItem[] = [
+  { key: 'review', label: 'Weekly Review', icon: '🔄' },
+  { key: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { key: 'completed', label: 'Recently Completed', icon: '☑️' },
+]
+
+const MORE_NAV: NavItem[] = [
+  { key: 'reference', label: 'Reference', icon: '📎' },
+  { key: 'recurring', label: 'Recurring', icon: '🔁' },
+]
+
+const HORIZONS_NAV: (NavItem & { altitude: string })[] = [
   { key: 'purpose', label: 'Purpose & Principles', icon: '🌟', altitude: '50k ft' },
   { key: 'vision', label: 'Vision', icon: '🔭', altitude: '40k ft' },
   { key: 'goals', label: 'Goals', icon: '🎯', altitude: '30k ft' },
   { key: 'areas', label: 'Areas of Focus', icon: '🧭', altitude: '20k ft' },
 ]
 
-const BOTTOM_NAV: { key: ViewKey; label: string; icon: string }[] = [
-  { key: 'recurring', label: 'Recurring', icon: '🔁' },
-  { key: 'review', label: 'Weekly Review', icon: '🔄' },
-]
+const SETTINGS_ITEM: NavItem = { key: 'settings', label: 'Settings', icon: '⚙️' }
+
+const REVIEW_KEYS: ViewKey[] = REVIEW_NAV.map((n) => n.key)
+const MORE_KEYS: ViewKey[] = [...MORE_NAV.map((n) => n.key), ...HORIZONS_NAV.map((n) => n.key), 'settings']
+
+type FoldedGroup = 'review' | 'more'
+const OPEN_KEY = 'gtd.sidebar.open'
+
+/** Which folded groups you left open. Both start closed; a group also shows open whenever you're inside it. */
+function readOpen(): Record<FoldedGroup, boolean> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}')
+    return { review: saved.review === true, more: saved.more === true }
+  } catch {
+    return { review: false, more: false }
+  }
+}
+
+function writeOpen(value: Record<FoldedGroup, boolean>) {
+  try {
+    localStorage.setItem(OPEN_KEY, JSON.stringify(value))
+  } catch {
+    // Not remembering is fine; the groups just start closed next time.
+  }
+}
 
 export function Sidebar({
   current,
@@ -69,7 +110,7 @@ export function Sidebar({
   onStartMindSweep: () => void
 }) {
   const { blocked } = useCompletionToast()
-  const [horizonsOpen, setHorizonsOpen] = useState(true)
+  const [stored, setStored] = useState(readOpen)
   const somedayProjectIds = useSomedayProjectIds()
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
   const nextActions = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
@@ -88,7 +129,14 @@ export function Sidebar({
     return undefined
   }
 
-  const item = (key: ViewKey, label: string, icon: string, extra?: string) => {
+  const isOpen = (group: FoldedGroup, keys: ViewKey[]) => stored[group] || keys.includes(current)
+  const toggle = (group: FoldedGroup) => {
+    const next = { ...stored, [group]: !stored[group] }
+    setStored(next)
+    writeOpen(next)
+  }
+
+  const item = ({ key, label, icon, extra }: NavItem) => {
     const count = badge(key)
     const active = current === key
     return (
@@ -111,38 +159,64 @@ export function Sidebar({
     )
   }
 
+  const label = (text: string) => (
+    <div className="mt-4 px-3 py-1 text-xs font-medium uppercase tracking-wide text-neutral-500">{text}</div>
+  )
+
+  const foldedHeader = (text: string, group: FoldedGroup, open: boolean) => (
+    <button
+      onClick={() => toggle(group)}
+      aria-expanded={open}
+      className="mt-4 flex items-center justify-between px-3 py-1 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 hover:text-neutral-300"
+    >
+      <span>{text}</span>
+      <span>{open ? '▾' : '▸'}</span>
+    </button>
+  )
+
+  const reviewOpen = isOpen('review', REVIEW_KEYS)
+  const moreOpen = isOpen('more', MORE_KEYS)
+
   return (
     <nav
       inert={blocked}
       className="flex h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200"
     >
-      <div className="mb-4 px-2 text-lg font-semibold tracking-tight text-white">GTD</div>
-      {MAIN_NAV.map((n) => item(n.key, n.label, n.icon, n.extra))}
+      <div className="mb-3 px-2 text-lg font-semibold tracking-tight text-white">GTD</div>
+      {item(SEARCH_ITEM)}
 
-      <div className="mt-4 flex items-center justify-between px-3 py-1">
-        <button
-          onClick={() => setHorizonsOpen((v) => !v)}
-          className="text-xs font-medium uppercase tracking-wide text-neutral-500 hover:text-neutral-300"
-        >
-          Horizons of Focus {horizonsOpen ? '▾' : '▸'}
-        </button>
-        <button onClick={onStartIntake} className="text-[10px] text-emerald-500 hover:text-emerald-400">
-          Guided setup
-        </button>
-      </div>
-      {horizonsOpen && HORIZONS_NAV.map((n) => item(n.key, n.label, n.icon, n.altitude))}
+      {label('Do')}
+      {DO_NAV.map(item)}
 
-      <div className="mt-4 border-t border-neutral-800 pt-2">
-        {BOTTOM_NAV.map((n) => item(n.key, n.label, n.icon))}
-        <button
-          onClick={onStartMindSweep}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
-        >
-          <span>🧹</span>
-          <span>Mind Sweep</span>
-        </button>
-        {item('settings', 'Settings', '⚙️')}
-      </div>
+      {label('Track')}
+      {TRACK_NAV.map(item)}
+
+      {foldedHeader('Review', 'review', reviewOpen)}
+      {reviewOpen && REVIEW_NAV.map(item)}
+
+      {foldedHeader('Set up & more', 'more', moreOpen)}
+      {moreOpen && (
+        <>
+          {MORE_NAV.map(item)}
+          <button
+            onClick={onStartMindSweep}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+          >
+            <span>🧹</span>
+            <span>Mind Sweep</span>
+          </button>
+
+          <div className="mt-3 flex items-center justify-between px-3 py-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-600">Horizons of Focus</span>
+            <button onClick={onStartIntake} className="text-[10px] text-emerald-500 hover:text-emerald-400">
+              Guided setup
+            </button>
+          </div>
+          {HORIZONS_NAV.map((n) => item({ ...n, extra: n.altitude }))}
+
+          <div className="mt-2">{item(SETTINGS_ITEM)}</div>
+        </>
+      )}
     </nav>
   )
 }

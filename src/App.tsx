@@ -215,7 +215,7 @@ function App() {
       <ReminderPrompt />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
-          current={view === 'focus' ? focusReturn : view}
+          current={view === 'focus' ? focusReturn : view === 'whatnow' ? 'next' : view}
           onSelect={selectView}
           onStartIntake={() => setShowIntake(true)}
           onStartMindSweep={() => setShowMindSweep(true)}
