@@ -10,6 +10,7 @@ import {
   doItNow,
   sendToSomeday,
   trashItem,
+  updateAction,
   type FirstActionSpec,
 } from '../db/operations'
 import type { Action, EnergyLevel, Project, ProjectStatus } from '../db/types'
@@ -118,6 +119,15 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [dueDate, setDueDate] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
+  // The captured wording is often a rough note ("need to get Steve to do Sunday's game, need to message him").
+  // It can be reworded right here, into a clear next action, and everything after uses the new wording.
+  const [title, setTitle] = useState(item.title)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(item.title)
+  const titleSaveRef = useRef<Promise<unknown>>(Promise.resolve())
+  const titleInputRef = useRef<HTMLTextAreaElement>(null)
+  // Enter and losing focus both finish the edit; this makes sure it only happens once.
+  const titleEditingRef = useRef(false)
   const [projectTitle, setProjectTitle] = useState(item.title)
   const [outcome, setOutcome] = useState('')
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
@@ -131,7 +141,30 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
   const isProject = kind === 'project'
   /** What the action steps are about: the item itself, or the project's first action. */
-  const actionTitle = isProject ? firstActionTitle.trim() : item.title
+  const actionTitle = isProject ? firstActionTitle.trim() : title
+
+  const startEditingTitle = () => {
+    titleEditingRef.current = true
+    setTitleDraft(title)
+    setEditingTitle(true)
+  }
+  const cancelTitleEdit = () => {
+    titleEditingRef.current = false
+    setTitleDraft(title)
+    setEditingTitle(false)
+  }
+  /** Saves as you go (like renaming in the Inbox), so stopping or skipping later never loses the rewording. */
+  const commitTitle = () => {
+    if (!titleEditingRef.current) return
+    titleEditingRef.current = false
+    setEditingTitle(false)
+    const trimmed = titleDraft.trim()
+    if (!trimmed || trimmed === title) return
+    setTitle(trimmed)
+    // A project title that was never changed follows the reworded item.
+    setProjectTitle((prev) => (prev === title ? trimmed : prev))
+    titleSaveRef.current = updateAction(item.id, { title: trimmed })
+  }
 
   // A remembered context may have been deleted since; never save (or show) one that no longer exists.
   const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
@@ -166,6 +199,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     if (submittingRef.current) return
     submittingRef.current = true
     try {
+      await titleSaveRef.current
       await action()
       if (queue) queue.onFinished()
       else onClose()
@@ -218,7 +252,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
   const markDoneNow = (from: Element) => {
     if (!isProject) {
-      void celebrateCompletion(item, from)
+      void celebrateCompletion({ ...item, title }, from)
       void finish(() => doItNow(item.id))
       return
     }
@@ -279,6 +313,14 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     return () => stopInterval()
   }, [])
 
+  // Put the cursor at the end, ready to tweak the wording rather than retype it.
+  useEffect(() => {
+    if (!editingTitle) return
+    const el = titleInputRef.current
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+  }, [editingTitle])
+
   useEffect(() => {
     if (secondsLeft === 0) stopInterval()
   }, [secondsLeft])
@@ -298,7 +340,35 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             <span>Clarify</span>
             {queue && <span className="normal-case tracking-normal">{queue.left} left</span>}
           </div>
-          <div className="mt-1 text-lg font-medium">{item.title}</div>
+          {editingTitle ? (
+            <textarea
+              ref={titleInputRef}
+              rows={2}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  commitTitle()
+                }
+                if (e.key === 'Escape') cancelTitleEdit()
+              }}
+              className="mt-1 w-full resize-none rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-base font-medium text-neutral-100 outline-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={startEditingTitle}
+              title="Reword it — make it a clear next action"
+              className="group mt-1 flex w-full items-start justify-between gap-3 text-left text-lg font-medium"
+            >
+              <span>{title}</span>
+              <span className="mt-1.5 shrink-0 text-xs font-normal text-neutral-500 group-hover:text-neutral-200">
+                ✎ Reword
+              </span>
+            </button>
+          )}
           {isProject && ACTION_STEPS.includes(step) && (
             <div className="mt-1 text-xs text-neutral-500">
               First action: <span className="text-neutral-300">{actionTitle}</span>
@@ -322,7 +392,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             <div className="flex flex-col gap-2">
               <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
               <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
-              <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title: item.title }))}>
+              <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title }))}>
                 📎 File as Reference
               </Btn>
               <div className="my-1 text-center text-xs text-neutral-600">
