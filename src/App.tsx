@@ -12,6 +12,8 @@ import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { InboxView } from './views/InboxView'
 import { StartDayView } from './views/StartDayView'
+import { FocusView } from './views/FocusView'
+import { NO_FILTERS, type NextFilters } from './lib/nextFilters'
 import { SearchView } from './views/SearchView'
 import { NextActionsView } from './views/NextActionsView'
 import { WhatNowView } from './views/WhatNowView'
@@ -42,6 +44,9 @@ function App() {
   const [processInboxOnOpen, setProcessInboxOnOpen] = useState(false)
   // Bumped on every request so the Inbox restarts even when you're already looking at it.
   const [inboxRun, setInboxRun] = useState(0)
+  // Focus mode is entered from Next Actions or Start My Day, carrying that screen's filters, and returns there.
+  const [focusFilters, setFocusFilters] = useState<NextFilters>(NO_FILTERS)
+  const [focusReturn, setFocusReturn] = useState<ViewKey>('next')
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
@@ -73,6 +78,12 @@ function App() {
     setGoalReturnProjectId(null)
     setProcessInboxOnOpen(false)
     setView(v)
+  }
+
+  const startFocus = (filters: NextFilters = NO_FILTERS) => {
+    setFocusFilters(filters)
+    setFocusReturn(view === 'startday' ? 'startday' : 'next')
+    selectView('focus')
   }
 
   /** Go to the Inbox and start working through it right away. */
@@ -109,6 +120,7 @@ function App() {
           <StartDayView
             onOpenProject={openProject}
             onProcessInbox={startInboxProcessing}
+            onFocus={() => startFocus()}
             onViewNextActions={() => selectView('next')}
             onViewWaitingFor={() => selectView('waiting')}
             onViewWhatNow={() => selectView('whatnow')}
@@ -133,7 +145,22 @@ function App() {
         content = <InboxView key={inboxRun} autoStart={processInboxOnOpen} />
         break
       case 'next':
-        content = <NextActionsView onOpenProject={openProject} />
+        content = (
+          <NextActionsView
+            onOpenProject={openProject}
+            onFocus={startFocus}
+            onAskWhatNow={() => selectView('whatnow')}
+          />
+        )
+        break
+      case 'focus':
+        content = (
+          <FocusView
+            filters={focusFilters}
+            onStop={() => selectView(focusReturn)}
+            onOpenNextActions={() => selectView('next')}
+          />
+        )
         break
       case 'whatnow':
         content = <WhatNowView onOpenProject={openProject} onViewNextActions={() => selectView('next')} />
@@ -188,7 +215,7 @@ function App() {
       <ReminderPrompt />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
-          current={view}
+          current={view === 'focus' ? focusReturn : view}
           onSelect={selectView}
           onStartIntake={() => setShowIntake(true)}
           onStartMindSweep={() => setShowMindSweep(true)}

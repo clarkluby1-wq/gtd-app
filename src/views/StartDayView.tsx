@@ -32,6 +32,7 @@ const NUDGE_PREVIEW = 5
 export function StartDayView({
   onOpenProject,
   onProcessInbox,
+  onFocus,
   onViewNextActions,
   onViewWaitingFor,
   onViewWhatNow,
@@ -39,6 +40,7 @@ export function StartDayView({
 }: {
   onOpenProject: (projectId: string) => void
   onProcessInbox: () => void
+  onFocus: () => void
   onViewNextActions: () => void
   onViewWaitingFor: () => void
   onViewWhatNow: () => void
@@ -310,10 +312,10 @@ export function StartDayView({
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={onViewNextActions}
+              onClick={onFocus}
               className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
             >
-              Go to Next Actions →
+              Start focusing →
             </button>
             <button
               onClick={onViewWhatNow}
@@ -322,6 +324,9 @@ export function StartDayView({
               Not sure? Ask What Now?
             </button>
           </div>
+          <button onClick={onViewNextActions} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
+            Or browse all Next Actions
+          </button>
         </Screen>
       )}
 

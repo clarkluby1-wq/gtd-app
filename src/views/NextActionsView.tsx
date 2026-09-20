@@ -5,12 +5,22 @@ import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import { SortableTaskRow } from '../components/SortableTaskRow'
+import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
 import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
-export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
+export function NextActionsView({
+  onOpenProject,
+  onFocus,
+  onAskWhatNow,
+}: {
+  onOpenProject: (projectId: string) => void
+  /** Start Focus mode, staying within whatever filters are set here. */
+  onFocus: (filters: NextFilters) => void
+  onAskWhatNow: () => void
+}) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
@@ -26,15 +36,8 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
   const filtered = useMemo(() => {
     if (!actions) return []
     return actions
-      .filter((a) => {
-        if (a.projectId && somedayProjectIds.has(a.projectId)) return false
-        if (contextId === 'none' && a.contextId) return false
-        if (contextId !== 'all' && contextId !== 'none' && a.contextId !== contextId) return false
-        // Unset energy/time means "unknown", not "doesn't fit" — an untagged action stays visible.
-        if (energy !== 'all' && a.energy !== undefined && a.energy !== energy) return false
-        if (maxTime !== 'all' && a.timeEstimateMin != null && a.timeEstimateMin > maxTime) return false
-        return true
-      })
+      .filter((a) => !(a.projectId && somedayProjectIds.has(a.projectId)))
+      .filter((a) => matchesNextFilters(a, { contextId, energy, maxTime }))
       .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
   }, [actions, contextId, energy, maxTime, somedayProjectIds, today])
 
@@ -44,11 +47,23 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-1 text-xl font-semibold text-neutral-100">Next Actions</h1>
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-neutral-100">Next Actions</h1>
+        <button
+          onClick={() => onFocus({ contextId, energy, maxTime })}
+          title="Show just one task at a time"
+          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+        >
+          Focus on one ▶
+        </button>
+      </div>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
         time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to add up to three to today's Short List
-        — pinned items always float to the top, within any filter.
+        — pinned items always float to the top, within any filter.{' '}
+        <button onClick={onAskWhatNow} className="text-emerald-400 hover:text-emerald-300">
+          Not sure what fits? Ask What Now? →
+        </button>
       </p>
 
       <div className="mb-4 flex flex-wrap gap-2">

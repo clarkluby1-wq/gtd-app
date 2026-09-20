@@ -8,6 +8,7 @@ import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 export type ViewKey =
   | 'search'
   | 'startday'
+  | 'focus'
   | 'dashboard'
   | 'completed'
   | 'inbox'
