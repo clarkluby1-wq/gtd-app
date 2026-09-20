@@ -7,6 +7,7 @@ import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
   | 'search'
+  | 'startday'
   | 'dashboard'
   | 'completed'
   | 'inbox'
@@ -30,6 +31,7 @@ const SEARCH_SHORTCUT =
 
 const MAIN_NAV: { key: ViewKey; label: string; icon: string; extra?: string }[] = [
   { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT },
+  { key: 'startday', label: 'Start My Day', icon: '☀️' },
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'completed', label: 'Recently Completed', icon: '☑️' },

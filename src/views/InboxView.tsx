@@ -13,13 +13,14 @@ import { useCompletionToast } from '../lib/completionToastContext'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
 
-export function InboxView() {
+/** `autoStart` opens straight into "Process inbox" (used when arriving from Start My Day). */
+export function InboxView({ autoStart = false }: { autoStart?: boolean }) {
   const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
   const { blocked } = useCompletionToast()
 
   // "Process inbox": work through the items top to bottom, one after another. Skipped ones simply stay in the Inbox.
-  const [processing, setProcessing] = useState(false)
+  const [processing, setProcessing] = useState(autoStart)
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
   const [processedCount, setProcessedCount] = useState(0)
   const [summary, setSummary] = useState<number | null>(null)

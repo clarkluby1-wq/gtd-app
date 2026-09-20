@@ -11,6 +11,7 @@ import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { InboxView } from './views/InboxView'
+import { StartDayView } from './views/StartDayView'
 import { SearchView } from './views/SearchView'
 import { NextActionsView } from './views/NextActionsView'
 import { WhatNowView } from './views/WhatNowView'
@@ -37,6 +38,8 @@ function App() {
   const [goalReturnProjectId, setGoalReturnProjectId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocusTick, setSearchFocusTick] = useState(0)
+  // Set when Start My Day sends you to the Inbox to sort things right away; any other navigation clears it.
+  const [processInboxOnOpen, setProcessInboxOnOpen] = useState(false)
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
@@ -66,6 +69,7 @@ function App() {
     setOpenProjectId(null)
     setEditGoalId(null)
     setGoalReturnProjectId(null)
+    setProcessInboxOnOpen(false)
     setView(v)
   }
 
@@ -91,13 +95,28 @@ function App() {
           />
         )
         break
+      case 'startday':
+        content = (
+          <StartDayView
+            onOpenProject={openProject}
+            onProcessInbox={() => {
+              selectView('inbox')
+              setProcessInboxOnOpen(true)
+            }}
+            onViewNextActions={() => selectView('next')}
+            onViewWaitingFor={() => selectView('waiting')}
+            onViewWhatNow={() => selectView('whatnow')}
+            onViewCalendar={() => selectView('calendar')}
+          />
+        )
+        break
       case 'dashboard':
         content = (
           <DashboardView
             onOpenProject={openProject}
             onViewWaitingFor={() => selectView('waiting')}
             onViewNextActions={() => selectView('next')}
-          onViewProjects={() => selectView('projects')}
+            onViewProjects={() => selectView('projects')}
           />
         )
         break
@@ -105,7 +124,7 @@ function App() {
         content = <RecentlyCompletedView onOpenProject={openProject} />
         break
       case 'inbox':
-        content = <InboxView />
+        content = <InboxView autoStart={processInboxOnOpen} />
         break
       case 'next':
         content = <NextActionsView onOpenProject={openProject} />
