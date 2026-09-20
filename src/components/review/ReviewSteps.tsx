@@ -11,6 +11,7 @@ import {
 } from '../../db/operations'
 import { createBackup, backupAgeLabel, getLastBackupAt, isBackupDue } from '../../db/backup'
 import { setReviewItemDone, setReviewSubDone, toggleReviewSub } from '../../db/weeklyReview'
+import { getHiddenInboxKeys, setHiddenInboxKeys } from '../../lib/weeklyReviewTemplate'
 import { formatShortDate, startOfToday } from '../../lib/date'
 import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
 import { staleNextActions } from '../../lib/staleness'
@@ -287,6 +288,7 @@ export function CollectStep({ onStartMindSweep }: { onStartMindSweep: () => void
 export function InboxStep({ weekStart, checklist }: { weekStart: number; checklist: WeeklyReviewChecklistItem[] }) {
   const inbox = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [processing, setProcessing] = useState(false)
+  const [hidden, setHidden] = useState(getHiddenInboxKeys)
   const item = checklist.find((c) => c.key === 'inbox-zero')
   const appDone = item?.subItems?.find((s) => s.key === 'app-inbox')?.done ?? false
   const count = inbox?.length
@@ -296,7 +298,23 @@ export function InboxStep({ weekStart, checklist }: { weekStart: number; checkli
     if (count === 0 && !appDone) void setReviewSubDone(weekStart, 'inbox-zero', 'app-inbox', true)
   }, [count, appDone, weekStart])
 
-  const others = (item?.subItems ?? []).filter((s) => s.key !== 'app-inbox')
+  const outside = (item?.subItems ?? []).filter((s) => s.key !== 'app-inbox')
+  const others = outside.filter((s) => !hidden.has(s.key))
+  const hiddenCount = outside.length - others.length
+
+  /** "I don't have this one" — leaves it off the list for good, and counts it as done so it never blocks the step. */
+  const hide = (key: string) => {
+    const next = new Set(hidden).add(key)
+    setHiddenInboxKeys(next)
+    setHidden(next)
+    void setReviewSubDone(weekStart, 'inbox-zero', key, true)
+  }
+  const restoreHidden = () => {
+    const keys = outside.filter((s) => hidden.has(s.key)).map((s) => s.key)
+    setHiddenInboxKeys(new Set())
+    setHidden(new Set())
+    for (const key of keys) void setReviewSubDone(weekStart, 'inbox-zero', key, false)
+  }
 
   return (
     <div>
@@ -322,17 +340,31 @@ export function InboxStep({ weekStart, checklist }: { weekStart: number; checkli
       <Label>And the ones outside it — tick each as you clear it:</Label>
       <div className="flex flex-col gap-2">
         {others.map((s) => (
-          <label key={s.key} className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
-            <input
-              type="checkbox"
-              checked={s.done}
-              onChange={() => void toggleReviewSub(weekStart, 'inbox-zero', s.key)}
-              className="h-4 w-4 accent-emerald-600"
-            />
-            <span className={s.done ? 'text-neutral-500 line-through' : ''}>{s.label}</span>
-          </label>
+          <div key={s.key} className="flex items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
+              <input
+                type="checkbox"
+                checked={s.done}
+                onChange={() => void toggleReviewSub(weekStart, 'inbox-zero', s.key)}
+                className="h-4 w-4 accent-emerald-600"
+              />
+              <span className={s.done ? 'text-neutral-500 line-through' : ''}>{s.label}</span>
+            </label>
+            <button
+              onClick={() => hide(s.key)}
+              title="Leave this off my list for good"
+              className="shrink-0 text-xs text-neutral-600 hover:text-neutral-300"
+            >
+              don't have this
+            </button>
+          </div>
         ))}
       </div>
+      {hiddenCount > 0 && (
+        <MoreLink onClick={restoreHidden}>
+          Show the {hiddenCount} I left off
+        </MoreLink>
+      )}
 
       {processing && <InboxProcessor items={inbox ?? []} onEnd={() => setProcessing(false)} />}
     </div>

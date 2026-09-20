@@ -11,7 +11,7 @@ import type { ViewKey } from '../components/Sidebar'
 import { GuidedReview } from '../components/review/GuidedReview'
 import { ReviewSchedulePanel } from '../components/ReviewSchedulePanel'
 import { startOfReviewWeek } from '../lib/reviewSchedule'
-import { isItemDone, normalizeChecklist, PHASE_BY_KEY, PHASES } from '../lib/weeklyReviewTemplate'
+import { getHiddenInboxKeys, isItemDone, normalizeChecklist, PHASE_BY_KEY, PHASES } from '../lib/weeklyReviewTemplate'
 import type { WeeklyReviewChecklistItem } from '../db/types'
 
 /** Which substring of a top-level item's label links to which view. First occurrence only. */
@@ -346,7 +346,10 @@ function ChecklistRow({
   onNavigate: (view: ViewKey) => void
 }) {
   const done = isItemDone(item)
-  const subProgress = item.subItems ? `${item.subItems.filter((s) => s.done).length}/${item.subItems.length}` : null
+  // Inboxes the user said they don't have stay off the list.
+  const hiddenInboxes = getHiddenInboxKeys()
+  const visibleSubs = item.subItems?.filter((s) => !hiddenInboxes.has(s.key))
+  const subProgress = visibleSubs ? `${visibleSubs.filter((s) => s.done).length}/${visibleSubs.length}` : null
 
   return (
     <div className="py-3">
@@ -373,9 +376,9 @@ function ChecklistRow({
         {extra && <span className={badge ?? subProgress ? 'shrink-0' : 'ml-auto shrink-0'}>{extra}</span>}
       </div>
 
-      {item.subItems && (
+      {visibleSubs && (
         <div className="ml-7 mt-2 flex flex-col gap-2">
-          {item.subItems.map((s) => (
+          {visibleSubs.map((s) => (
             <div key={s.key} className="flex items-center gap-3">
               <input
                 type="checkbox"
