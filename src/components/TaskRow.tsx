@@ -8,7 +8,7 @@ import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatShortDate, startOfToday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
-import { needsNudge, waitingStartedAt } from '../lib/waiting'
+import { followUpPending, needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -18,7 +18,7 @@ function formatDate(ts?: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-/** "waiting 9 days · followed up 2 days ago". Turns amber once it's been a week since anyone made contact. */
+/** "waiting 9 days · check back Sep 25 · followed up 2 days ago". Turns amber once a nudge is due. */
 function WaitingClock({ action }: { action: Action }) {
   const waited = ageInDays(waitingStartedAt(action))
   const lastFollowUp = action.followUps?.[action.followUps.length - 1]
@@ -27,6 +27,16 @@ function WaitingClock({ action }: { action: Action }) {
       <span className={needsNudge(action) ? 'text-amber-500' : undefined} title={`Waiting since ${formatShortDate(waitingStartedAt(action))}`}>
         waiting {ageLabel(waited)}
       </span>
+      {followUpPending(action) && (
+        <span className={needsNudge(action) ? 'text-amber-500' : undefined} title="The day you chose to check back">
+          check back{' '}
+          {action.followUpDate === startOfToday()
+            ? 'today'
+            : action.followUpDate! < startOfToday()
+              ? `was ${formatShortDate(action.followUpDate!)}`
+              : formatShortDate(action.followUpDate!)}
+        </span>
+      )}
       {lastFollowUp !== undefined && (
         <span title={`Last followed up ${formatShortDate(lastFollowUp)}`}>
           followed up {ageInDays(lastFollowUp) === 0 ? 'today' : `${ageLabel(ageInDays(lastFollowUp))} ago`}

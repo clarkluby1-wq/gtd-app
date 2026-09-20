@@ -14,6 +14,7 @@ import {
   type FirstActionSpec,
 } from '../db/operations'
 import type { Action, EnergyLevel, Project, ProjectStatus } from '../db/types'
+import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { parseLocalDate } from '../lib/date'
@@ -119,6 +120,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [dueDate, setDueDate] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
+  const [followUpDate, setFollowUpDate] = useState('')
   // The captured wording is often a rough note ("need to get Steve to do Sunday's game, need to message him").
   // It can be reworded right here, into a clear next action, and everything after uses the new wording.
   const [title, setTitle] = useState(item.title)
@@ -272,12 +274,19 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
       isProject ? saveProject('active', { title: actionTitle, status: 'next' }) : clarifyAsNextAction(item.id, {}),
     )
 
-  const confirmDelegate = () =>
-    finish(() =>
+  const confirmDelegate = () => {
+    const checkBack = followUpDate ? parseLocalDate(followUpDate) : undefined
+    return finish(() =>
       isProject
-        ? saveProject('active', { title: actionTitle, status: 'waiting', waitingOn: waitingOn.trim() })
-        : clarifyAsWaitingFor(item.id, waitingOn.trim(), linkedProjectId),
+        ? saveProject('active', {
+            title: actionTitle,
+            status: 'waiting',
+            waitingOn: waitingOn.trim(),
+            followUpDate: checkBack,
+          })
+        : clarifyAsWaitingFor(item.id, waitingOn.trim(), linkedProjectId, checkBack),
     )
+  }
 
   /** Undecided who does it: park the whole thing. On a project, the typed first action stays inside it. */
   const notSureWhoDoesIt = () =>
@@ -588,6 +597,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 placeholder="Who is it delegated to?"
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              <FollowUpDatePicker value={followUpDate} onChange={setFollowUpDate} />
               {!isProject && (
                 <MoreOptions summary={projectTitleOf(linkedProjectId)}>
                   <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />

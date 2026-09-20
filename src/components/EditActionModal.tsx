@@ -4,12 +4,14 @@ import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
-import { waitingStartedAt } from '../lib/waiting'
+import { followUpPending, waitingStartedAt } from '../lib/waiting'
+import { FollowUpDatePicker } from './FollowUpDatePicker'
 
 /** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
 function historyLine(a: Action): string {
   const parts = [`Added ${formatShortDate(a.createdAt)}`]
   if (a.status === 'waiting') parts.push(`Waiting since ${formatShortDate(waitingStartedAt(a))}`)
+  if (a.status === 'waiting' && followUpPending(a)) parts.push(`Check back ${formatShortDate(a.followUpDate!)}`)
   const followUps = a.followUps ?? []
   if (followUps.length) {
     const shown = followUps.slice(-6).map(formatShortDate).join(', ')
@@ -60,6 +62,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [timeEstimateMin, setTimeEstimateMin] = useState(action.timeEstimateMin?.toString() ?? '')
   const [dueDate, setDueDate] = useState(toDateInputValue(action.dueDate))
   const [waitingOn, setWaitingOn] = useState(action.waitingOn ?? '')
+  const [followUpDate, setFollowUpDate] = useState(toDateInputValue(action.followUpDate))
   const [scheduledDate, setScheduledDate] = useState(toDateInputValue(action.scheduledDate))
   const [projectId, setProjectId] = useState(action.projectId ?? '')
   const [notes, setNotes] = useState(action.notes ?? '')
@@ -80,6 +83,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       timeEstimateMin: timeEstimateMin ? Number(timeEstimateMin) : undefined,
       dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
       waitingOn: waitingOn.trim() || undefined,
+      followUpDate: followUpDate ? parseLocalDate(followUpDate) : undefined,
       scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
       // Only a Next Action can be a Short List pick; leaving Next (or unticking) releases the slot.
@@ -204,6 +208,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 onChange={(e) => setWaitingOn(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              <FollowUpDatePicker value={followUpDate} onChange={setFollowUpDate} />
             </>
           )}
 

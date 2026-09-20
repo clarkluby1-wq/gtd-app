@@ -185,7 +185,7 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
             <button
               onClick={() => setNudgeOnly((v) => !v)}
               aria-pressed={nudgeOnly}
-              title={`Only items with no contact for more than ${NUDGE_AFTER_DAYS} days`}
+              title={`Only items due a check-back: no contact for more than ${NUDGE_AFTER_DAYS} days, or the date you chose has come`}
               className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
                 nudgeOnly
                   ? 'border-amber-500/50 bg-amber-500/20 text-amber-300'
@@ -204,8 +204,8 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
 
       {nudgeOnly && all.length > 0 && visible.length > 0 && all.length > visible.length && (
         <p className="mb-3 text-xs text-neutral-500">
-          Showing {visible.length} of {all.length} · {all.length - visible.length} heard from or nudged within the last{' '}
-          {NUDGE_AFTER_DAYS} days {all.length - visible.length === 1 ? 'is' : 'are'} hidden.
+          Showing {visible.length} of {all.length} · {all.length - visible.length} not due for a check-back{' '}
+          {all.length - visible.length === 1 ? 'is' : 'are'} hidden.
         </p>
       )}
 
@@ -217,7 +217,7 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
 
       {all.length > 0 && visible.length === 0 && (
         <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
-          Nobody needs a nudge. Everyone has been heard from or nudged within the last {NUDGE_AFTER_DAYS} days.
+          Nobody needs a nudge right now.
         </div>
       )}
 

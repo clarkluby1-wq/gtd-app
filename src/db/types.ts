@@ -105,6 +105,11 @@ export interface Action {
   waitingSince?: number
   /** Each time you followed up with whoever this is waiting on, oldest first. */
   followUps?: number[]
+  /**
+   * A day (start-of-day timestamp) you chose to check back on a Waiting For item. It replaces the usual "a week
+   * without contact" nudge until you follow up on or after it. Not a deadline, and never shown as overdue in red.
+   */
+  followUpDate?: number
   dueDate?: number
   scheduledDate?: number
   reminder?: ReminderState

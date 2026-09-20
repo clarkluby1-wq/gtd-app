@@ -93,12 +93,13 @@ export async function clarifyAsScheduled(actionId: string, scheduledDate: number
 }
 
 /** Clarify into a delegated item, waiting on someone else. */
-export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, projectId?: string) {
+export async function clarifyAsWaitingFor(actionId: string, waitingOn: string, projectId?: string, followUpDate?: number) {
   const now = Date.now()
   await db.actions.update(actionId, {
     status: 'waiting',
     waitingOn,
     waitingSince: now,
+    followUpDate,
     projectId,
     clarifiedAt: now,
     touchedAt: now,
@@ -115,6 +116,7 @@ export interface FirstActionSpec {
   timeEstimateMin?: number
   dueDate?: number
   waitingOn?: string
+  followUpDate?: number
   scheduledDate?: number
 }
 
@@ -163,6 +165,7 @@ export async function clarifyAsProject(
       timeEstimateMin: spec.timeEstimateMin,
       dueDate: spec.dueDate,
       waitingOn: spec.waitingOn,
+      followUpDate: spec.followUpDate,
       scheduledDate: spec.scheduledDate,
       createdAt: now,
       clarifiedAt: now,

@@ -15,7 +15,17 @@ export function lastContactAt(action: Action): number {
   return Math.max(waitingStartedAt(action), ...(action.followUps ?? []))
 }
 
+/** A check-back date you set that hasn't been used yet. Following up on or after that day uses it up. */
+export function followUpPending(action: Action): boolean {
+  return action.followUpDate !== undefined && (lastFollowUpAt(action) ?? 0) < action.followUpDate
+}
+
+/**
+ * Due for a nudge. One rule per item: if you picked a check-back date, that day decides; otherwise it's the
+ * usual week without contact.
+ */
 export function needsNudge(action: Action): boolean {
+  if (followUpPending(action)) return action.followUpDate! <= startOfToday()
   return ageInDays(lastContactAt(action)) > NUDGE_AFTER_DAYS
 }
 
