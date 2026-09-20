@@ -2,13 +2,13 @@ import { db } from '../db/db'
 import type { Action, ActionStatus } from '../db/types'
 import { flagSimilar, type Candidate } from './similar'
 
-/** What each kind of existing item is called on screen. Done and trashed items are never compared. */
+/** Where an existing item lives, worded to follow "Already have: <title> —". Done and trashed items are never compared. */
 const STATUS_LABEL: Partial<Record<ActionStatus, string>> = {
-  inbox: 'Inbox',
-  next: 'Next Action',
-  waiting: 'Waiting For',
-  scheduled: 'Scheduled',
-  someday: 'Someday',
+  inbox: 'in your Inbox',
+  next: 'in Next Actions',
+  waiting: 'in Waiting For',
+  scheduled: 'on your Calendar',
+  someday: 'in Someday / Maybe',
 }
 
 export interface SweepDuplicate {
@@ -33,8 +33,8 @@ export async function findSweepDuplicates(sweepItems: Action[]): Promise<SweepDu
   const candidates: Candidate[] = [
     ...actions
       .filter((a) => !sweepIds.has(a.id))
-      .map((a) => ({ title: a.title, label: STATUS_LABEL[a.status] ?? 'Item' })),
-    ...projects.map((p) => ({ title: p.title, label: p.status === 'someday' ? 'Someday project' : 'Project' })),
+      .map((a) => ({ title: a.title, label: STATUS_LABEL[a.status] ?? 'in your system' })),
+    ...projects.map((p) => ({ title: p.title, label: p.status === 'someday' ? 'in Someday / Maybe (a project)' : 'in Projects' })),
   ]
 
   return flagSimilar(sweepItems, candidates).map(({ item, match }) => ({

@@ -47,7 +47,7 @@ export function meaningfulWords(title: string): Set<string> {
 
 export interface Candidate {
   title: string
-  /** Where it lives, in words the user knows: "Next Action", "Waiting For", "Project"… */
+  /** Where it lives, as a phrase that reads after the title: "in Next Actions", "in your Inbox", "in Projects"… */
   label: string
 }
 

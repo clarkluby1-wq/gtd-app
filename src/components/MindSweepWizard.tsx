@@ -252,15 +252,17 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
                     A few of these may already be in your system
                   </h3>
                   <p className="mb-2 text-xs text-neutral-500">
-                    Only remove one if it really is the same thing. Otherwise leave it — it will be waiting in your
-                    Inbox.
+                    Each one you just added is shown with what you already have. If it's the same thing, remove the
+                    new one and you keep the original. If not, leave it — it stays in your Inbox.
                   </p>
                   <div className="flex flex-col divide-y divide-neutral-800">
                     {lookalikes.map(({ item, match }) => (
                       <div key={item.id} className="flex items-start justify-between gap-3 py-2.5">
                         {removedIds.has(item.id) ? (
                           <>
-                            <span className="text-sm text-neutral-500">Removed “{item.title}”</span>
+                            <span className="text-sm text-neutral-500">
+                              Removed the new “{item.title}”. You still have the original.
+                            </span>
                             <button
                               onClick={() => void undoRemove(item)}
                               className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300"
@@ -270,18 +272,29 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
                           </>
                         ) : (
                           <>
-                            <div className="min-w-0">
-                              <div className="text-sm text-neutral-100">{item.title}</div>
-                              <div className="mt-0.5 text-xs text-neutral-500">
-                                Looks like: {match.title} <span className="text-neutral-600">({match.label})</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex gap-2 text-sm text-neutral-100">
+                                <span className="w-24 shrink-0 pt-0.5 text-[11px] uppercase tracking-wide text-emerald-500">
+                                  Just added
+                                </span>
+                                <span>{item.title}</span>
                               </div>
+                              <div className="mt-1 flex gap-2 text-sm text-neutral-400">
+                                <span className="w-24 shrink-0 pt-0.5 text-[11px] uppercase tracking-wide text-neutral-500">
+                                  Already have
+                                </span>
+                                <span>
+                                  {match.title} <span className="text-neutral-600">— {match.label}</span>
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => void removeDuplicate(item)}
+                                title="Deletes the one you just added. The one you already had stays."
+                                className="mt-2 ml-[6.5rem] rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                              >
+                                Remove the new one
+                              </button>
                             </div>
-                            <button
-                              onClick={() => void removeDuplicate(item)}
-                              className="shrink-0 rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
-                            >
-                              Already have this — remove mine
-                            </button>
                           </>
                         )}
                       </div>
