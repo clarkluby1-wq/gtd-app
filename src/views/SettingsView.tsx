@@ -67,7 +67,7 @@ export function SettingsView() {
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Celebrations</div>
         <p className="mb-3 text-sm text-neutral-500">
-          A little reward when you finish something. Milestones are clearing today's Big Three or finishing a
+          A little reward when you finish something. Milestones are clearing today's Short List or finishing a
           project's last open step. Stored on this device only, and it respects your system's reduced-motion
           setting.
         </p>

@@ -57,7 +57,7 @@ export function WhatNowView({
 
   // The first three criteria narrow what's possible; priority — the fourth — is never
   // computed here. It's the judgment you apply to whatever's left, so this only filters
-  // and surfaces the signals (project, staleness, Big Three) that inform that call.
+  // and surfaces the signals (project, staleness, Short List) that inform that call.
   const results = useMemo(() => {
     if (!actions) return []
     return actions

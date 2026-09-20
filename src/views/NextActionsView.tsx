@@ -21,7 +21,7 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')
   const [maxTime, setMaxTime] = useState<number | 'all'>('all')
 
-  // Today's Big Three float to the top of whatever's left after filtering — Array.sort is
+  // Today's Short List items float to the top of whatever's left after filtering — Array.sort is
   // stable, so everything else keeps its existing (drag-reorderable) order underneath them.
   const filtered = useMemo(() => {
     if (!actions) return []
@@ -47,7 +47,7 @@ export function NextActionsView({ onOpenProject }: { onOpenProject: (projectId: 
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Next Actions</h1>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
-        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to pin up to three as today's focus
+        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to add up to three to today's Short List
         — pinned items always float to the top, within any filter.
       </p>
 

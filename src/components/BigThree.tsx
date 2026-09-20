@@ -14,9 +14,9 @@ export function BigThree({
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div className="mb-3 flex items-center gap-1.5">
-        <h2 className="text-sm font-medium text-neutral-300">Today's Big Three</h2>
+        <h2 className="text-sm font-medium text-neutral-300">Today's Short List</h2>
         <span
-          title="Up to three things you're committed to today, pinned from Next Actions. Not a new list — just a focus flag. Whatever's left unfinished quietly stops being pinned at midnight, no guilt."
+          title="Up to three things you're committed to today, picked from Next Actions. It's not a second to-do list, just a flag on items already in Next Actions. Whatever's left unfinished quietly stops being pinned at midnight, no guilt."
           className="cursor-help text-xs text-neutral-500 hover:text-neutral-300"
         >
           ⓘ

@@ -32,7 +32,7 @@ async function clearsBigThree(completed: Action): Promise<boolean> {
 }
 
 /**
- * Celebrate an action being completed. Milestones — clearing today's Big Three, or finishing a
+ * Celebrate an action being completed. Milestones — clearing today's Short List, or finishing a
  * project's last open action — get the bigger burst. Pass the action as it was *before* completion.
  */
 export async function celebrateCompletion(completed: Action, from: Element) {

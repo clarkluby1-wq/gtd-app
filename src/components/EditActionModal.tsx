@@ -82,7 +82,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       waitingOn: waitingOn.trim() || undefined,
       scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
-      // Only a Next Action can be a Big Three pick; leaving Next (or unticking) releases the slot.
+      // Only a Next Action can be a Short List pick; leaving Next (or unticking) releases the slot.
       bigThreeDate: type === 'next' && bigThree ? startOfToday() : undefined,
     })
     onClose()
@@ -135,14 +135,14 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 type="button"
                 onClick={() => setBigThree((v) => !v)}
                 disabled={!bigThree && bigThreeFull}
-                title={bigThreeFull && !bigThree ? "Today's Big Three is full — unpin one first" : undefined}
+                title={bigThreeFull && !bigThree ? "Today's Short List is full — unpin one first" : undefined}
                 className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
                   bigThree
                     ? 'border border-amber-500/40 bg-amber-500/15 text-amber-300'
                     : 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
                 }`}
               >
-                <span>{bigThree ? "★ One of today's Big Three" : "☆ Make this one of today's Big Three"}</span>
+                <span>{bigThree ? "★ On today's Short List" : "☆ Add to today's Short List"}</span>
                 <span className="text-xs font-normal text-neutral-500">
                   {bigThreeFull && !bigThree ? 'Full — 3 of 3 used' : 'Pinned to the top today'}
                 </span>

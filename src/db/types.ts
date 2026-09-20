@@ -115,7 +115,7 @@ export interface Action {
   previousStatus?: ActionStatus
   /** Last time this action's status or fields changed — drives the Dashboard's stale Next Actions section. */
   touchedAt?: number
-  /** Start-of-day timestamp if pinned as one of today's Big Three. Stops applying once the day changes — no explicit reset needed. */
+  /** Start-of-day timestamp if on today's Short List. Stops applying once the day changes — no explicit reset needed. */
   bigThreeDate?: number
   order: number
   /** Set when this instance was generated from a RecurringTemplate. */

@@ -54,7 +54,7 @@ export function TaskRow({
   extraAction?: ReactNode
   /** Passed by a sortable wrapper to enable drag-to-reorder; omit to render no handle. */
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
-  /** Show the Big Three pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
+  /** Show the Short List pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
   showBigThreePin?: boolean
   /** How many actions are pinned for today, to enforce the 3-item cap. Only used when showBigThreePin is true. */
   pinnedTodayCount?: number
@@ -112,10 +112,10 @@ export function TaskRow({
           disabled={!pinnedToday && atCap}
           title={
             pinnedToday
-              ? "Remove from today's Big Three"
+              ? "Remove from today's Short List"
               : atCap
-                ? "Today's Big Three is full — remove one first"
-                : "Pin as one of today's Big Three"
+                ? "Today's Short List is full — remove one first"
+                : "Add to today's Short List"
           }
           className={`shrink-0 text-sm transition disabled:cursor-not-allowed disabled:opacity-20 ${
             pinnedToday

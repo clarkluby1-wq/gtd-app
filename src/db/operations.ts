@@ -293,7 +293,7 @@ export async function deleteAction(actionId: string) {
   await db.actions.delete(actionId)
 }
 
-/** Pin an action as one of today's Big Three. Caller is responsible for enforcing the 3-item cap. */
+/** Add an action to today's Short List. Caller is responsible for enforcing the 3-item cap. */
 export async function pinToBigThree(actionId: string) {
   await db.actions.update(actionId, { bigThreeDate: startOfToday(), touchedAt: Date.now() })
 }
