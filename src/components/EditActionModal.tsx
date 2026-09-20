@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
-import { updateAction } from '../db/operations'
+import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
@@ -46,6 +46,7 @@ function toDateInputValue(ts?: number) {
 export function EditActionModal({ action, onClose }: { action: Action; onClose: () => void }) {
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   // Same count the star on a Next Actions row uses, minus this action, so the cap can never disagree with it.
   const otherPinnedCount = useLiveQuery(
     async () =>
@@ -65,9 +66,28 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [followUpDate, setFollowUpDate] = useState(toDateInputValue(action.followUpDate))
   const [scheduledDate, setScheduledDate] = useState(toDateInputValue(action.scheduledDate))
   const [projectId, setProjectId] = useState(action.projectId ?? '')
+  // "This has grown into a project": makes a new project right here and links this action to it as its first step.
+  const [makingProject, setMakingProject] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectOutcome, setNewProjectOutcome] = useState('')
+  const [newProjectArea, setNewProjectArea] = useState('')
+  const [madeProject, setMadeProject] = useState<string | null>(null)
   const [notes, setNotes] = useState(action.notes ?? '')
   const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfToday())
   const bigThreeFull = (otherPinnedCount ?? 0) >= 3
+
+  const createProject = async () => {
+    const name = newProjectName.trim()
+    if (!name) return
+    const project = await createProjectFromAction(action.id, {
+      title: name,
+      outcome: newProjectOutcome,
+      areaOfFocusId: newProjectArea || undefined,
+    })
+    setProjectId(project.id)
+    setMadeProject(project.title)
+    setMakingProject(false)
+  }
 
   const save = async () => {
     const status = TYPES.find((t) => t.key === type)!.status
@@ -121,6 +141,92 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
               {t.label}
             </button>
           ))}
+        </div>
+
+        <div className="mb-4 flex flex-col gap-1.5">
+          <label className="text-xs text-neutral-500">Project</label>
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+          >
+            <option value="">No project</option>
+            {projects?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+
+          {madeProject && (
+            <p className="text-xs text-emerald-400">✓ New project “{madeProject}” created. This action is its first step.</p>
+          )}
+
+          {!makingProject && !madeProject && (
+            <button
+              type="button"
+              onClick={() => {
+                setNewProjectName(title.trim())
+                setMakingProject(true)
+              }}
+              className="self-start text-xs text-emerald-400 hover:text-emerald-300"
+            >
+              {action.projectId ? '＋ Make this its own project' : '＋ Turn this into a new project'}
+            </button>
+          )}
+
+          {makingProject && (
+            <div className="mt-1 flex flex-col gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3">
+              <div className="text-sm font-medium text-neutral-100">Turn this into a project</div>
+              <p className="text-xs text-neutral-400">
+                A project is an outcome that takes more than one step. This action stays, as its first next action.
+              </p>
+              <label className="text-xs text-neutral-500">Project name</label>
+              <input
+                autoFocus
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              <label className="text-xs text-neutral-500">What does "done" look like? (optional)</label>
+              <textarea
+                value={newProjectOutcome}
+                onChange={(e) => setNewProjectOutcome(e.target.value)}
+                rows={2}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              />
+              <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
+              <select
+                value={newProjectArea}
+                onChange={(e) => setNewProjectArea(e.target.value)}
+                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+              >
+                <option value="">No area yet</option>
+                {areas?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={!newProjectName.trim()}
+                  onClick={() => void createProject()}
+                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
+                >
+                  Create project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMakingProject(false)}
+                  className="text-xs text-neutral-500 hover:text-neutral-300"
+                >
+                  Never mind
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
@@ -223,20 +329,6 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
               />
             </>
           )}
-
-          <label className="text-xs text-neutral-500">Project</label>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-          >
-            <option value="">No project</option>
-            {projects?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
         </div>
         </div>
 

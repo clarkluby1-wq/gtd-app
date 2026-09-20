@@ -229,6 +229,31 @@ export async function createProject(opts: {
   return project
 }
 
+/**
+ * A next action grew into something bigger: make a project for it and keep the action as the project's first step.
+ * One transaction, so there's never a project without the link or a link without the project.
+ */
+export async function createProjectFromAction(
+  actionId: string,
+  opts: { title: string; outcome: string; areaOfFocusId?: string },
+): Promise<Project> {
+  const now = Date.now()
+  const project: Project = {
+    id: uuid(),
+    title: opts.title.trim(),
+    outcome: opts.outcome.trim(),
+    status: 'active',
+    areaOfFocusId: opts.areaOfFocusId,
+    createdAt: now,
+    order: now,
+  }
+  await db.transaction('rw', db.projects, db.actions, async () => {
+    await db.projects.add(project)
+    await db.actions.update(actionId, { projectId: project.id, touchedAt: now })
+  })
+  return project
+}
+
 export async function completeAction(actionId: string) {
   const now = Date.now()
   const current = await db.actions.get(actionId)
