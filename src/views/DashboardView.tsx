@@ -5,8 +5,8 @@ import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, ageLabel, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
-import { isProjectStalled, stalledMessage } from '../lib/projectHealth'
-import { formatShortDate, startOfToday } from '../lib/date'
+import { isProjectStalled } from '../lib/projectHealth'
+import { startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
 const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
@@ -39,10 +39,12 @@ export function DashboardView({
   onOpenProject,
   onViewWaitingFor,
   onViewNextActions,
+  onViewProjects,
 }: {
   onOpenProject: (id: string) => void
   onViewWaitingFor: () => void
   onViewNextActions: () => void
+  onViewProjects: () => void
 }) {
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const activeProjects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
@@ -105,11 +107,11 @@ export function DashboardView({
 
       <BalanceWheel areas={areas ?? []} projects={activeProjects ?? []} />
 
-      <ProjectOverview
+      <ProjectSummary
         activeProjects={activeProjects ?? []}
         completedProjects={completedProjects ?? []}
-        actions={allActions ?? []}
         stalledProjectIds={stalledProjectIds}
+        onViewProjects={onViewProjects}
         onOpen={onOpenProject}
       />
 
@@ -297,29 +299,24 @@ function BalanceWheel({ areas, projects }: { areas: AreaOfFocus[]; projects: Pro
   )
 }
 
-/** How many moving projects show before "Show more" — the rest are fine, so they shouldn't compete for attention. */
-const MOVING_PREVIEW = 5
-
 /**
- * Projects, by what they need from you — not by percent complete. A percentage was mostly a row of identical
- * empty circles, cut off names, and it dropped every time you added a next action (progress going backwards for
- * doing the right thing). This leads with the projects that are stuck, then shows each moving project's actual
- * next step.
+ * Projects at a glance: two numbers and a collapsed list of finished ones. The detail lives on the Projects
+ * page — a dashboard is for noticing, not for reading. "Moving" means it has a next action or a wait in
+ * progress, the same rule the stalled flag uses everywhere else.
  */
-function ProjectOverview({
+function ProjectSummary({
   activeProjects,
   completedProjects,
-  actions,
   stalledProjectIds,
+  onViewProjects,
   onOpen,
 }: {
   activeProjects: Project[]
   completedProjects: Project[]
-  actions: Action[]
   stalledProjectIds: Set<string>
+  onViewProjects: () => void
   onOpen: (id: string) => void
 }) {
-  const [showAllMoving, setShowAllMoving] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
 
   if (activeProjects.length === 0 && completedProjects.length === 0) {
@@ -330,133 +327,66 @@ function ProjectOverview({
     )
   }
 
-  // Same order as the Projects list, so the two screens read alike.
-  const byOrder = (a: Project, b: Project) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt)
-  const stalled = activeProjects.filter((p) => stalledProjectIds.has(p.id)).sort(byOrder)
-  const moving = activeProjects.filter((p) => !stalledProjectIds.has(p.id)).sort(byOrder)
-  const shownMoving = showAllMoving ? moving : moving.slice(0, MOVING_PREVIEW)
-
-  const today = startOfToday()
-  const summaryOf = (p: Project) => {
-    const mine = actions.filter((a) => a.projectId === p.id)
-    const nexts = mine
-      .filter((a) => a.status === 'next')
-      .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today) || a.order - b.order)
-    return {
-      next: nexts[0],
-      waiting: mine.filter((a) => a.status === 'waiting'),
-      allDone: mine.length > 0 && mine.every((a) => a.status === 'done'),
-    }
-  }
-
-  const monthStart = new Date(today)
-  monthStart.setDate(1)
-  const finishedThisMonth = completedProjects.filter((p) => (p.completedAt ?? 0) >= monthStart.getTime()).length
-  const completedNewestFirst = [...completedProjects].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+  const needNextStep = activeProjects.filter((p) => stalledProjectIds.has(p.id)).length
+  const moving = activeProjects.length - needNextStep
 
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-      <h2 className="mb-3 text-sm font-medium text-neutral-300">Projects</h2>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-medium text-neutral-300">Projects</h2>
+        <span className="text-xs text-neutral-500">{activeProjects.length} active</span>
+      </div>
 
-      {stalled.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-1.5 text-xs font-medium text-amber-400">Needs a next step · {stalled.length}</h3>
-          <div className="flex flex-col gap-1">
-            {stalled.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onOpen(p.id)}
-                className="flex w-full items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-left hover:bg-amber-500/15"
-              >
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950">
-                  !
-                </span>
-                <span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-neutral-100" title={p.title}>
-                  {p.title}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-amber-300">
-                  {stalledMessage(summaryOf(p).allDone)}
-                </span>
-              </button>
-            ))}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={onViewProjects}
+          title="Projects with a next action, or waiting on someone"
+          className="rounded-md bg-neutral-800/50 px-3 py-3 text-left hover:bg-neutral-800"
+        >
+          <div className="text-2xl font-semibold text-neutral-100">{moving}</div>
+          <div className="text-xs text-neutral-500">Moving</div>
+        </button>
+        <button
+          onClick={onViewProjects}
+          title="Projects with nothing next and nothing pending"
+          className={`rounded-md px-3 py-3 text-left ${
+            needNextStep > 0
+              ? 'border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15'
+              : 'bg-neutral-800/50 hover:bg-neutral-800'
+          }`}
+        >
+          <div className={`text-2xl font-semibold ${needNextStep > 0 ? 'text-amber-400' : 'text-neutral-100'}`}>
+            {needNextStep}
           </div>
-        </div>
-      )}
-
-      {moving.length > 0 && (
-        <div>
-          <h3 className="mb-1.5 text-xs font-medium text-neutral-500">Moving · {moving.length}</h3>
-          <div className="flex flex-col gap-1">
-            {shownMoving.map((p) => {
-              const { next, waiting } = summaryOf(p)
-              const line = next
-                ? next.title
-                : waiting[0]
-                  ? `Waiting on ${waiting[0].waitingOn ?? 'someone'}: ${waiting[0].title}`
-                  : ''
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => onOpen(p.id)}
-                  className="flex w-full items-center gap-2 rounded-md bg-neutral-800/50 px-2.5 py-2 text-left hover:bg-neutral-800"
-                >
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                  <span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-neutral-100" title={p.title}>
-                    {p.title}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-xs text-neutral-400" title={line}>
-                    {line}
-                  </span>
-                  {next && waiting.length > 0 && (
-                    <span className="shrink-0 rounded-md border border-neutral-700 px-1.5 py-0.5 text-[11px] text-neutral-400">
-                      {waiting.length} waiting
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+          <div className={`text-xs ${needNextStep > 0 ? 'text-amber-300' : 'text-neutral-500'}`}>
+            Need a next step
           </div>
-          {moving.length > MOVING_PREVIEW && (
-            <button
-              onClick={() => setShowAllMoving((v) => !v)}
-              className="mt-2 text-xs text-neutral-500 hover:text-neutral-300"
-            >
-              {showAllMoving ? 'Show fewer' : `Show ${moving.length - MOVING_PREVIEW} more`}
-            </button>
-          )}
-        </div>
-      )}
-
-      {activeProjects.length === 0 && <p className="text-sm text-neutral-500">No active projects yet.</p>}
+        </button>
+      </div>
 
       {completedProjects.length > 0 && (
-        <div className="mt-4 border-t border-neutral-800 pt-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowCompleted((v) => !v)}
-              className="flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-300"
-            >
-              <span className="text-[10px]">{showCompleted ? '▾' : '▸'}</span>
-              {completedProjects.length} completed
-            </button>
-            {finishedThisMonth > 0 && <span className="text-xs text-emerald-400">{finishedThisMonth} finished this month</span>}
-          </div>
+        <div className="mt-4">
+          <button
+            onClick={() => setShowCompleted((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-300"
+          >
+            <span className="text-[10px]">{showCompleted ? '▾' : '▸'}</span>
+            {completedProjects.length} completed
+          </button>
           {showCompleted && (
-            <div className="mt-2 flex flex-col gap-1">
-              {completedNewestFirst.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => onOpen(p.id)}
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-neutral-500 hover:bg-neutral-800"
-                >
-                  <span className="text-emerald-500">✓</span>
-                  <span className="min-w-0 flex-1 truncate" title={p.title}>
+            <ul className="mt-2 flex flex-col gap-0.5">
+              {completedProjects.map((p) => (
+                <li key={p.id}>
+                  <button
+                    onClick={() => onOpen(p.id)}
+                    className="w-full truncate rounded px-2 py-1 text-left text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                    title={p.title}
+                  >
                     {p.title}
-                  </span>
-                  {p.completedAt && <span className="shrink-0 text-neutral-600">{formatShortDate(p.completedAt)}</span>}
-                </button>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}

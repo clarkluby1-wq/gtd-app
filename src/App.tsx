@@ -97,6 +97,7 @@ function App() {
             onOpenProject={openProject}
             onViewWaitingFor={() => selectView('waiting')}
             onViewNextActions={() => selectView('next')}
+          onViewProjects={() => selectView('projects')}
           />
         )
         break
