@@ -198,15 +198,7 @@ function App() {
           <ContentArea>{content}</ContentArea>
         </div>
         {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
-        {showMindSweep && (
-          <MindSweepWizard
-            onClose={() => setShowMindSweep(false)}
-            onProcessInbox={() => {
-              setShowMindSweep(false)
-              startInboxProcessing()
-            }}
-          />
-        )}
+        {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
       </div>
     </CompletionToastProvider>
   )

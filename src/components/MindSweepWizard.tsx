@@ -84,7 +84,7 @@ const CATEGORIES: MindSweepCategory[] = [
 
 type Phase = 'intro' | 'sweep' | 'done'
 
-export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => void; onProcessInbox: () => void }) {
+export function MindSweepWizard({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [categoryIndex, setCategoryIndex] = useState(0)
   const [draft, setDraft] = useState('')
@@ -98,6 +98,8 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
   const totalCaptured = Object.values(capturedByCategory).reduce((sum, items) => sum + items.length, 0)
   // Items removed as duplicates on the last screen no longer count as captured.
   const keptCount = totalCaptured - removedIds.size
+  // Every flagged item has been dealt with (each was removed), so the "may already be in your system" prompt is settled.
+  const allResolved = lookalikes.length > 0 && lookalikes.every(({ item }) => removedIds.has(item.id))
 
   const addItem = () => {
     const title = draft.trim()
@@ -242,19 +244,21 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
                 {totalCaptured === 0
                   ? "Nothing surfaced this time — that's fine too, your head was already clear."
                   : keptCount === 0
-                    ? 'Everything you captured was already in your system, so there is nothing new to sort.'
-                    : `You captured ${keptCount} item${keptCount === 1 ? '' : 's'} into your Inbox. Want to sort ${keptCount === 1 ? 'it' : 'them'} now, while it's fresh?`}
+                    ? "Everything you captured was already in your system, so there's nothing new in your Inbox."
+                    : `You captured ${keptCount} item${keptCount === 1 ? '' : 's'} into your Inbox, ready to sort whenever you like.`}
               </p>
 
               {lookalikes.length > 0 && (
                 <div className="mb-5 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4">
                   <h3 className="mb-1 text-sm font-medium text-neutral-200">
-                    A few of these may already be in your system
+                    {allResolved ? '✓ All duplicates resolved' : 'A few of these may already be in your system'}
                   </h3>
-                  <p className="mb-2 text-xs text-neutral-500">
-                    Each one you just added is shown with what you already have. If it's the same thing, remove the
-                    new one and you keep the original. If not, leave it — it stays in your Inbox.
-                  </p>
+                  {!allResolved && (
+                    <p className="mb-2 text-xs text-neutral-500">
+                      Each one you just added is shown with what you already have. If it's the same thing, remove the
+                      new one and you keep the original. If not, leave it — it stays in your Inbox.
+                    </p>
+                  )}
                   <div className="flex flex-col divide-y divide-neutral-800">
                     {lookalikes.map(({ item, match }) => (
                       <div key={item.id} className="flex items-start justify-between gap-3 py-2.5">
@@ -303,29 +307,12 @@ export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => vo
                 </div>
               )}
 
-              {keptCount > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={onProcessInbox}
-                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-                  >
-                    Process inbox now
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
-                  >
-                    Not now
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={onClose}
-                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-                >
-                  Done
-                </button>
-              )}
+              <button
+                onClick={onClose}
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+              >
+                {allResolved ? 'Mind Sweep complete' : 'Done'}
+              </button>
             </div>
           )}
         </div>
