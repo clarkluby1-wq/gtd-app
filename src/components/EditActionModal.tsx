@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
-import { formatShortDate, parseLocalDate } from '../lib/date'
+import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
 import { waitingStartedAt } from '../lib/waiting'
 
 /** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
@@ -44,6 +44,14 @@ function toDateInputValue(ts?: number) {
 export function EditActionModal({ action, onClose }: { action: Action; onClose: () => void }) {
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  // Same count the star on a Next Actions row uses, minus this action, so the cap can never disagree with it.
+  const otherPinnedCount = useLiveQuery(
+    async () =>
+      (await db.actions.where('status').equals('next').toArray()).filter(
+        (a) => a.id !== action.id && a.bigThreeDate === startOfToday(),
+      ).length,
+    [action.id],
+  )
 
   const [title, setTitle] = useState(action.title)
   const [type, setType] = useState<EditType>(statusToType(action.status))
@@ -55,6 +63,8 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [scheduledDate, setScheduledDate] = useState(toDateInputValue(action.scheduledDate))
   const [projectId, setProjectId] = useState(action.projectId ?? '')
   const [notes, setNotes] = useState(action.notes ?? '')
+  const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfToday())
+  const bigThreeFull = (otherPinnedCount ?? 0) >= 3
 
   const save = async () => {
     const status = TYPES.find((t) => t.key === type)!.status
@@ -72,6 +82,8 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       waitingOn: waitingOn.trim() || undefined,
       scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
+      // Only a Next Action can be a Big Three pick; leaving Next (or unticking) releases the slot.
+      bigThreeDate: type === 'next' && bigThree ? startOfToday() : undefined,
     })
     onClose()
   }
@@ -119,6 +131,23 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
 
           {type === 'next' && (
             <>
+              <button
+                type="button"
+                onClick={() => setBigThree((v) => !v)}
+                disabled={!bigThree && bigThreeFull}
+                title={bigThreeFull && !bigThree ? "Today's Big Three is full — unpin one first" : undefined}
+                className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                  bigThree
+                    ? 'border border-amber-500/40 bg-amber-500/15 text-amber-300'
+                    : 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
+                }`}
+              >
+                <span>{bigThree ? "★ One of today's Big Three" : "☆ Make this one of today's Big Three"}</span>
+                <span className="text-xs font-normal text-neutral-500">
+                  {bigThreeFull && !bigThree ? 'Full — 3 of 3 used' : 'Pinned to the top today'}
+                </span>
+              </button>
+
               <label className="text-xs text-neutral-500">Context</label>
               <select
                 value={contextId}
