@@ -90,7 +90,17 @@ function formatCountdown(seconds: number) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => void }) {
+/** Set when items are being worked through one after another ("Process inbox"), rather than one-off. */
+export type ClarifyQueue = {
+  /** How many are still waiting, including this one. */
+  left: number
+  /** Leave this one where it is and move on. */
+  onSkip: () => void
+  /** Called after this item was saved; the caller brings up the next one. */
+  onFinished: () => void
+}
+
+export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: () => void; queue?: ClarifyQueue }) {
   const [step, setStep] = useState<Step>('actionable')
   const [history, setHistory] = useState<Step[]>([])
   const [kind, setKind] = useState<'single' | 'project'>('single')
@@ -157,7 +167,8 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
     submittingRef.current = true
     try {
       await action()
-      onClose()
+      if (queue) queue.onFinished()
+      else onClose()
     } catch (err) {
       submittingRef.current = false
       throw err
@@ -283,7 +294,10 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 shadow-xl">
         <div className="border-b border-neutral-800 px-5 py-3">
-          <div className="text-xs uppercase tracking-wide text-neutral-500">Clarify</div>
+          <div className="flex items-center justify-between text-xs uppercase tracking-wide text-neutral-500">
+            <span>Clarify</span>
+            {queue && <span className="normal-case tracking-normal">{queue.left} left</span>}
+          </div>
           <div className="mt-1 text-lg font-medium">{item.title}</div>
           {isProject && ACTION_STEPS.includes(step) && (
             <div className="mt-1 text-xs text-neutral-500">
@@ -609,9 +623,18 @@ export function ClarifyModal({ item, onClose }: { item: Action; onClose: () => v
 
         <div className="flex justify-between border-t border-neutral-800 px-5 py-3">
           <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
-            Cancel
+            {queue ? 'Stop for now' : 'Cancel'}
           </button>
           <div className="flex gap-4">
+            {queue && (
+              <button
+                onClick={queue.onSkip}
+                title="Leave it in the Inbox and go to the next one"
+                className="text-xs text-neutral-400 hover:text-neutral-200"
+              >
+                Skip →
+              </button>
+            )}
             {history.length > 0 && (
               <button onClick={goBack} className="text-xs text-neutral-500 hover:text-neutral-300">
                 ← Back

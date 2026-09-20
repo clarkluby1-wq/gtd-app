@@ -16,6 +16,38 @@ import type { Action } from '../db/types'
 export function InboxView() {
   const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
+  const { blocked } = useCompletionToast()
+
+  // "Process inbox": work through the items top to bottom, one after another. Skipped ones simply stay in the Inbox.
+  const [processing, setProcessing] = useState(false)
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
+  const [processedCount, setProcessedCount] = useState(0)
+  const [summary, setSummary] = useState<number | null>(null)
+
+  const queue = (items ?? []).filter((i) => !skippedIds.has(i.id))
+  // While a "what's next?" card is open the app is locked, so the next item waits until that's answered.
+  const current = processing && !blocked ? queue[0] : undefined
+
+  const startProcessing = () => {
+    setSkippedIds(new Set())
+    setProcessedCount(0)
+    setSummary(null)
+    setProcessing(true)
+  }
+  const endProcessing = (processed: number) => {
+    setProcessing(false)
+    setSummary(processed > 0 ? processed : null)
+  }
+  const finishedCurrent = () => {
+    const processed = processedCount + 1
+    setProcessedCount(processed)
+    if (queue.length <= 1) endProcessing(processed)
+  }
+  const skipCurrent = () => {
+    if (!current) return
+    setSkippedIds(new Set(skippedIds).add(current.id))
+    if (queue.length <= 1) endProcessing(processedCount)
+  }
 
   const { sensors, handleDragEnd } = useDragReorder(items ?? [], (id, order) => {
     void updateAction(id, { order })
@@ -25,9 +57,21 @@ export function InboxView() {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Inbox</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Capture everything here first. Then process each item, one at a time, from the top — decide what it is and
-        what to do with it before moving to the next.
+        Capture everything here first. Then process the items one at a time, from the top — decide what each one is
+        and what to do with it. Skip any you're not ready to decide on; they stay right here.
       </p>
+
+      {(items?.length ?? 0) > 0 && !processing && (
+        <button
+          onClick={startProcessing}
+          className="mb-6 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          Process inbox · {items?.length}
+        </button>
+      )}
+      {summary !== null && !processing && (
+        <p className="mb-6 text-sm text-emerald-400">Processed {summary} this round.</p>
+      )}
 
       {items?.length === 0 && (
         <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
@@ -46,6 +90,14 @@ export function InboxView() {
       </DndContext>
 
       {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
+      {!clarifying && current && (
+        <ClarifyModal
+          key={current.id}
+          item={current}
+          onClose={() => endProcessing(processedCount)}
+          queue={{ left: queue.length, onSkip: skipCurrent, onFinished: finishedCurrent }}
+        />
+      )}
     </div>
   )
 }
