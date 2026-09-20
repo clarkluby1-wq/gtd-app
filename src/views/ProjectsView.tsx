@@ -7,7 +7,7 @@ import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
 import { DeepPlanModal } from '../components/DeepPlanModal'
 import { updateProject } from '../db/operations'
-import { isProjectStalled } from '../lib/projectHealth'
+import { isProjectStalled, stalledMessage } from '../lib/projectHealth'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Project } from '../db/types'
 
@@ -96,7 +96,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
       </p>
 
       {stalledIds.size > 0 && (
-        <p className="mb-4 text-xs text-amber-400">⚠ Stalled — nothing next or pending ({stalledIds.size})</p>
+        <p className="mb-4 text-xs text-amber-400">Needs a next step · {stalledIds.size}</p>
       )}
 
       {creating && (
@@ -194,9 +194,7 @@ function SortableProjectCard({
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
   const { done, total } = progress
   const allDone = total > 0 && done === total
-  const stalledMessage = allDone
-    ? "Everything's done — mark it complete, or add a next action."
-    : 'Nothing next or pending — add a next action to get it moving.'
+  const message = stalledMessage(allDone)
 
   return (
     <div
@@ -221,7 +219,7 @@ function SortableProjectCard({
             <span className="truncate">{project.title}</span>
             {stalled && (
               <span
-                title={`${project.title} — ${stalledMessage}`}
+                title={`${project.title} — ${message}`}
                 className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950"
               >
                 !
@@ -236,7 +234,7 @@ function SortableProjectCard({
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
           <div className="h-full bg-emerald-600" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
         </div>
-        {stalled && <p className="mt-2 text-xs text-amber-400">{stalledMessage}</p>}
+        {stalled && <p className="mt-2 text-xs text-amber-400">{message}</p>}
       </button>
     </div>
   )

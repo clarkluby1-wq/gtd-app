@@ -7,3 +7,10 @@ import type { Action, Project } from '../db/types'
 export function isProjectStalled(project: Project, actions: Action[]): boolean {
   return !actions.some((a) => a.projectId === project.id && (a.status === 'next' || a.status === 'waiting'))
 }
+
+/** What to tell someone about a stalled project: it either never got going, or every action is done and it was never closed out. */
+export function stalledMessage(allActionsDone: boolean): string {
+  return allActionsDone
+    ? "Everything's done. Complete it, or add a next action."
+    : 'Nothing next or pending. Add a next action.'
+}

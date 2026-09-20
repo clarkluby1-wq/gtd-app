@@ -5,12 +5,11 @@ import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, ageLabel, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
-import { isProjectStalled } from '../lib/projectHealth'
-import { startOfToday } from '../lib/date'
+import { isProjectStalled, stalledMessage } from '../lib/projectHealth'
+import { formatShortDate, startOfToday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
 const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
-const TRACK = '#262626' // neutral-800 — existing unfilled-track color used elsewhere
 const GRID = '#2c2c2a'
 const STATUS = { good: '#0ca30c', warning: '#fab219', critical: '#d03b3b' }
 const STALE_TIER_COLOR = { 7: '#fab219', 14: '#f2994a', 30: '#d03b3b' }
@@ -91,12 +90,6 @@ export function DashboardView({
     )
   }, [activeProjects, allActions])
 
-  const progress = (projectId: string) => {
-    const items = allActions?.filter((a) => a.projectId === projectId) ?? []
-    const done = items.filter((a) => a.status === 'done').length
-    return { done, total: items.length }
-  }
-
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Dashboard</h1>
@@ -112,10 +105,10 @@ export function DashboardView({
 
       <BalanceWheel areas={areas ?? []} projects={activeProjects ?? []} />
 
-      <ProjectRings
+      <ProjectOverview
         activeProjects={activeProjects ?? []}
         completedProjects={completedProjects ?? []}
-        progress={progress}
+        actions={allActions ?? []}
         stalledProjectIds={stalledProjectIds}
         onOpen={onOpenProject}
       />
@@ -304,19 +297,29 @@ function BalanceWheel({ areas, projects }: { areas: AreaOfFocus[]; projects: Pro
   )
 }
 
-function ProjectRings({
+/** How many moving projects show before "Show more" — the rest are fine, so they shouldn't compete for attention. */
+const MOVING_PREVIEW = 5
+
+/**
+ * Projects, by what they need from you — not by percent complete. A percentage was mostly a row of identical
+ * empty circles, cut off names, and it dropped every time you added a next action (progress going backwards for
+ * doing the right thing). This leads with the projects that are stuck, then shows each moving project's actual
+ * next step.
+ */
+function ProjectOverview({
   activeProjects,
   completedProjects,
-  progress,
+  actions,
   stalledProjectIds,
   onOpen,
 }: {
   activeProjects: Project[]
   completedProjects: Project[]
-  progress: (id: string) => { done: number; total: number }
+  actions: Action[]
   stalledProjectIds: Set<string>
   onOpen: (id: string) => void
 }) {
+  const [showAllMoving, setShowAllMoving] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
 
   if (activeProjects.length === 0 && completedProjects.length === 0) {
@@ -327,116 +330,137 @@ function ProjectRings({
     )
   }
 
-  const stalled = activeProjects.filter((p) => stalledProjectIds.has(p.id))
-  const onTrack = activeProjects.filter((p) => !stalledProjectIds.has(p.id))
+  // Same order as the Projects list, so the two screens read alike.
+  const byOrder = (a: Project, b: Project) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt)
+  const stalled = activeProjects.filter((p) => stalledProjectIds.has(p.id)).sort(byOrder)
+  const moving = activeProjects.filter((p) => !stalledProjectIds.has(p.id)).sort(byOrder)
+  const shownMoving = showAllMoving ? moving : moving.slice(0, MOVING_PREVIEW)
+
+  const today = startOfToday()
+  const summaryOf = (p: Project) => {
+    const mine = actions.filter((a) => a.projectId === p.id)
+    const nexts = mine
+      .filter((a) => a.status === 'next')
+      .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today) || a.order - b.order)
+    return {
+      next: nexts[0],
+      waiting: mine.filter((a) => a.status === 'waiting'),
+      allDone: mine.length > 0 && mine.every((a) => a.status === 'done'),
+    }
+  }
+
+  const monthStart = new Date(today)
+  monthStart.setDate(1)
+  const finishedThisMonth = completedProjects.filter((p) => (p.completedAt ?? 0) >= monthStart.getTime()).length
+  const completedNewestFirst = [...completedProjects].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
 
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-      <h2 className="mb-3 text-sm font-medium text-neutral-300">Project Progress</h2>
+      <h2 className="mb-3 text-sm font-medium text-neutral-300">Projects</h2>
 
-      <h3 className="mb-2 text-xs font-medium text-neutral-500">Active Projects</h3>
-      {activeProjects.length === 0 ? (
-        <p className="text-sm text-neutral-500">No active projects yet.</p>
-      ) : (
-        <>
-          {stalled.length > 0 && (
-            <div className="mb-4">
-              <h4 className="mb-2 text-xs text-amber-400">
-                ⚠ Stalled — nothing next or pending ({stalled.length})
-              </h4>
-              <div className="flex flex-wrap gap-4">
-                {stalled.map((p) => (
-                  <ProjectRing key={p.id} project={p} progress={progress(p.id)} stalled onOpen={() => onOpen(p.id)} />
-                ))}
-              </div>
-            </div>
-          )}
-          {onTrack.length > 0 && (
-            <div>
-              {stalled.length > 0 && (
-                <h4 className="mb-2 text-xs text-neutral-500">On Track ({onTrack.length})</h4>
-              )}
-              <div className="flex flex-wrap gap-4">
-                {onTrack.map((p) => (
-                  <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+      {stalled.length > 0 && (
+        <div className="mb-4">
+          <h3 className="mb-1.5 text-xs font-medium text-amber-400">Needs a next step · {stalled.length}</h3>
+          <div className="flex flex-col gap-1">
+            {stalled.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onOpen(p.id)}
+                className="flex w-full items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-left hover:bg-amber-500/15"
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950">
+                  !
+                </span>
+                <span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-neutral-100" title={p.title}>
+                  {p.title}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs text-amber-300">
+                  {stalledMessage(summaryOf(p).allDone)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
+      {moving.length > 0 && (
+        <div>
+          <h3 className="mb-1.5 text-xs font-medium text-neutral-500">Moving · {moving.length}</h3>
+          <div className="flex flex-col gap-1">
+            {shownMoving.map((p) => {
+              const { next, waiting } = summaryOf(p)
+              const line = next
+                ? next.title
+                : waiting[0]
+                  ? `Waiting on ${waiting[0].waitingOn ?? 'someone'}: ${waiting[0].title}`
+                  : ''
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => onOpen(p.id)}
+                  className="flex w-full items-center gap-2 rounded-md bg-neutral-800/50 px-2.5 py-2 text-left hover:bg-neutral-800"
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  <span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-neutral-100" title={p.title}>
+                    {p.title}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-neutral-400" title={line}>
+                    {line}
+                  </span>
+                  {next && waiting.length > 0 && (
+                    <span className="shrink-0 rounded-md border border-neutral-700 px-1.5 py-0.5 text-[11px] text-neutral-400">
+                      {waiting.length} waiting
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {moving.length > MOVING_PREVIEW && (
+            <button
+              onClick={() => setShowAllMoving((v) => !v)}
+              className="mt-2 text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              {showAllMoving ? 'Show fewer' : `Show ${moving.length - MOVING_PREVIEW} more`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeProjects.length === 0 && <p className="text-sm text-neutral-500">No active projects yet.</p>}
+
       {completedProjects.length > 0 && (
-        <div className="mt-5">
-          <button
-            onClick={() => setShowCompleted((v) => !v)}
-            className="flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-300"
-          >
-            <span className="text-[10px]">{showCompleted ? '▾' : '▸'}</span>
-            Completed Projects ({completedProjects.length})
-          </button>
+        <div className="mt-4 border-t border-neutral-800 pt-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCompleted((v) => !v)}
+              className="flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-300"
+            >
+              <span className="text-[10px]">{showCompleted ? '▾' : '▸'}</span>
+              {completedProjects.length} completed
+            </button>
+            {finishedThisMonth > 0 && <span className="text-xs text-emerald-400">{finishedThisMonth} finished this month</span>}
+          </div>
           {showCompleted && (
-            <div className="mt-2 flex flex-wrap gap-4">
-              {completedProjects.map((p) => (
-                <ProjectRing key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+            <div className="mt-2 flex flex-col gap-1">
+              {completedNewestFirst.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => onOpen(p.id)}
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs text-neutral-500 hover:bg-neutral-800"
+                >
+                  <span className="text-emerald-500">✓</span>
+                  <span className="min-w-0 flex-1 truncate" title={p.title}>
+                    {p.title}
+                  </span>
+                  {p.completedAt && <span className="shrink-0 text-neutral-600">{formatShortDate(p.completedAt)}</span>}
+                </button>
               ))}
             </div>
           )}
         </div>
       )}
     </div>
-  )
-}
-
-function ProjectRing({
-  project,
-  progress,
-  stalled,
-  onOpen,
-}: {
-  project: Project
-  progress: { done: number; total: number }
-  stalled?: boolean
-  onOpen: () => void
-}) {
-  const { done, total } = progress
-  const pct = total > 0 ? done / total : 0
-  const r = 30
-  const circumference = 2 * Math.PI * r
-
-  return (
-    <button
-      onClick={onOpen}
-      className="flex w-20 flex-col items-center gap-1 text-center"
-      title={stalled ? `${project.title} — nothing next or pending, can't move forward` : project.title}
-    >
-      <div className="relative">
-        <svg viewBox="0 0 72 72" className="h-16 w-16">
-          <circle cx={36} cy={36} r={r} fill="none" stroke={TRACK} strokeWidth={7} />
-          <circle
-            cx={36}
-            cy={36}
-            r={r}
-            fill="none"
-            stroke={ACCENT}
-            strokeWidth={7}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - pct)}
-            transform="rotate(-90 36 36)"
-          />
-          <text x={36} y={40} textAnchor="middle" className="fill-neutral-100 text-[15px] font-semibold">
-            {Math.round(pct * 100)}%
-          </text>
-        </svg>
-        {stalled && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950">
-            !
-          </span>
-        )}
-      </div>
-      <span className="w-full truncate text-xs text-neutral-400">{project.title}</span>
-    </button>
   )
 }
 
