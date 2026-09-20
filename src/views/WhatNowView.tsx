@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
+import { BigThree } from '../components/BigThree'
 import { TaskRow } from '../components/TaskRow'
 import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
@@ -38,7 +39,8 @@ export function WhatNowView({
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const somedayProjectIds = useSomedayProjectIds()
   const today = startOfToday()
-  const pinnedTodayCount = (actions ?? []).filter((a) => a.bigThreeDate === today).length
+  const bigThreeActions = (actions ?? []).filter((a) => a.bigThreeDate === today)
+  const pinnedTodayCount = bigThreeActions.length
 
   const stepIndex = STEPS.indexOf(step)
 
@@ -89,6 +91,11 @@ export function WhatNowView({
           </span>
         ))}
       </div>
+
+      {/* The reminder matters while you're deciding. The results step already floats these to the top with a ★. */}
+      {step !== 'results' && (
+        <BigThree actions={bigThreeActions} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
+      )}
 
       {step === 'context' && (
         <StepScreen question="Where are you right now?">
