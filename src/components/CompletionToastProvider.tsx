@@ -28,7 +28,7 @@ export function CompletionToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* While a card is waiting, everything but capture is off-limits: this dims the app, and a click on it nudges the card. */}
       {pending.length > 0 && <div aria-hidden onClick={nudge} className="fixed inset-0 z-[54] bg-black/50" />}
-      {/* Above the shield and the Clarify modal (z-50). Below the capture bar (z-56) and the celebration effects (z-60). */}
+      {/* Above the shield and the Clarify modal (z-50). Below the capture bar (z-58) and the celebration effects (z-60). */}
       <div className="pointer-events-none fixed inset-0 z-[55] flex flex-col items-center justify-center gap-2">
         {pending.map(({ action, celebrateOnDismiss }) => (
           <div key={action.id} className="pointer-events-auto">

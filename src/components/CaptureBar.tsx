@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react'
 import { captureToInbox } from '../db/operations'
-import { useCompletionToast } from '../lib/completionToastContext'
 
 export function CaptureBar() {
-  const { blocked } = useCompletionToast()
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -21,10 +19,9 @@ export function CaptureBar() {
         e.preventDefault()
         void submit()
       }}
-      // Capture is the one thing that stays open while a "what's next?" card is waiting, so it sits above the shield.
-      className={`flex items-center gap-2 border-b border-neutral-800 bg-neutral-900 px-4 py-3 ${
-        blocked ? 'relative z-[56]' : ''
-      }`}
+      // Capture is never blocked: it sits above every window (Clarify, Edit, Mind Sweep, reminders, the "what's next?"
+      // card and its shield), so a thought can always be caught the moment it shows up.
+      className="relative z-[58] flex items-center gap-2 border-b border-neutral-800 bg-neutral-900 px-4 py-3"
     >
       <span className="text-neutral-500">+</span>
       <input
