@@ -4,6 +4,7 @@ import { db } from '../../db/db'
 import { getLastBackupAt, isBackupDue } from '../../db/backup'
 import { finishReview, saveGuidedStep, setReviewItemDone } from '../../db/weeklyReview'
 import { celebrate, originOf } from '../../lib/celebrate'
+import { formatShortDate } from '../../lib/date'
 import { describeStatus, getReviewSchedule } from '../../lib/reviewSchedule'
 import { isItemDone, normalizeChecklist, type ReviewPhase } from '../../lib/weeklyReviewTemplate'
 import type { ViewKey } from '../Sidebar'
@@ -167,11 +168,28 @@ export function GuidedReview({
   const [finished, setFinished] = useState(false)
   // Set when you jump back to a skipped step from the recap, so finishing it takes you straight back there.
   const [returnToRecap, setReturnToRecap] = useState(false)
-  const [since] = useState(() => Date.now() - 7 * DAY)
+  const [openedAt] = useState(() => Date.now())
+  const allReviews = useLiveQuery(() => db.weeklyReviews.toArray())
+
+  // Wins and the recap look back to the last review you finished (at most 30 days), or a week if this is your first.
+  const lastReviewAt = useMemo(() => {
+    const times = (allReviews ?? []).filter((r) => r.date < weekStart && r.completedAt).map((r) => r.completedAt!)
+    return times.length ? Math.max(...times) : undefined
+  }, [allReviews, weekStart])
+  const since = lastReviewAt !== undefined ? Math.max(lastReviewAt, openedAt - 30 * DAY) : openedAt - 7 * DAY
+  const winsHint =
+    lastReviewAt === undefined
+      ? 'The last seven days. Give yourself the credit.'
+      : lastReviewAt < openedAt - 30 * DAY
+        ? "It's been a while — here's the last 30 days. Give yourself the credit."
+        : `Since your last review on ${formatShortDate(lastReviewAt)}. Give yourself the credit.`
 
   const checklist = useMemo(() => normalizeChecklist(review?.checklist), [review])
   const step = FLOW[index]
   const savedIndex = FLOW.findIndex((s) => s.key === review?.guidedStep)
+
+  // Wait for the past reviews to load so the look-back window doesn't change under you.
+  if (allReviews === undefined) return null
 
   const recapIndex = FLOW.length - 1
 
@@ -298,8 +316,11 @@ export function GuidedReview({
         {inSection.length > 1 && !isRecap ? ` · ${positionInSection} of ${inSection.length}` : ''}
       </div>
       <h1 className="mb-1 text-2xl font-semibold text-neutral-100">{copy.question}</h1>
-      {copy.hint && <p className="mb-5 text-sm text-neutral-500">{copy.hint}</p>}
-      {!copy.hint && <div className="mb-5" />}
+      {(step.key === 'wins' ? winsHint : copy.hint) ? (
+        <p className="mb-5 text-sm text-neutral-500">{step.key === 'wins' ? winsHint : copy.hint}</p>
+      ) : (
+        <div className="mb-5" />
+      )}
 
       <div className="mb-8">
         <StepBody

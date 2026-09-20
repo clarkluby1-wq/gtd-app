@@ -11,7 +11,7 @@ import {
 } from '../../db/operations'
 import { createBackup, backupAgeLabel, getLastBackupAt, isBackupDue } from '../../db/backup'
 import { setReviewItemDone, setReviewSubDone, toggleReviewSub } from '../../db/weeklyReview'
-import { startOfToday } from '../../lib/date'
+import { formatShortDate, startOfToday } from '../../lib/date'
 import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
 import { staleNextActions } from '../../lib/staleness'
 import { useSomedayProjectIds } from '../../lib/useSomedayProjectIds'
@@ -129,6 +129,23 @@ function useNotParked() {
 
 // ---------- Wins ----------
 
+/** One finished thing. Long titles wrap instead of being cut off — they're the point. */
+function WinRow({ icon, iconTone, title, meta }: { icon: string; iconTone: string; title: string; meta?: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-md bg-neutral-900 px-3 py-2 text-sm text-neutral-200">
+      <span className={`mt-px shrink-0 ${iconTone}`}>{icon}</span>
+      <span className="min-w-0 flex-1 break-words">{title}</span>
+      {meta && <span className="shrink-0 pt-px text-xs text-neutral-500">{meta}</span>}
+    </div>
+  )
+}
+
+const WIN_PREVIEW = 5
+
+/**
+ * What you got done since the last review. Leads with everything that was on your Short List — the things you
+ * decided mattered most, day by day — then finished projects, then the rest.
+ */
 export function WinsStep({ since }: { since: number }) {
   const done = useLiveQuery(
     () =>
@@ -149,37 +166,106 @@ export function WinsStep({ since }: { since: number }) {
     [since],
   )
   const captured = useLiveQuery(() => db.captureEvents.where('createdAt').aboveOrEqual(since).count(), [since])
+  const [showAllProjects, setShowAllProjects] = useState(false)
+  const [showAllOthers, setShowAllOthers] = useState(false)
 
   if (done === undefined) return null
-  const recent = [...done].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+
+  const newestFirst = [...done].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+  // A finished action keeps the day it was on the Short List, so this is exactly "what you called important".
+  const starred = newestFirst.filter((a) => a.bigThreeDate !== undefined)
+  const others = newestFirst.filter((a) => a.bigThreeDate === undefined)
+
+  const days = new Map<number, Action[]>()
+  for (const a of [...starred].reverse()) days.set(a.bigThreeDate!, [...(days.get(a.bigThreeDate!) ?? []), a])
+  const starredDays = [...days.entries()].sort((a, b) => b[0] - a[0])
+
+  const finishedProjects = [...(projects ?? [])].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+  const today = startOfToday()
+  const dayLabel = (day: number) =>
+    day === today ? 'Today' : new Date(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
+
+  if (newestFirst.length === 0 && finishedProjects.length === 0) {
+    return <Calm>A quiet stretch — that's okay. Let's get the next one set up.</Calm>
+  }
 
   return (
     <div>
-      {recent.length === 0 ? (
-        <Calm>A quiet week — that's okay. Let's get the next one set up.</Calm>
-      ) : (
-        <>
-          <div className="mb-3 text-3xl font-semibold text-neutral-100">
-            {recent.length} <span className="text-base font-normal text-neutral-400">finished</span>
+      {starred.length > 0 ? (
+        <section className="mb-7 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="mb-4 flex items-baseline gap-3">
+            <span className="text-3xl font-semibold text-amber-300">★ {starred.length}</span>
+            <span className="text-sm text-neutral-300">
+              from your Short List — the things you said mattered most
+            </span>
           </div>
-          <div className="flex flex-col gap-1">
-            {recent.slice(0, 8).map((a) => (
-              <div key={a.id} className="truncate rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300">
-                <span className="text-emerald-500">✓</span> {a.title}
+          {starredDays.map(([day, items]) => (
+            <div key={day} className="mb-4 last:mb-0">
+              <div className="mb-1.5 text-xs font-medium text-amber-400/80">{dayLabel(day)}</div>
+              <div className="flex flex-col gap-1.5">
+                {items.map((a) => (
+                  <WinRow key={a.id} icon="★" iconTone="text-amber-400" title={a.title} />
+                ))}
               </div>
-            ))}
-          </div>
-          {recent.length > 8 && <p className="mt-2 text-xs text-neutral-500">…and {recent.length - 8} more.</p>}
-        </>
-      )}
-      {(projects?.length ?? 0) > 0 && (
-        <p className="mt-4 text-sm text-emerald-400">
-          🏁 Finished {projects!.length === 1 ? 'a project' : `${projects!.length} projects`}:{' '}
-          {projects!.map((p) => p.title).join(', ')}
+            </div>
+          ))}
+        </section>
+      ) : (
+        <p className="mb-6 text-xs text-neutral-500">
+          Star up to three things each day and they'll gather here — proof of what you decided mattered most.
         </p>
       )}
+
+      {finishedProjects.length > 0 && (
+        <section className="mb-7">
+          <div className="mb-2 flex items-baseline gap-3">
+            <span className="text-2xl font-semibold text-neutral-100">🏁 {finishedProjects.length}</span>
+            <span className="text-sm text-neutral-400">
+              {finishedProjects.length === 1 ? 'project finished' : 'projects finished'}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {(showAllProjects ? finishedProjects : finishedProjects.slice(0, WIN_PREVIEW)).map((p) => (
+              <WinRow
+                key={p.id}
+                icon="🏁"
+                iconTone=""
+                title={p.title}
+                meta={p.completedAt ? formatShortDate(p.completedAt) : undefined}
+              />
+            ))}
+          </div>
+          {finishedProjects.length > WIN_PREVIEW && (
+            <MoreLink onClick={() => setShowAllProjects((v) => !v)}>
+              {showAllProjects ? 'Show fewer' : `Show all ${finishedProjects.length}`}
+            </MoreLink>
+          )}
+        </section>
+      )}
+
+      {others.length > 0 && (
+        <section className="mb-6">
+          <div className="mb-2 flex items-baseline gap-3">
+            <span className="text-2xl font-semibold text-neutral-100">{others.length}</span>
+            <span className="text-sm text-neutral-400">
+              {starred.length > 0 ? 'other things finished' : others.length === 1 ? 'thing finished' : 'things finished'}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {(showAllOthers ? others : others.slice(0, WIN_PREVIEW)).map((a) => (
+              <WinRow key={a.id} icon="✓" iconTone="text-emerald-500" title={a.title} />
+            ))}
+          </div>
+          {others.length > WIN_PREVIEW && (
+            <MoreLink onClick={() => setShowAllOthers((v) => !v)}>
+              {showAllOthers ? 'Show fewer' : `Show all ${others.length}`}
+            </MoreLink>
+          )}
+        </section>
+      )}
+
       {(captured ?? 0) > 0 && (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="text-xs text-neutral-500">
           You also captured {captured} thing{captured === 1 ? '' : 's'} so they weren't rattling around in your head.
         </p>
       )}
