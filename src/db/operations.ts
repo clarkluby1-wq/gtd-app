@@ -1,7 +1,8 @@
 import { v4 as uuid } from 'uuid'
 import { db } from './db'
 import { startOfToday } from '../lib/date'
-import type { Action, ActionStatus, EnergyLevel, Project, ProjectStatus } from './types'
+import type { DueReminder } from '../lib/reminders'
+import type { Action, ActionStatus, EnergyLevel, Project, ProjectStatus, ReminderState } from './types'
 
 /** Capture: add a raw, unprocessed item to the inbox. No decisions made yet. */
 export async function captureToInbox(title: string) {
@@ -248,6 +249,24 @@ export async function updateAction(actionId: string, changes: Partial<Action>) {
   // Only a real move *into* Waiting For starts the follow-up clock — saving an edit to something already waiting must not reset it.
   const becomingWaiting = changes.status === 'waiting' && (await db.actions.get(actionId))?.status !== 'waiting'
   await db.actions.update(actionId, { ...changes, ...(becomingWaiting ? { waitingSince: now } : {}), touchedAt: now })
+}
+
+/**
+ * Mark pop-up reminders as dealt with. `remindOnDay` applies to "tomorrow" items only: it asks for the same window
+ * again on the day itself. Deliberately doesn't touch `touchedAt`, so acknowledging a reminder isn't an "edit".
+ */
+export async function acknowledgeReminders(items: DueReminder[], remindOnDay: boolean) {
+  await db.transaction('rw', db.actions, async () => {
+    for (const { action, kind } of items) {
+      const current = await db.actions.get(action.id)
+      if (current?.scheduledDate === undefined) continue
+      const previous = current.reminder?.forDate === current.scheduledDate ? current.reminder : undefined
+      const next: ReminderState = { ...previous, forDate: current.scheduledDate, headsUpDone: true }
+      if (kind === 'tomorrow') next.remindOnDay = remindOnDay
+      else next.dayOfDone = true
+      await db.actions.update(action.id, { reminder: next })
+    }
+  })
 }
 
 /** Record that you followed up with whoever this is waiting on (a reminder, a nudge, a call). */

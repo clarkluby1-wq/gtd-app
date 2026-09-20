@@ -8,6 +8,7 @@ import {
   setCelebrationLevel,
   type CelebrationLevel,
 } from '../lib/celebrate'
+import { getRemindersEnabled, setRemindersEnabled } from '../lib/reminders'
 
 const CELEBRATION_OPTIONS: { level: CelebrationLevel; label: string; hint: string }[] = [
   { level: 'full', label: 'Full', hint: 'A small confetti burst on every completion; a big one for milestones.' },
@@ -28,6 +29,7 @@ export function SettingsView() {
   const [importedOk, setImportedOk] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [celebration, setCelebration] = useState(getCelebrationLevel())
+  const [reminders, setReminders] = useState(getRemindersEnabled())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chooseCelebration = (level: CelebrationLevel, from: Element) => {
@@ -88,6 +90,34 @@ export function SettingsView() {
         <p className="mt-2 text-xs text-neutral-600">
           {CELEBRATION_OPTIONS.find((o) => o.level === celebration)?.hint}
         </p>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+        <div className="mb-2 font-medium text-neutral-100">Calendar reminders</div>
+        <p className="mb-3 text-sm text-neutral-500">
+          A pop-up the day before a calendar item, with an option to be reminded again on the day. It can only
+          appear while the app is open in a browser tab, so it also shows up late if you weren't in the app the
+          day before. Recurring items don't trigger it.
+        </p>
+        <div className="flex gap-2">
+          {[
+            { on: true, label: 'On' },
+            { on: false, label: 'Off' },
+          ].map((o) => (
+            <button
+              key={o.label}
+              onClick={() => {
+                setRemindersEnabled(o.on)
+                setReminders(o.on)
+              }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                reminders === o.on ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">

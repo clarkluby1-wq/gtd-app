@@ -26,6 +26,9 @@ Local-first: all data lives in the browser's IndexedDB (via Dexie). No server, n
   creation: Purpose → Outcome Visioning → Brainstorm → Organize → Next Actions.
 - **Recurring actions** — fixed-calendar templates (daily/weekly/monthly) that generate
   Calendar occurrences automatically.
+- **Calendar reminders** — a pop-up the day before a scheduled item, with an option to be reminded
+  again on the day (and a same-day catch-up if the app wasn't open yesterday). Recurring items are
+  skipped. With no server it can only appear while the app is open in a browser tab.
 - **Weekly Review** — a checklist, plus flags for orphaned projects, neglected Areas of
   Focus, and overdue backups.
 - **Backup/restore** — export everything to a JSON file, or restore from one, in Settings.

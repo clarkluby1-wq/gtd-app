@@ -78,6 +78,18 @@ export interface Project {
   order?: number
 }
 
+/** Bookkeeping for the calendar pop-up reminders on one scheduled item. */
+export interface ReminderState {
+  /** The scheduledDate this applies to. If the item is rescheduled it no longer matches, and reminders start fresh. */
+  forDate: number
+  /** The "tomorrow" heads-up (or the same-day catch-up) has been dealt with. */
+  headsUpDone?: boolean
+  /** Asked to be reminded again on the day itself. */
+  remindOnDay?: boolean
+  /** The same-day reminder has been dealt with. */
+  dayOfDone?: boolean
+}
+
 export interface Action {
   id: string
   title: string
@@ -95,6 +107,7 @@ export interface Action {
   followUps?: number[]
   dueDate?: number
   scheduledDate?: number
+  reminder?: ReminderState
   createdAt: number
   clarifiedAt?: number
   completedAt?: number

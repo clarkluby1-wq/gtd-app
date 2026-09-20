@@ -5,6 +5,7 @@ import { CaptureBar } from './components/CaptureBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
+import { ReminderPrompt } from './components/ReminderPrompt'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
@@ -158,6 +159,7 @@ function App() {
   return (
     <CompletionToastProvider>
       <SearchHotkey onTrigger={openSearch} />
+      <ReminderPrompt />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
           current={view}
