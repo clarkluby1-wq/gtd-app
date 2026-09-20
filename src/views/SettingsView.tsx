@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { downloadBackup, exportBackup, getLastBackupAt, importBackup } from '../db/backup'
+import { backupAgeLabel, createBackup, getLastBackup, importBackup, isBackupDue } from '../db/backup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import {
   celebrate,
@@ -16,15 +16,8 @@ const CELEBRATION_OPTIONS: { level: CelebrationLevel; label: string; hint: strin
   { level: 'off', label: 'Off', hint: 'No effects.' },
 ]
 
-function formatRelative(ts: number) {
-  const days = Math.floor((Date.now() - ts) / (1000 * 60 * 60 * 24))
-  if (days === 0) return 'today'
-  if (days === 1) return 'yesterday'
-  return `${days} days ago`
-}
-
 export function SettingsView() {
-  const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
+  const [lastBackup, setLastBackup] = useState(getLastBackup())
   const [importError, setImportError] = useState<string | null>(null)
   const [importedOk, setImportedOk] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -39,9 +32,8 @@ export function SettingsView() {
   }
 
   const handleExport = async () => {
-    const json = await exportBackup()
-    downloadBackup(json)
-    setLastBackupAt(getLastBackupAt())
+    await createBackup()
+    setLastBackup(getLastBackup())
   }
 
   const handleImportFile = async (file: File) => {
@@ -122,10 +114,15 @@ export function SettingsView() {
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Backup</div>
-        <p className="mb-3 text-sm text-neutral-500">
-          {lastBackupAt
-            ? `Last backup: ${formatRelative(lastBackupAt)}.`
+        <p className={`mb-1 text-sm ${isBackupDue(lastBackup?.at ?? null) ? 'text-amber-400' : 'text-neutral-500'}`}>
+          {lastBackup
+            ? `Last backup file created ${backupAgeLabel(lastBackup.at)}${lastBackup.filename ? ` (${lastBackup.filename})` : ''}.`
             : "You haven't backed up yet."}
+          {isBackupDue(lastBackup?.at ?? null) && ' A fresh one is due.'}
+        </p>
+        <p className="mb-3 text-xs text-neutral-600">
+          Your browser saves it to your Downloads folder unless you told it to ask where. It's worth checking the file
+          is there — the app can't see it once it's downloaded.
         </p>
         <button
           onClick={handleExport}

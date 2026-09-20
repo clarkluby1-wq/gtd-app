@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
-import { getLastBackupAt } from '../db/backup'
+import { backupAgeLabel, createBackup, getLastBackupAt, isBackupDue } from '../db/backup'
 import { ageInDays, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
@@ -42,6 +42,7 @@ const TEMPLATE: TemplateItem[] = [
   { key: 'upcoming-calendar', phase: 'current', label: 'Scan the upcoming calendar for prep work or conflicts' },
   { key: 'waiting-for', phase: 'current', label: 'Review Waiting For — follow up on anything overdue, then click "Followed up"' },
   { key: 'projects', phase: 'current', label: 'Review every active Project — does each still have a next action?' },
+  { key: 'backup', phase: 'current', label: 'Back up your data — one click keeps a safe copy' },
   {
     key: 'someday-maybe',
     phase: 'creative',
@@ -128,6 +129,7 @@ function startOfWeek(d: Date) {
 
 export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) => void }) {
   const [weekStart] = useState(() => startOfWeek(new Date()))
+  const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
   const review = useLiveQuery(() => db.weeklyReviews.where('date').equals(weekStart).first(), [weekStart])
   const allReviews = useLiveQuery(() => db.weeklyReviews.toArray())
 
@@ -147,6 +149,19 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     const r = await ensureReview()
     const checklist = normalizeChecklist(r.checklist).map((c) => (c.key === key ? { ...c, done: !c.done } : c))
     await saveChecklist(r, checklist)
+  }
+
+  /** Backing up counts as doing that step, so it ticks itself. */
+  const backUpNow = async () => {
+    await createBackup()
+    setLastBackupAt(getLastBackupAt())
+    const r = await ensureReview()
+    const current = normalizeChecklist(r.checklist)
+    if (current.find((c) => c.key === 'backup')?.done) return
+    await saveChecklist(
+      r,
+      current.map((c) => (c.key === 'backup' ? { ...c, done: true } : c)),
+    )
   }
 
   const toggleSub = async (parentKey: string, subKey: string) => {
@@ -210,6 +225,8 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     [activeProjects, allActions],
   )
 
+  const backupDue = isBackupDue(lastBackupAt)
+
   const badges: Record<string, ReactNode> = {
     'next-actions':
       nextActions.length === 0
@@ -225,6 +242,23 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
         : stalledProjects.length > 0
           ? `${stalledProjects.length} stalled`
           : `${activeProjects?.length} active, all covered`,
+    backup: (
+      <span className={backupDue ? 'text-amber-400' : undefined}>
+        {lastBackupAt === null ? 'never backed up' : `last file ${backupAgeLabel(lastBackupAt)}`}
+      </span>
+    ),
+  }
+
+  const extras: Record<string, ReactNode> = {
+    backup: (
+      <button
+        type="button"
+        onClick={() => void backUpNow()}
+        className="rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
+      >
+        Back up now
+      </button>
+    ),
   }
 
   const subBadges: Record<string, Record<string, ReactNode>> = {
@@ -233,9 +267,6 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
         inboxCount == null ? undefined : inboxCount === 0 ? 'zero ✓' : `${inboxCount} item${inboxCount === 1 ? '' : 's'}`,
     },
   }
-
-  const lastBackupAt = getLastBackupAt()
-  const daysSinceBackup = lastBackupAt ? Math.floor((Date.now() - lastBackupAt) / (1000 * 60 * 60 * 24)) : null
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -275,7 +306,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
         </div>
       )}
 
-      {(orphanedProjects.length > 0 || neglectedAreas.length > 0 || daysSinceBackup === null || daysSinceBackup > 14) && (
+      {(orphanedProjects.length > 0 || neglectedAreas.length > 0) && (
         <div className="mb-6 flex flex-col gap-2 rounded-lg border border-amber-900/50 bg-amber-950/20 p-4 text-sm">
           {orphanedProjects.length > 0 && (
             <div className="text-amber-300">
@@ -286,12 +317,6 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
           {neglectedAreas.length > 0 && (
             <div className="text-amber-300">
               ⚠ No active projects in: {neglectedAreas.map((a) => a.name).join(', ')}
-            </div>
-          )}
-          {(daysSinceBackup === null || daysSinceBackup > 14) && (
-            <div className="text-amber-300">
-              ⚠ {daysSinceBackup === null ? "You've never backed up" : `Last backup was ${daysSinceBackup} days ago`}
-              — everything is stored only in this browser.
             </div>
           )}
         </div>
@@ -315,6 +340,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
                   key={c.key}
                   item={c}
                   badge={badges[c.key]}
+                  extra={extras[c.key]}
                   subBadges={subBadges[c.key]}
                   onToggle={toggle}
                   onToggleSub={toggleSub}
@@ -332,6 +358,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
 function ChecklistRow({
   item,
   badge,
+  extra,
   subBadges,
   onToggle,
   onToggleSub,
@@ -339,6 +366,8 @@ function ChecklistRow({
 }: {
   item: WeeklyReviewChecklistItem
   badge?: ReactNode
+  /** A button that belongs to this step, shown at the end of its row. */
+  extra?: ReactNode
   subBadges?: Record<string, ReactNode>
   onToggle: (key: string) => void
   onToggleSub: (parentKey: string, subKey: string) => void
@@ -369,6 +398,7 @@ function ChecklistRow({
         {(badge ?? subProgress) && (
           <span className="ml-auto shrink-0 text-xs text-neutral-500">{badge ?? subProgress}</span>
         )}
+        {extra && <span className={badge ?? subProgress ? 'shrink-0' : 'ml-auto shrink-0'}>{extra}</span>}
       </div>
 
       {item.subItems && (
