@@ -45,6 +45,9 @@ function App() {
   const [processInboxOnOpen, setProcessInboxOnOpen] = useState(false)
   // Bumped on every request so the Inbox restarts even when you're already looking at it.
   const [inboxRun, setInboxRun] = useState(0)
+  // Set when the Weekly Review pop-up or Start My Day sends you straight into the guided review.
+  const [reviewAutoStart, setReviewAutoStart] = useState(false)
+  const [reviewRun, setReviewRun] = useState(0)
   // Focus mode is entered from Next Actions or Start My Day, carrying that screen's filters, and returns there.
   const [focusFilters, setFocusFilters] = useState<NextFilters>(NO_FILTERS)
   const [focusReturn, setFocusReturn] = useState<ViewKey>('next')
@@ -78,6 +81,7 @@ function App() {
     setEditGoalId(null)
     setGoalReturnProjectId(null)
     setProcessInboxOnOpen(false)
+    setReviewAutoStart(false)
     setView(v)
   }
 
@@ -85,6 +89,13 @@ function App() {
     setFocusFilters(filters)
     setFocusReturn(view === 'startday' ? 'startday' : 'next')
     selectView('focus')
+  }
+
+  /** Go to the Weekly Review and open the guided walkthrough right away. */
+  const startReview = () => {
+    selectView('review')
+    setReviewAutoStart(true)
+    setReviewRun((n) => n + 1)
   }
 
   /** Go to the Inbox and start working through it right away. */
@@ -126,7 +137,7 @@ function App() {
             onViewWaitingFor={() => selectView('waiting')}
             onViewWhatNow={() => selectView('whatnow')}
             onViewCalendar={() => selectView('calendar')}
-            onViewWeeklyReview={() => selectView('review')}
+            onViewWeeklyReview={startReview}
           />
         )
         break
@@ -203,7 +214,14 @@ function App() {
         content = <RecurringView />
         break
       case 'review':
-        content = <WeeklyReviewView onNavigate={selectView} />
+        content = (
+          <WeeklyReviewView
+            key={reviewRun}
+            onNavigate={selectView}
+            autoStart={reviewAutoStart}
+            onStartMindSweep={() => setShowMindSweep(true)}
+          />
+        )
         break
       case 'settings':
         content = <SettingsView />
@@ -215,7 +233,7 @@ function App() {
     <CompletionToastProvider>
       <SearchHotkey onTrigger={openSearch} />
       <ReminderPrompt />
-      <WeeklyReviewPrompt onStart={() => selectView('review')} />
+      <WeeklyReviewPrompt onStart={startReview} />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
           current={view === 'focus' ? focusReturn : view === 'whatnow' ? 'next' : view}

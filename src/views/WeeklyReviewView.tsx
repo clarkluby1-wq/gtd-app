@@ -1,66 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
-import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
 import { backupAgeLabel, createBackup, getLastBackupAt, isBackupDue } from '../db/backup'
+import { setReviewItemDone, toggleReviewItem, toggleReviewSub } from '../db/weeklyReview'
 import { ageInDays, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { ViewKey } from '../components/Sidebar'
+import { GuidedReview } from '../components/review/GuidedReview'
 import { ReviewSchedulePanel } from '../components/ReviewSchedulePanel'
 import { startOfReviewWeek } from '../lib/reviewSchedule'
-import type { WeeklyReview, WeeklyReviewChecklistItem } from '../db/types'
-
-type ReviewPhase = 'clear' | 'current' | 'creative'
-
-interface TemplateItem {
-  key: string
-  phase: ReviewPhase
-  label: string
-  subItems?: { key: string; label: string }[]
-}
-
-const TEMPLATE: TemplateItem[] = [
-  { key: 'collect', phase: 'clear', label: 'Collect loose papers, notes, and stray ideas into the Inbox' },
-  {
-    key: 'inbox-zero',
-    phase: 'clear',
-    label: "Clear every inbox to zero — not just this app's",
-    subItems: [
-      { key: 'app-inbox', label: "This app's Inbox" },
-      { key: 'email', label: 'Email' },
-      { key: 'physical', label: 'Physical inbox / desk / mail' },
-      { key: 'notes', label: 'Notes app' },
-      { key: 'messaging', label: 'Other messaging (Slack, texts, voicemail…)' },
-    ],
-  },
-  {
-    key: 'next-actions',
-    phase: 'current',
-    label: 'Review the Next Actions list — cross off done items, add anything missing',
-  },
-  { key: 'previous-calendar', phase: 'current', label: "Scan last week's calendar for stray follow-ups" },
-  { key: 'upcoming-calendar', phase: 'current', label: 'Scan the upcoming calendar for prep work or conflicts' },
-  { key: 'waiting-for', phase: 'current', label: 'Review Waiting For — follow up on anything overdue, then click "Followed up"' },
-  { key: 'projects', phase: 'current', label: 'Review every active Project — does each still have a next action?' },
-  { key: 'backup', phase: 'current', label: 'Back up your data — one click keeps a safe copy' },
-  {
-    key: 'someday-maybe',
-    phase: 'creative',
-    label: 'Review Someday/Maybe — anything ready to activate, or ready to drop?',
-  },
-  { key: 'areas-of-focus', phase: 'creative', label: 'Scan Areas of Focus — is anything being neglected?' },
-  { key: 'creative', phase: 'creative', label: 'Any new projects, ideas, or commitments to capture?' },
-]
-
-const PHASES: { key: ReviewPhase; label: string; blurb: string }[] = [
-  { key: 'clear', label: 'Get Clear', blurb: 'Empty your head and every inbox — nothing hidden, nothing forgotten.' },
-  { key: 'current', label: 'Get Current', blurb: "Bring every list up to date with what's actually true right now." },
-  { key: 'creative', label: 'Get Creative', blurb: "Look up and out — what haven't you captured yet?" },
-]
-
-const PHASE_BY_KEY: Record<string, ReviewPhase> = Object.fromEntries(TEMPLATE.map((t) => [t.key, t.phase]))
+import { isItemDone, normalizeChecklist, PHASE_BY_KEY, PHASES } from '../lib/weeklyReviewTemplate'
+import type { WeeklyReviewChecklistItem } from '../db/types'
 
 /** Which substring of a top-level item's label links to which view. First occurrence only. */
 const LABEL_LINKS: Record<string, { text: string; view: ViewKey }> = {
@@ -75,28 +27,6 @@ const LABEL_LINKS: Record<string, { text: string; view: ViewKey }> = {
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
-
-function isItemDone(item: WeeklyReviewChecklistItem) {
-  return item.subItems ? item.subItems.every((s) => s.done) : item.done
-}
-
-/** Merge a saved checklist (possibly from an older template shape) onto the current template. */
-function normalizeChecklist(saved: WeeklyReviewChecklistItem[] | undefined): WeeklyReviewChecklistItem[] {
-  const savedByKey = new Map((saved ?? []).map((c) => [c.key, c]))
-  return TEMPLATE.map((t) => {
-    const existing = savedByKey.get(t.key)
-    if (!t.subItems) {
-      return { key: t.key, label: t.label, done: existing?.done ?? false }
-    }
-    const existingSubByKey = new Map((existing?.subItems ?? []).map((s) => [s.key, s]))
-    const subItems = t.subItems.map((s) => ({
-      key: s.key,
-      label: s.label,
-      done: existingSubByKey.get(s.key)?.done ?? false,
-    }))
-    return { key: t.key, label: t.label, done: subItems.every((s) => s.done), subItems }
-  })
-}
 
 function linkifyLabel(text: string, link: { text: string; view: ViewKey } | undefined, onNavigate: (view: ViewKey) => void): ReactNode {
   if (!link) return text
@@ -120,51 +50,31 @@ function linkifyLabel(text: string, link: { text: string; view: ViewKey } | unde
   )
 }
 
-export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) => void }) {
+export function WeeklyReviewView({
+  onNavigate,
+  autoStart = false,
+  onStartMindSweep,
+}: {
+  onNavigate: (view: ViewKey) => void
+  /** Open straight into the guided walkthrough (used from the pop-up and Start My Day). */
+  autoStart?: boolean
+  onStartMindSweep: () => void
+}) {
   const [weekStart] = useState(() => startOfReviewWeek(new Date()))
   const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
+  const [guided, setGuided] = useState(autoStart)
+  const [showOverview, setShowOverview] = useState(false)
   const review = useLiveQuery(() => db.weeklyReviews.where('date').equals(weekStart).first(), [weekStart])
   const allReviews = useLiveQuery(() => db.weeklyReviews.toArray())
 
-  const ensureReview = async (): Promise<WeeklyReview> => {
-    if (review) return review
-    const fresh: WeeklyReview = { id: uuid(), date: weekStart, checklist: normalizeChecklist(undefined) }
-    await db.weeklyReviews.add(fresh)
-    return fresh
-  }
-
-  const saveChecklist = async (r: WeeklyReview, checklist: WeeklyReviewChecklistItem[]) => {
-    const allDone = checklist.every(isItemDone)
-    await db.weeklyReviews.put({ ...r, checklist, completedAt: allDone ? Date.now() : undefined })
-  }
-
-  const toggle = async (key: string) => {
-    const r = await ensureReview()
-    const checklist = normalizeChecklist(r.checklist).map((c) => (c.key === key ? { ...c, done: !c.done } : c))
-    await saveChecklist(r, checklist)
-  }
+  const toggle = (key: string) => void toggleReviewItem(weekStart, key)
+  const toggleSub = (parentKey: string, subKey: string) => void toggleReviewSub(weekStart, parentKey, subKey)
 
   /** Backing up counts as doing that step, so it ticks itself. */
   const backUpNow = async () => {
     await createBackup()
     setLastBackupAt(getLastBackupAt())
-    const r = await ensureReview()
-    const current = normalizeChecklist(r.checklist)
-    if (current.find((c) => c.key === 'backup')?.done) return
-    await saveChecklist(
-      r,
-      current.map((c) => (c.key === 'backup' ? { ...c, done: true } : c)),
-    )
-  }
-
-  const toggleSub = async (parentKey: string, subKey: string) => {
-    const r = await ensureReview()
-    const checklist = normalizeChecklist(r.checklist).map((c) => {
-      if (c.key !== parentKey || !c.subItems) return c
-      const subItems = c.subItems.map((s) => (s.key === subKey ? { ...s, done: !s.done } : s))
-      return { ...c, subItems, done: subItems.every((s) => s.done) }
-    })
-    await saveChecklist(r, checklist)
+    await setReviewItemDone(weekStart, 'backup', true)
   }
 
   const checklist = normalizeChecklist(review?.checklist)
@@ -261,6 +171,20 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
     },
   }
 
+  if (guided) {
+    return (
+      <GuidedReview
+        weekStart={weekStart}
+        review={review}
+        onExit={() => setGuided(false)}
+        onNavigate={onNavigate}
+        onStartMindSweep={onStartMindSweep}
+      />
+    )
+  }
+
+  const inProgress = !isComplete && !!review?.guidedStep && review.guidedStep !== 'intro'
+
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Weekly Review</h1>
@@ -269,6 +193,57 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
       </p>
 
       <ReviewSchedulePanel />
+
+      <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900 p-5">
+        {isComplete ? (
+          <>
+            <div className="text-sm font-medium text-emerald-300">🎉 This week's review is complete</div>
+            {streak > 0 && (
+              <div className="mt-0.5 text-xs text-amber-400">
+                🔥 {streak} week{streak === 1 ? '' : 's'} in a row
+              </div>
+            )}
+            <button
+              onClick={() => setGuided(true)}
+              className="mt-3 rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800"
+            >
+              Look through it again
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mb-1 text-base font-medium text-neutral-100">
+              {inProgress ? 'Pick up your review' : 'Ready for your review?'}
+            </div>
+            <p className="mb-3 text-xs text-neutral-500">
+              One step at a time, with each list right there. Pause whenever you like.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setGuided(true)}
+                className="rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+              >
+                {inProgress ? 'Continue' : 'Start my review'} →
+              </button>
+              {streak > 0 && (
+                <span className="text-xs text-amber-400">
+                  🔥 {streak} week{streak === 1 ? '' : 's'} in a row
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <button
+        onClick={() => setShowOverview((v) => !v)}
+        className="mb-4 text-xs text-neutral-500 hover:text-neutral-300"
+      >
+        {showOverview ? '▾ Hide all steps' : '▸ See all steps'}
+      </button>
+
+      {showOverview && (
+        <>
 
       <div className="mb-1 flex items-center justify-between text-xs text-neutral-500">
         <span>
@@ -346,6 +321,8 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
           </div>
         )
       })}
+        </>
+      )}
     </div>
   )
 }

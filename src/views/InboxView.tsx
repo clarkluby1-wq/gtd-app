@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { InboxProcessor } from '../components/InboxProcessor'
 import { deleteAction, doItNow, updateAction } from '../db/operations'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { useDragReorder } from '../lib/useDragReorder'
@@ -17,37 +18,18 @@ import type { Action } from '../db/types'
 export function InboxView({ autoStart = false }: { autoStart?: boolean }) {
   const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
-  const { blocked } = useCompletionToast()
 
-  // "Process inbox": work through the items top to bottom, one after another. Skipped ones simply stay in the Inbox.
+  // "Process inbox": work through the items top to bottom, one after another (see InboxProcessor).
   const [processing, setProcessing] = useState(autoStart)
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
-  const [processedCount, setProcessedCount] = useState(0)
   const [summary, setSummary] = useState<number | null>(null)
 
-  const queue = (items ?? []).filter((i) => !skippedIds.has(i.id))
-  // While a "what's next?" card is open the app is locked, so the next item waits until that's answered.
-  const current = processing && !blocked ? queue[0] : undefined
-
   const startProcessing = () => {
-    setSkippedIds(new Set())
-    setProcessedCount(0)
     setSummary(null)
     setProcessing(true)
   }
   const endProcessing = (processed: number) => {
     setProcessing(false)
     setSummary(processed > 0 ? processed : null)
-  }
-  const finishedCurrent = () => {
-    const processed = processedCount + 1
-    setProcessedCount(processed)
-    if (queue.length <= 1) endProcessing(processed)
-  }
-  const skipCurrent = () => {
-    if (!current) return
-    setSkippedIds(new Set(skippedIds).add(current.id))
-    if (queue.length <= 1) endProcessing(processedCount)
   }
 
   const { sensors, handleDragEnd } = useDragReorder(items ?? [], (id, order) => {
@@ -91,14 +73,7 @@ export function InboxView({ autoStart = false }: { autoStart?: boolean }) {
       </DndContext>
 
       {clarifying && <ClarifyModal item={clarifying} onClose={() => setClarifying(null)} />}
-      {!clarifying && current && (
-        <ClarifyModal
-          key={current.id}
-          item={current}
-          onClose={() => endProcessing(processedCount)}
-          queue={{ left: queue.length, onSkip: skipCurrent, onFinished: finishedCurrent }}
-        />
-      )}
+      {!clarifying && processing && <InboxProcessor items={items ?? []} onEnd={endProcessing} />}
     </div>
   )
 }

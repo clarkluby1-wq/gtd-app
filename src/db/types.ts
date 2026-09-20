@@ -150,6 +150,8 @@ export interface WeeklyReview {
   date: number
   checklist: WeeklyReviewChecklistItem[]
   completedAt?: number
+  /** Where the guided walkthrough was left, so it can be paused and resumed. Cleared when the review is finished. */
+  guidedStep?: string
 }
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
