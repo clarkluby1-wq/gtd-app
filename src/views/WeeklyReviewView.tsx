@@ -8,6 +8,8 @@ import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { ViewKey } from '../components/Sidebar'
+import { ReviewSchedulePanel } from '../components/ReviewSchedulePanel'
+import { startOfReviewWeek } from '../lib/reviewSchedule'
 import type { WeeklyReview, WeeklyReviewChecklistItem } from '../db/types'
 
 type ReviewPhase = 'clear' | 'current' | 'creative'
@@ -118,17 +120,8 @@ function linkifyLabel(text: string, link: { text: string; view: ViewKey } | unde
   )
 }
 
-function startOfWeek(d: Date) {
-  const date = new Date(d)
-  const day = date.getDay()
-  const diff = (day + 6) % 7 // days since Monday
-  date.setDate(date.getDate() - diff)
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
-}
-
 export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) => void }) {
-  const [weekStart] = useState(() => startOfWeek(new Date()))
+  const [weekStart] = useState(() => startOfReviewWeek(new Date()))
   const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
   const review = useLiveQuery(() => db.weeklyReviews.where('date').equals(weekStart).first(), [weekStart])
   const allReviews = useLiveQuery(() => db.weeklyReviews.toArray())
@@ -244,7 +237,7 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
           : `${activeProjects?.length} active, all covered`,
     backup: (
       <span className={backupDue ? 'text-amber-400' : undefined}>
-        {lastBackupAt === null ? 'never backed up' : `last file ${backupAgeLabel(lastBackupAt)}`}
+        {lastBackupAt === null ? 'never backed up' : `last backup ${backupAgeLabel(lastBackupAt)}`}
       </span>
     ),
   }
@@ -271,9 +264,11 @@ export function WeeklyReviewView({ onNavigate }: { onNavigate: (view: ViewKey) =
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Weekly Review</h1>
-      <p className="mb-6 text-sm text-neutral-500">
+      <p className="mb-4 text-sm text-neutral-500">
         The habit that keeps the whole system trustworthy. Set aside time weekly and work through this list.
       </p>
+
+      <ReviewSchedulePanel />
 
       <div className="mb-1 flex items-center justify-between text-xs text-neutral-500">
         <span>

@@ -6,6 +6,8 @@ import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree, unpinFromBigThree } from '../db/operations'
 import { formatShortDate, startOfDay, startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { describeStatus } from '../lib/reviewSchedule'
+import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 
@@ -37,6 +39,7 @@ export function StartDayView({
   onViewWaitingFor,
   onViewWhatNow,
   onViewCalendar,
+  onViewWeeklyReview,
 }: {
   onOpenProject: (projectId: string) => void
   onProcessInbox: () => void
@@ -45,6 +48,7 @@ export function StartDayView({
   onViewWaitingFor: () => void
   onViewWhatNow: () => void
   onViewCalendar: () => void
+  onViewWeeklyReview: () => void
 }) {
   const [step, setStep] = useState<Step>('today')
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
@@ -56,6 +60,7 @@ export function StartDayView({
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
   const contexts = useLiveQuery(() => db.contexts.toArray())
   const somedayProjectIds = useSomedayProjectIds()
+  const review = useReviewStatus()
 
   const today = startOfToday()
   const tomorrow = (() => {
@@ -148,6 +153,20 @@ export function StartDayView({
 
       {step === 'today' && (
         <Screen question="What's already tied to today?">
+          {(review.phase === 'today' || review.phase === 'open') && review.schedule && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-neutral-100">Weekly Review</div>
+                <div className="text-xs text-neutral-400">{describeStatus(review.schedule, review.now, false)}</div>
+              </div>
+              <button
+                onClick={onViewWeeklyReview}
+                className="shrink-0 rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
+              >
+                Open it
+              </button>
+            </div>
+          )}
           {dated.today.length === 0 && dated.earlier.length === 0 ? (
             <Calm>Nothing is tied to a day today. Open space.</Calm>
           ) : (

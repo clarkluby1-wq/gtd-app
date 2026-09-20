@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { startOfToday } from '../lib/date'
+import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
@@ -112,6 +113,8 @@ export function Sidebar({
   const { blocked } = useCompletionToast()
   const [stored, setStored] = useState(readOpen)
   const somedayProjectIds = useSomedayProjectIds()
+  const reviewStatus = useReviewStatus()
+  const reviewNeedsAttention = reviewStatus.phase === 'today' || reviewStatus.phase === 'open'
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
   const nextActions = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
   const waitingActions = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
@@ -163,13 +166,18 @@ export function Sidebar({
     <div className="mt-4 px-3 py-1 text-xs font-medium uppercase tracking-wide text-neutral-500">{text}</div>
   )
 
-  const foldedHeader = (text: string, group: FoldedGroup, open: boolean) => (
+  const foldedHeader = (text: string, group: FoldedGroup, open: boolean, dot = false) => (
     <button
       onClick={() => toggle(group)}
       aria-expanded={open}
       className="mt-4 flex items-center justify-between px-3 py-1 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 hover:text-neutral-300"
     >
-      <span>{text}</span>
+      <span className="flex items-center gap-2">
+        {text}
+        {dot && !open && (
+          <span title="Your Weekly Review is due" className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-label="Weekly Review due" />
+        )}
+      </span>
       <span>{open ? '▾' : '▸'}</span>
     </button>
   )
@@ -191,7 +199,7 @@ export function Sidebar({
       {label('Track')}
       {TRACK_NAV.map(item)}
 
-      {foldedHeader('Review', 'review', reviewOpen)}
+      {foldedHeader('Review', 'review', reviewOpen, reviewNeedsAttention)}
       {reviewOpen && REVIEW_NAV.map(item)}
 
       {foldedHeader('Set up & more', 'more', moreOpen)}

@@ -116,7 +116,7 @@ export function SettingsView() {
         <div className="mb-2 font-medium text-neutral-100">Backup</div>
         <p className={`mb-1 text-sm ${isBackupDue(lastBackup?.at ?? null) ? 'text-amber-400' : 'text-neutral-500'}`}>
           {lastBackup
-            ? `Last backup file created ${backupAgeLabel(lastBackup.at)}${lastBackup.filename ? ` (${lastBackup.filename})` : ''}.`
+            ? `Last backup: ${backupAgeLabel(lastBackup.at)}${lastBackup.filename ? ` (${lastBackup.filename})` : ''}.`
             : "You haven't backed up yet."}
           {isBackupDue(lastBackup?.at ?? null) && ' A fresh one is due.'}
         </p>

@@ -6,6 +6,7 @@ import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { ReminderPrompt } from './components/ReminderPrompt'
+import { WeeklyReviewPrompt } from './components/WeeklyReviewPrompt'
 import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
@@ -125,6 +126,7 @@ function App() {
             onViewWaitingFor={() => selectView('waiting')}
             onViewWhatNow={() => selectView('whatnow')}
             onViewCalendar={() => selectView('calendar')}
+            onViewWeeklyReview={() => selectView('review')}
           />
         )
         break
@@ -213,6 +215,7 @@ function App() {
     <CompletionToastProvider>
       <SearchHotkey onTrigger={openSearch} />
       <ReminderPrompt />
+      <WeeklyReviewPrompt onStart={() => selectView('review')} />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
           current={view === 'focus' ? focusReturn : view === 'whatnow' ? 'next' : view}
