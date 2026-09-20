@@ -298,7 +298,12 @@ export function GuidedReview({
   if (isGate) {
     return (
       <Frame stripIndex={index} onPause={onExit} onJump={go}>
-        <Gate kind={step.key === 'gate-clear' ? 'clear' : 'current'} onContinue={() => go(index + 1)} />
+        <Gate
+          kind={step.key === 'gate-clear' ? 'clear' : 'current'}
+          onContinue={() => go(index + 1)}
+          backLabel={COPY[FLOW[index - 1].key].short ?? 'the last step'}
+          onBack={() => go(index - 1)}
+        />
       </Frame>
     )
   }
@@ -506,7 +511,18 @@ function Frame({
 }
 
 /** A short pause between phases: what you just did, and one button to carry on. */
-function Gate({ kind, onContinue }: { kind: 'clear' | 'current'; onContinue: () => void }) {
+function Gate({
+  kind,
+  onContinue,
+  backLabel,
+  onBack,
+}: {
+  kind: 'clear' | 'current'
+  onContinue: () => void
+  /** Name of the step before this one, so going back says where it goes. */
+  backLabel: string
+  onBack: () => void
+}) {
   const inbox = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
 
   // A small burst when the phase closes — the confetti setting still decides how much.
@@ -534,6 +550,11 @@ function Gate({ kind, onContinue }: { kind: 'clear' | 'current'; onContinue: () 
       >
         {kind === 'clear' ? 'On to Get Current →' : 'On to Get Creative →'}
       </button>
+      <div className="mt-5">
+        <button onClick={onBack} className="text-xs text-neutral-500 hover:text-neutral-300">
+          ← Back to {backLabel}
+        </button>
+      </div>
     </div>
   )
 }
