@@ -7,6 +7,7 @@ import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
 import { DeepPlanModal } from '../components/DeepPlanModal'
 import { updateProject } from '../db/operations'
+import { isProjectStalled } from '../lib/projectHealth'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Project } from '../db/types'
 
@@ -36,6 +37,12 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
     const done = items.filter((a) => a.status === 'done').length
     return { done, total: items.length }
   }
+
+  // Same rule as the Dashboard's "Stalled" section, so the two screens can never disagree.
+  const stalledIds = useMemo(
+    () => new Set(allActions ? projects.filter((p) => isProjectStalled(p, allActions)).map((p) => p.id) : []),
+    [projects, allActions],
+  )
 
   const createProject = async () => {
     if (!title.trim()) return
@@ -84,9 +91,13 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
           </button>
         </div>
       </div>
-      <p className="mb-6 text-sm text-neutral-500">
+      <p className="mb-4 text-sm text-neutral-500">
         Any outcome that requires more than one action. Each project needs a defined outcome and a next action.
       </p>
+
+      {stalledIds.size > 0 && (
+        <p className="mb-4 text-xs text-amber-400">⚠ Stalled — nothing next or pending ({stalledIds.size})</p>
+      )}
 
       {creating && (
         <div className="mb-6 flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
@@ -143,7 +154,13 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
         <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-2">
             {projects.map((p) => (
-              <SortableProjectCard key={p.id} project={p} progress={progress(p.id)} onOpen={() => onOpen(p.id)} />
+              <SortableProjectCard
+                key={p.id}
+                project={p}
+                progress={progress(p.id)}
+                stalled={stalledIds.has(p.id)}
+                onOpen={() => onOpen(p.id)}
+              />
             ))}
           </div>
         </SortableContext>
@@ -165,21 +182,29 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
 function SortableProjectCard({
   project,
   progress,
+  stalled,
   onOpen,
 }: {
   project: OrderedProject
   progress: { done: number; total: number }
+  stalled: boolean
   onOpen: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
   const { done, total } = progress
+  const allDone = total > 0 && done === total
+  const stalledMessage = allDone
+    ? "Everything's done — mark it complete, or add a next action."
+    : 'Nothing next or pending — add a next action to get it moving.'
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex items-start gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:border-neutral-700"
+      className={`group flex items-start gap-2 rounded-lg border bg-neutral-900 p-4 ${
+        stalled ? 'border-amber-500/40 hover:border-amber-500/60' : 'border-neutral-800 hover:border-neutral-700'
+      }`}
     >
       <button
         {...attributes}
@@ -191,9 +216,19 @@ function SortableProjectCard({
         ⠿
       </button>
       <button onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-neutral-100">{project.title}</span>
-          <span className="text-xs text-neutral-500">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-2 font-medium text-neutral-100">
+            <span className="truncate">{project.title}</span>
+            {stalled && (
+              <span
+                title={`${project.title} — ${stalledMessage}`}
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-neutral-950"
+              >
+                !
+              </span>
+            )}
+          </span>
+          <span className="shrink-0 text-xs text-neutral-500">
             {done}/{total}
           </span>
         </div>
@@ -201,6 +236,7 @@ function SortableProjectCard({
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
           <div className="h-full bg-emerald-600" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
         </div>
+        {stalled && <p className="mt-2 text-xs text-amber-400">{stalledMessage}</p>}
       </button>
     </div>
   )
