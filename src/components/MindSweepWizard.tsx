@@ -83,7 +83,7 @@ const CATEGORIES: MindSweepCategory[] = [
 
 type Phase = 'intro' | 'sweep' | 'done'
 
-export function MindSweepWizard({ onClose }: { onClose: () => void }) {
+export function MindSweepWizard({ onClose, onProcessInbox }: { onClose: () => void; onProcessInbox: () => void }) {
   const [phase, setPhase] = useState<Phase>('intro')
   const [categoryIndex, setCategoryIndex] = useState(0)
   const [draft, setDraft] = useState('')
@@ -215,14 +215,31 @@ export function MindSweepWizard({ onClose }: { onClose: () => void }) {
               <p className="mb-4 text-sm text-neutral-400">
                 {totalCaptured === 0
                   ? "Nothing surfaced this time — that's fine too, your head was already clear."
-                  : `You captured ${totalCaptured} item${totalCaptured === 1 ? '' : 's'} into your Inbox. Head there next to clarify each one.`}
+                  : `You captured ${totalCaptured} item${totalCaptured === 1 ? '' : 's'} into your Inbox. Want to sort ${totalCaptured === 1 ? 'it' : 'them'} now, while it's fresh?`}
               </p>
-              <button
-                onClick={onClose}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-              >
-                Done
-              </button>
+              {totalCaptured > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={onProcessInbox}
+                    className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+                  >
+                    Process inbox now
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+                  >
+                    Not now
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+                >
+                  Done
+                </button>
+              )}
             </div>
           )}
         </div>

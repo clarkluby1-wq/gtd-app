@@ -40,6 +40,8 @@ function App() {
   const [searchFocusTick, setSearchFocusTick] = useState(0)
   // Set when Start My Day sends you to the Inbox to sort things right away; any other navigation clears it.
   const [processInboxOnOpen, setProcessInboxOnOpen] = useState(false)
+  // Bumped on every request so the Inbox restarts even when you're already looking at it.
+  const [inboxRun, setInboxRun] = useState(0)
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
@@ -73,6 +75,13 @@ function App() {
     setView(v)
   }
 
+  /** Go to the Inbox and start working through it right away. */
+  const startInboxProcessing = () => {
+    selectView('inbox')
+    setProcessInboxOnOpen(true)
+    setInboxRun((n) => n + 1)
+  }
+
   let content: ReactNode
   if (view === 'projects' && openProjectId) {
     content = (
@@ -99,10 +108,7 @@ function App() {
         content = (
           <StartDayView
             onOpenProject={openProject}
-            onProcessInbox={() => {
-              selectView('inbox')
-              setProcessInboxOnOpen(true)
-            }}
+            onProcessInbox={startInboxProcessing}
             onViewNextActions={() => selectView('next')}
             onViewWaitingFor={() => selectView('waiting')}
             onViewWhatNow={() => selectView('whatnow')}
@@ -124,7 +130,7 @@ function App() {
         content = <RecentlyCompletedView onOpenProject={openProject} />
         break
       case 'inbox':
-        content = <InboxView autoStart={processInboxOnOpen} />
+        content = <InboxView key={inboxRun} autoStart={processInboxOnOpen} />
         break
       case 'next':
         content = <NextActionsView onOpenProject={openProject} />
@@ -192,7 +198,15 @@ function App() {
           <ContentArea>{content}</ContentArea>
         </div>
         {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
-        {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
+        {showMindSweep && (
+          <MindSweepWizard
+            onClose={() => setShowMindSweep(false)}
+            onProcessInbox={() => {
+              setShowMindSweep(false)
+              startInboxProcessing()
+            }}
+          />
+        )}
       </div>
     </CompletionToastProvider>
   )
