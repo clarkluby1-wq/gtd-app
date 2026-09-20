@@ -10,6 +10,7 @@ import {
   doItNow,
   sendToSomeday,
   trashItem,
+  unpinFromBigThree,
   updateAction,
   type FirstActionSpec,
 } from '../db/operations'
@@ -17,7 +18,7 @@ import type { Action, EnergyLevel, Project, ProjectStatus } from '../db/types'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { parseLocalDate } from '../lib/date'
+import { parseLocalDate, startOfToday } from '../lib/date'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
 const TIME_CHIPS: { minutes: number; label: string }[] = [
@@ -121,6 +122,20 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [scheduledDate, setScheduledDate] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
+
+  // "This one matters today": puts the next action on today's Short List. With three already there, you pick one to swap out.
+  const shortListNow = useLiveQuery(() =>
+    db.actions
+      .where('status')
+      .equals('next')
+      .filter((a) => a.bigThreeDate === startOfToday())
+      .toArray(),
+  )
+  const [wantsShortList, setWantsShortList] = useState(false)
+  const [choosingSwap, setChoosingSwap] = useState(false)
+  const [replaceId, setReplaceId] = useState<string | undefined>()
+  const shortListFull = (shortListNow?.length ?? 0) >= 3
+  const replacing = shortListNow?.find((a) => a.id === replaceId)
   // The captured wording is often a rough note ("need to get Steve to do Sunday's game, need to message him").
   // It can be reworded right here, into a clear next action, and everything after uses the new wording.
   const [title, setTitle] = useState(item.title)
@@ -310,12 +325,21 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
       energy,
       timeEstimateMin,
       dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
+      bigThreeDate: wantsShortList ? startOfToday() : undefined,
     }
-    void finish(() =>
-      isProject
-        ? saveProject('active', { title: actionTitle, status: 'next', ...details })
-        : clarifyAsNextAction(item.id, { ...details, projectId: linkedProjectId }),
-    )
+    // Only swap something out if the list is still full right now — it may have freed up while you were deciding.
+    const swapOut = wantsShortList && shortListFull ? replaceId : undefined
+    void finish(async () => {
+      if (isProject) await saveProject('active', { title: actionTitle, status: 'next', ...details })
+      else await clarifyAsNextAction(item.id, { ...details, projectId: linkedProjectId })
+      if (swapOut) await unpinFromBigThree(swapOut)
+    })
+  }
+
+  const clearShortList = () => {
+    setWantsShortList(false)
+    setChoosingSwap(false)
+    setReplaceId(undefined)
   }
 
   useEffect(() => {
@@ -675,6 +699,56 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                   </Btn>
                 ))}
               </div>
+
+              {choosingSwap ? (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                  <p className="mb-2 text-sm text-neutral-200">
+                    Today's Short List already has three. Swap one out for this?
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {shortListNow?.map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          setReplaceId(a.id)
+                          setWantsShortList(true)
+                          setChoosingSwap(false)
+                        }}
+                        className="truncate rounded-md bg-neutral-800 px-3 py-2 text-left text-sm text-neutral-200 hover:bg-neutral-700"
+                      >
+                        Replace “{a.title}”
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setChoosingSwap(false)}
+                    className="mt-2 text-xs text-neutral-500 hover:text-neutral-300"
+                  >
+                    Never mind
+                  </button>
+                </div>
+              ) : wantsShortList ? (
+                <button
+                  onClick={clearShortList}
+                  title="Take it off the Short List"
+                  className="flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-left text-sm font-medium text-amber-300"
+                >
+                  <span>
+                    {replacing && shortListFull
+                      ? `★ On today's Short List — replaces “${replacing.title}”`
+                      : "★ On today's Short List"}
+                  </span>
+                  <span className="shrink-0 text-xs font-normal text-neutral-500">tap to undo</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => (shortListFull ? setChoosingSwap(true) : setWantsShortList(true))}
+                  className="flex items-center justify-between gap-3 rounded-md bg-neutral-800 px-3 py-2 text-left text-sm font-medium text-neutral-200 hover:bg-neutral-700"
+                >
+                  <span>☆ Add to today's Short List</span>
+                  <span className="shrink-0 text-xs font-normal text-neutral-500">what matters most today</span>
+                </button>
+              )}
 
               <MoreOptions
                 summary={[dueDate && `due ${dueDate}`, !isProject && projectTitleOf(linkedProjectId)]

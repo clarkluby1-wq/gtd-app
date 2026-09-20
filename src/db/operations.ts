@@ -67,7 +67,15 @@ export async function clarifyAsReference(actionId: string, opts: { title: string
 /** Clarify into a single next action with a context (and optional metadata). */
 export async function clarifyAsNextAction(
   actionId: string,
-  opts: { contextId?: string; energy?: EnergyLevel; timeEstimateMin?: number; dueDate?: number; projectId?: string },
+  opts: {
+    contextId?: string
+    energy?: EnergyLevel
+    timeEstimateMin?: number
+    dueDate?: number
+    projectId?: string
+    /** Start-of-day timestamp to put it on today's Short List straight away. */
+    bigThreeDate?: number
+  },
 ) {
   const now = Date.now()
   await db.actions.update(actionId, {
@@ -118,6 +126,8 @@ export interface FirstActionSpec {
   waitingOn?: string
   followUpDate?: number
   scheduledDate?: number
+  /** Start-of-day timestamp to put it on today's Short List straight away. */
+  bigThreeDate?: number
 }
 
 /**
@@ -167,6 +177,7 @@ export async function clarifyAsProject(
       waitingOn: spec.waitingOn,
       followUpDate: spec.followUpDate,
       scheduledDate: spec.scheduledDate,
+      bigThreeDate: spec.bigThreeDate,
       createdAt: now,
       clarifiedAt: now,
       touchedAt: now,
