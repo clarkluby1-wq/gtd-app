@@ -1,5 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
+import dexieCloud from 'dexie-cloud-addon'
 import { v4 as uuid } from 'uuid'
+import { CLOUD_DATABASE_URL } from './cloudConfig'
 import type {
   Action,
   AreaOfFocus,
@@ -28,7 +30,7 @@ class GtdDatabase extends Dexie {
   captureEvents!: EntityTable<CaptureEvent, 'id'>
 
   constructor() {
-    super('gtd-app')
+    super('gtd-app', { addons: [dexieCloud] })
     this.version(1).stores({
       actions: 'id, status, projectId, contextId, dueDate, scheduledDate, order, createdAt',
       projects: 'id, status, areaOfFocusId, createdAt',
@@ -64,10 +66,30 @@ class GtdDatabase extends Dexie {
       recurringTemplates: 'id, projectId, createdAt',
       captureEvents: 'id, createdAt',
     })
+    // No change to our own tables. A new version number lets the sync add-on add its bookkeeping tables.
+    this.version(4).stores({
+      actions:
+        'id, status, projectId, contextId, dueDate, scheduledDate, order, createdAt, recurringTemplateId',
+      projects: 'id, status, areaOfFocusId, goalId, createdAt',
+      contexts: 'id, order',
+      areasOfFocus: 'id, order',
+      goals: 'id, areaOfFocusId, visionId, status, createdAt',
+      visions: 'id, areaOfFocusId, createdAt',
+      purposes: 'id',
+      references: 'id, projectId, areaOfFocusId, createdAt',
+      weeklyReviews: 'id, date',
+      recurringTemplates: 'id, projectId, createdAt',
+      captureEvents: 'id, createdAt',
+    })
   }
 }
 
 export const db = new GtdDatabase()
+
+// Sync stays off (no network, no sign-in) until a cloud database address is set in cloudConfig.ts.
+if (CLOUD_DATABASE_URL) {
+  db.cloud.configure({ databaseUrl: CLOUD_DATABASE_URL, requireAuth: false })
+}
 
 const DEFAULT_CONTEXTS = ['@calls', '@computer', '@errands', '@home', '@office', '@anywhere']
 
@@ -96,9 +118,15 @@ export async function seedDefaultsIfEmpty() {
       )
     }
 
-    const purposeExists = await db.purposes.get('singleton')
-    if (!purposeExists) {
-      await db.purposes.add({ id: 'singleton', statement: '', principles: [], updatedAt: Date.now() })
+    // The Purpose is a single row, but its id is random (not a fixed word) so two people sharing one cloud database
+    // can never collide on it. Older installs used the fixed id 'singleton': move that row to a random one.
+    const purposes = await db.purposes.toArray()
+    const legacy = purposes.find((p) => p.id === 'singleton')
+    if (legacy) {
+      await db.purposes.add({ ...legacy, id: uuid() })
+      await db.purposes.delete(legacy.id)
+    } else if (purposes.length === 0) {
+      await db.purposes.add({ id: uuid(), statement: '', principles: [], updatedAt: Date.now() })
     }
   })
 }

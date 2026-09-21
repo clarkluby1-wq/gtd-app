@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { startOfToday } from '../lib/date'
 import { useReviewStatus } from '../lib/useReviewStatus'
+import { useSync } from '../lib/useSync'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
@@ -116,6 +117,7 @@ export function Sidebar({
   const [stored, setStored] = useState(readOpen)
   const somedayProjectIds = useSomedayProjectIds()
   const reviewStatus = useReviewStatus()
+  const sync = useSync()
   const reviewNeedsAttention = reviewStatus.phase === 'today' || reviewStatus.phase === 'open'
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
   const nextActions = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
@@ -226,6 +228,18 @@ export function Sidebar({
 
           <div className="mt-2">{item(SETTINGS_ITEM)}</div>
         </>
+      )}
+
+      {sync.signedIn && (
+        <div className="mt-auto flex items-center gap-2 px-3 pb-1 pt-4 text-xs text-neutral-500" title={sync.label}>
+          <span
+            aria-hidden
+            className={`h-1.5 w-1.5 rounded-full ${
+              sync.kind === 'synced' ? 'bg-emerald-500' : sync.kind === 'error' ? 'bg-red-500' : sync.kind === 'offline' ? 'bg-neutral-500' : 'bg-amber-400'
+            }`}
+          />
+          {sync.kind === 'synced' ? 'Synced' : sync.kind === 'offline' ? 'Offline' : sync.kind === 'error' ? 'Sync problem' : 'Syncing…'}
+        </div>
       )}
     </nav>
   )

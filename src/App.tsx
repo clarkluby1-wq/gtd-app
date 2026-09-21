@@ -7,7 +7,9 @@ import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
 import { ReminderPrompt } from './components/ReminderPrompt'
 import { WeeklyReviewPrompt } from './components/WeeklyReviewPrompt'
-import { seedDefaultsIfEmpty } from './db/db'
+import { cloudEnabled } from './db/cloudConfig'
+import { db, seedDefaultsIfEmpty } from './db/db'
+import { mergeDuplicateDefaults } from './db/dedupe'
 import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
@@ -54,7 +56,16 @@ function App() {
   const [focusReturn, setFocusReturn] = useState<ViewKey>('next')
 
   useEffect(() => {
-    void seedDefaultsIfEmpty().then(() => generateDueOccurrences())
+    void seedDefaultsIfEmpty()
+      .then(() => mergeDuplicateDefaults())
+      .then(() => generateDueOccurrences())
+  }, [])
+
+  // Two devices can each set up the starter contexts and areas before they've met; tidy the doubles after every sync.
+  useEffect(() => {
+    if (!cloudEnabled) return
+    const subscription = db.cloud.events.syncComplete.subscribe(() => void mergeDuplicateDefaults())
+    return () => subscription.unsubscribe()
   }, [])
 
   const openSearch = useCallback(() => {

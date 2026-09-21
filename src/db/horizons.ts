@@ -1,11 +1,17 @@
 import { v4 as uuid } from 'uuid'
 import { db } from './db'
-import type { Goal, Vision } from './types'
+import { pickPurpose } from './dedupe'
+import type { Goal, Purpose, Vision } from './types'
 
-export const PURPOSE_ID = 'singleton'
+/** The Purpose row (there is one). Found rather than looked up by a fixed id, so it works on every device. */
+export async function getPurpose(): Promise<Purpose | undefined> {
+  return pickPurpose(await db.purposes.toArray())
+}
 
 export async function updatePurpose(changes: { statement?: string; principles?: string[] }) {
-  await db.purposes.update(PURPOSE_ID, { ...changes, updatedAt: Date.now() })
+  const purpose = await getPurpose()
+  if (!purpose) return
+  await db.purposes.update(purpose.id, { ...changes, updatedAt: Date.now() })
 }
 
 export async function createVision(opts: { statement: string; areaOfFocusId?: string }) {

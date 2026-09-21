@@ -84,8 +84,15 @@ export async function generateDueOccurrences(now: Date = new Date()) {
       const start = new Date(template.createdAt)
       if (!isDue(template.recurrence, start, now)) continue
 
+      // Same template + same day = same id, so two devices that both generate it before syncing end up with one.
+      const id = `${template.id}:${today}`
+      if (await db.actions.get(id)) {
+        await db.recurringTemplates.update(template.id, { lastGeneratedKey: today })
+        continue
+      }
+
       const action: Action = {
-        id: uuid(),
+        id,
         title: template.title,
         status: 'scheduled',
         scheduledDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(),

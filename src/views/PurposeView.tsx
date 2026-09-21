@@ -1,11 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { db } from '../db/db'
-import { PURPOSE_ID, updatePurpose } from '../db/horizons'
+import { getPurpose, updatePurpose } from '../db/horizons'
 import type { Purpose } from '../db/types'
 
 export function PurposeView() {
-  const purpose = useLiveQuery(() => db.purposes.get(PURPOSE_ID))
+  const purpose = useLiveQuery(() => getPurpose())
   if (!purpose) return null
   // Keying by id (stable, singleton) means this only mounts once purpose loads,
   // so its local state can seed directly from props with no sync effect needed.

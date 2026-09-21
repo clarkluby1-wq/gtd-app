@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
-import { PURPOSE_ID, createGoal, createVision, updateGoal, updatePurpose, updateVision } from '../db/horizons'
+import { createGoal, createVision, getPurpose, updateGoal, updatePurpose, updateVision } from '../db/horizons'
 
 type Step = 'intro' | 'areas' | 'goals' | 'vision' | 'purpose' | 'done'
 
@@ -11,7 +11,7 @@ const STEPS: Step[] = ['areas', 'goals', 'vision', 'purpose']
 export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('intro')
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
-  const purpose = useLiveQuery(() => db.purposes.get(PURPOSE_ID))
+  const purpose = useLiveQuery(() => getPurpose())
   const visions = useLiveQuery(() => db.visions.toArray())
   const goals = useLiveQuery(() => db.goals.toArray())
 

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Dexie Cloud admin credentials — never commit
+dexie-cloud.key
+dexie-cloud.json

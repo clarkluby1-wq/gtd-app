@@ -83,7 +83,8 @@ export async function importBackup(json: string) {
   await db.transaction('rw', TABLE_NAMES.map((name) => db.table(name)), async () => {
     for (const name of TABLE_NAMES) {
       const rows = payload.tables[name]
-      await db.table(name).clear()
+      // Delete row by row rather than clear(), so the removals are tracked properly when sync is on.
+      await db.table(name).toCollection().delete()
       if (Array.isArray(rows) && rows.length) {
         await db.table(name).bulkAdd(rows)
       }

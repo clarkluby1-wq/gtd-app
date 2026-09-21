@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { backupAgeLabel, createBackup, getLastBackup, importBackup, isBackupDue } from '../db/backup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { SyncCard } from '../components/SyncCard'
+import { useSync } from '../lib/useSync'
 import {
   celebrate,
   getCelebrationLevel,
@@ -24,6 +26,7 @@ export function SettingsView() {
   const [celebration, setCelebration] = useState(getCelebrationLevel())
   const [reminders, setReminders] = useState(getRemindersEnabled())
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const sync = useSync()
 
   const chooseCelebration = (level: CelebrationLevel, from: Element) => {
     setCelebrationLevel(level)
@@ -52,9 +55,12 @@ export function SettingsView() {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Settings</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Everything lives only in this browser. Back up regularly, especially before clearing site data or
-        switching browsers/devices.
+        {sync.signedIn
+          ? 'Your data is kept in sync across your devices. A backup file is still a good safety net.'
+          : 'Your data lives in this browser. Back up regularly, especially before clearing site data or switching browsers or devices.'}
       </p>
+
+      <SyncCard />
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Celebrations</div>
@@ -136,6 +142,7 @@ export function SettingsView() {
         <div className="mb-2 font-medium text-neutral-100">Restore</div>
         <p className="mb-3 text-sm text-amber-400">
           This replaces everything currently in the app with the contents of the file. There's no undo.
+          {sync.signedIn && ' Because sync is on, it replaces your data on all your devices too.'}
         </p>
         <input
           ref={fileInputRef}
