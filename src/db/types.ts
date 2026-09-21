@@ -68,6 +68,8 @@ export interface Project {
   title: string
   /** What does "done" look like — the successful outcome. */
   outcome: string
+  /** Free-form support material: details, steps, reminders. Kept out of the title so the title stays scannable. */
+  notes?: string
   status: ProjectStatus
   areaOfFocusId?: string
   goalId?: string

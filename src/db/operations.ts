@@ -145,6 +145,8 @@ export async function clarifyAsProject(
   opts: {
     title: string
     outcome: string
+    /** Notes typed while clarifying. The inbox item is removed, so they move onto the project. */
+    notes?: string
     areaOfFocusId?: string
     goalId?: string
     status?: ProjectStatus
@@ -156,6 +158,7 @@ export async function clarifyAsProject(
     id: uuid(),
     title: opts.title,
     outcome: opts.outcome,
+    notes: opts.notes,
     status: opts.status ?? 'active',
     areaOfFocusId: opts.areaOfFocusId,
     goalId: opts.goalId,

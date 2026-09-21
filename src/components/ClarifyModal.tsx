@@ -147,6 +147,10 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const titleInputRef = useRef<HTMLTextAreaElement>(null)
   // Enter and losing focus both finish the edit; this makes sure it only happens once.
   const titleEditingRef = useRef(false)
+  // Details that don't belong in a scannable title. Saved to the item as you go (like the reword), so nothing typed is lost.
+  const [notes, setNotes] = useState(item.notes ?? '')
+  const [notesOpen, setNotesOpen] = useState(Boolean(item.notes))
+  const savedNotesRef = useRef(item.notes ?? '')
   const [projectTitle, setProjectTitle] = useState(item.title)
   const [outcome, setOutcome] = useState('')
   const [areaOfFocusId, setAreaOfFocusId] = useState<string | undefined>()
@@ -185,6 +189,13 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     titleSaveRef.current = updateAction(item.id, { title: trimmed })
   }
 
+  const flushNotes = async () => {
+    const trimmed = notes.trim()
+    if (trimmed === savedNotesRef.current.trim()) return
+    savedNotesRef.current = trimmed
+    await updateAction(item.id, { notes: trimmed || undefined })
+  }
+
   // A remembered context may have been deleted since; never save (or show) one that no longer exists.
   const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
   const contextIsRemembered = !contextTouched && activeContextId !== undefined
@@ -219,6 +230,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     submittingRef.current = true
     try {
       await titleSaveRef.current
+      await flushNotes()
       await action()
       if (queue) queue.onFinished()
       else onClose()
@@ -232,6 +244,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     clarifyAsProject(item.id, {
       title: projectTitle.trim(),
       outcome: outcome.trim(),
+      notes: notes.trim() || undefined,
       areaOfFocusId,
       goalId,
       status,
@@ -405,6 +418,25 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               </span>
             </button>
           )}
+          {notesOpen ? (
+            <textarea
+              autoFocus={!item.notes}
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => void flushNotes()}
+              placeholder="Notes — details, steps, reminders. Keep the title short and put the rest here."
+              className="mt-2 max-h-40 w-full resize-y rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm text-neutral-200 outline-none placeholder:text-neutral-500"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setNotesOpen(true)}
+              className="mt-1 text-xs text-neutral-500 hover:text-neutral-300"
+            >
+              ＋ Add notes (optional)
+            </button>
+          )}
           {isProject && ACTION_STEPS.includes(step) && (
             <div className="mt-1 text-xs text-neutral-500">
               First action: <span className="text-neutral-300">{actionTitle}</span>
@@ -428,7 +460,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             <div className="flex flex-col gap-2">
               <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
               <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
-              <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title }))}>
+              <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title, content: notes.trim() || undefined }))}>
                 📎 File as Reference
               </Btn>
               <div className="my-1 text-center text-xs text-neutral-600">
@@ -794,13 +826,16 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
         </div>
 
         <div className="flex justify-between border-t border-neutral-800 px-5 py-3">
-          <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
+          <button
+            onClick={() => void flushNotes().then(onClose)}
+            className="text-xs text-neutral-500 hover:text-neutral-300"
+          >
             {queue ? 'Stop for now' : 'Cancel'}
           </button>
           <div className="flex gap-4">
             {queue && (
               <button
-                onClick={queue.onSkip}
+                onClick={() => void flushNotes().then(queue.onSkip)}
                 title="Leave it in the Inbox and go to the next one"
                 className="text-xs text-neutral-400 hover:text-neutral-200"
               >
