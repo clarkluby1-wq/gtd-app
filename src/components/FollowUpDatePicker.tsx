@@ -14,9 +14,23 @@ function inDays(days: number): string {
  */
 export function FollowUpDatePicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [picking, setPicking] = useState(false)
+  const today = inDays(0)
+  const tomorrow = inDays(1)
   const in3 = inDays(3)
   const in7 = inDays(7)
-  const mode = !value ? (picking ? 'custom' : 'none') : value === in3 ? '3' : value === in7 ? '7' : 'custom'
+  const mode = !value
+    ? picking
+      ? 'custom'
+      : 'none'
+    : value === today
+      ? 'today'
+      : value === tomorrow
+        ? 'tomorrow'
+        : value === in3
+          ? '3'
+          : value === in7
+            ? '7'
+            : 'custom'
 
   const chip = (active: boolean, label: string, onClick: () => void) => (
     <button
@@ -38,6 +52,14 @@ export function FollowUpDatePicker({ value, onChange }: { value: string; onChang
           setPicking(false)
           onChange('')
         })}
+        {chip(mode === 'today', 'Later today', () => {
+          setPicking(false)
+          onChange(today)
+        })}
+        {chip(mode === 'tomorrow', 'Tomorrow', () => {
+          setPicking(false)
+          onChange(tomorrow)
+        })}
         {chip(mode === '3', '3 days', () => {
           setPicking(false)
           onChange(in3)
@@ -58,7 +80,9 @@ export function FollowUpDatePicker({ value, onChange }: { value: string; onChang
         />
       )}
       <p className="text-xs text-neutral-600">
-        With no date, you'll be nudged after a week without hearing back.
+        {value
+          ? "It'll show on your Calendar that day."
+          : "With no date, you'll be nudged after a week without hearing back."}
       </p>
     </div>
   )

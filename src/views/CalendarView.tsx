@@ -2,12 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { followUpPending } from '../lib/waiting'
 import type { Action } from '../db/types'
+
+/** The day an item sits on the Calendar: a scheduled item's date, or the day you chose to check back on a Waiting For. */
+const calendarDay = (a: Action) => (a.status === 'waiting' ? a.followUpDate! : a.scheduledDate!)
 
 function groupByDay(actions: Action[]) {
   const groups = new Map<string, Action[]>()
   for (const a of actions) {
-    const key = new Date(a.scheduledDate!).toDateString()
+    const key = new Date(calendarDay(a)).toDateString()
     groups.set(key, [...(groups.get(key) ?? []), a])
   }
   return [...groups.entries()].sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
@@ -15,6 +19,8 @@ function groupByDay(actions: Action[]) {
 
 export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: string) => void }) {
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').sortBy('scheduledDate'))
+  // A Waiting For with a check-back date you chose shows up on that day too. It stays in Waiting For as well.
+  const checkBacks = useLiveQuery(() => db.actions.where('status').equals('waiting').filter(followUpPending).toArray())
   const withDue = useLiveQuery(() =>
     db.actions
       .filter((a) => a.status === 'next' && a.dueDate != null)
@@ -23,7 +29,7 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
   const somedayProjectIds = useSomedayProjectIds()
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
 
-  const groups = scheduled ? groupByDay(scheduled.filter(notParked)) : []
+  const groups = scheduled ? groupByDay([...scheduled.filter(notParked), ...(checkBacks ?? []).filter(notParked)]) : []
   const dueFiltered = withDue?.filter(notParked) ?? []
 
   return (
@@ -31,6 +37,7 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Calendar</h1>
       <p className="mb-6 text-sm text-neutral-500">
         Hard landscape — things tied to a specific day. Keep this list short; it's not a place to dump next actions.
+        Days you chose to check back on a Waiting For show up here too.
       </p>
 
       {groups.length === 0 && (
@@ -46,7 +53,13 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
           </div>
           <div className="flex flex-col divide-y divide-neutral-900">
             {items.map((a) => (
-              <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
+              <TaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showWaitingClock={a.status === 'waiting'}
+                onOpenProject={onOpenProject}
+              />
             ))}
           </div>
         </div>
