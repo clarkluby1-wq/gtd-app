@@ -4,6 +4,7 @@ import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { reopenAction } from '../db/operations'
 import { startOfToday } from '../lib/date'
+import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { Action } from '../db/types'
 
 const OTHERS_PREVIEW = 8
@@ -26,6 +27,7 @@ export function TodayView({
 }) {
   const today = startOfToday()
   const [showAllOthers, setShowAllOthers] = useState(false)
+  const somedayProjectIds = useSomedayProjectIds()
 
   const doneToday = useLiveQuery(
     () =>
@@ -62,9 +64,10 @@ export function TodayView({
     // A finished action keeps the day it was on the Short List, so this is exactly "what you called important today".
     const won = done.filter((a) => a.bigThreeDate === today).sort((a, b) => a.completedAt! - b.completedAt!)
     const others = done.filter((a) => a.bigThreeDate !== today).sort((a, b) => b.completedAt! - a.completedAt!)
-    const left = [...(shortLeft ?? [])].sort((a, b) => a.order - b.order)
+    // Something in a project you've parked on Someday/Maybe isn't a to-do right now, even if it was starred earlier.
+    const left = (shortLeft ?? []).filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId)).sort((a, b) => a.order - b.order)
     return { won, others, left }
-  }, [doneToday, shortLeft, today])
+  }, [doneToday, shortLeft, today, somedayProjectIds])
 
   if (doneToday === undefined || shortLeft === undefined || projectsDone === undefined) return null
 

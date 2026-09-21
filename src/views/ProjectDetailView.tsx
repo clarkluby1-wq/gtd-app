@@ -5,17 +5,6 @@ import { addActionToProject, completeProject, deleteProject, updateProject } fro
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
 import { celebrate, originOf } from '../lib/celebrate'
-import { parseLocalDate } from '../lib/date'
-import type { ActionStatus } from '../db/types'
-
-type NewActionType = 'next' | 'waiting' | 'someday' | 'scheduled'
-
-const NEW_ACTION_TYPES: { key: NewActionType; label: string; status: ActionStatus; placeholder: string }[] = [
-  { key: 'next', label: 'Next Action', status: 'next', placeholder: 'Add a next action for this project…' },
-  { key: 'waiting', label: 'Waiting For', status: 'waiting', placeholder: 'What are you waiting for?' },
-  { key: 'someday', label: 'Someday', status: 'someday', placeholder: 'Add a someday/maybe idea for this project…' },
-  { key: 'scheduled', label: 'Scheduled', status: 'scheduled', placeholder: 'What needs to happen on a specific day?' },
-]
 
 export function ProjectDetailView({
   projectId,
@@ -44,10 +33,7 @@ export function ProjectDetailView({
   const [showPlanning, setShowPlanning] = useState(false)
 
   const [newAction, setNewAction] = useState('')
-  const [newActionType, setNewActionType] = useState<NewActionType>('next')
   const [newActionContextId, setNewActionContextId] = useState('')
-  const [newActionWaitingOn, setNewActionWaitingOn] = useState('')
-  const [newActionScheduledDate, setNewActionScheduledDate] = useState('')
   const [editingOutcome, setEditingOutcome] = useState(false)
   const [outcomeDraft, setOutcomeDraft] = useState('')
   const [editingNotes, setEditingNotes] = useState(false)
@@ -66,7 +52,9 @@ export function ProjectDetailView({
     }
   }
 
-  const open = actions?.filter((a) => a.status !== 'done') ?? []
+  const open = actions?.filter((a) => a.status !== 'done' && a.status !== 'someday') ?? []
+  // Someday/Maybe items linked to this project: parked ideas, kept apart so they're never mistaken for next steps.
+  const ideas = actions?.filter((a) => a.status === 'someday') ?? []
   const done = actions?.filter((a) => a.status === 'done') ?? []
 
   return (
@@ -183,7 +171,7 @@ export function ProjectDetailView({
             value={notesDraft}
             onChange={(e) => setNotesDraft(e.target.value)}
             rows={5}
-            placeholder="Notes — details, steps, anything worth keeping with this project"
+            placeholder="Notes — details, ideas for later, anything worth keeping with this project"
             className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
           />
           <div className="flex items-center gap-3">
@@ -223,7 +211,7 @@ export function ProjectDetailView({
           }}
           className="mb-4 text-xs text-neutral-500 hover:text-neutral-300"
         >
-          ＋ Add notes
+          ＋ Add notes or ideas for later
         </button>
       )}
 
@@ -315,91 +303,49 @@ export function ProjectDetailView({
         </div>
       )}
 
+      {project.status === 'someday' && (
+        <p className="mb-3 text-xs text-neutral-500">
+          🌙 This project is on Someday/Maybe. Next actions you add here stay out of your lists until you activate it.
+        </p>
+      )}
+
       <form
         onSubmit={(e) => {
           e.preventDefault()
           if (!newAction.trim()) return
-          if (newActionType === 'waiting' && !newActionWaitingOn.trim()) return
-          if (newActionType === 'scheduled' && !newActionScheduledDate) return
-
-          const status = NEW_ACTION_TYPES.find((t) => t.key === newActionType)!.status
           addActionToProject(projectId, newAction.trim(), {
-            status,
-            contextId: newActionType === 'next' ? newActionContextId || undefined : undefined,
-            waitingOn: newActionType === 'waiting' ? newActionWaitingOn.trim() : undefined,
-            scheduledDate:
-              newActionType === 'scheduled' ? parseLocalDate(newActionScheduledDate) : undefined,
+            status: 'next',
+            contextId: newActionContextId || undefined,
           })
-
           setNewAction('')
           setNewActionContextId('')
-          setNewActionWaitingOn('')
-          setNewActionScheduledDate('')
         }}
-        className="mb-4 flex flex-col gap-2"
+        className="mb-4 flex gap-2"
       >
-        <div className="flex gap-1">
-          {NEW_ACTION_TYPES.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setNewActionType(t.key)}
-              className={`rounded-md px-2 py-1 text-xs ${
-                newActionType === t.key ? 'bg-emerald-600 text-white' : 'bg-neutral-800 text-neutral-400'
-              }`}
-            >
-              {t.label}
-            </button>
+        <input
+          value={newAction}
+          onChange={(e) => setNewAction(e.target.value)}
+          placeholder="Add a next action for this project…"
+          className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
+        />
+        <select
+          value={newActionContextId}
+          onChange={(e) => setNewActionContextId(e.target.value)}
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300"
+        >
+          <option value="">No context</option>
+          {contexts?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            value={newAction}
-            onChange={(e) => setNewAction(e.target.value)}
-            placeholder={NEW_ACTION_TYPES.find((t) => t.key === newActionType)!.placeholder}
-            className="flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
-          />
-
-          {newActionType === 'next' && (
-            <select
-              value={newActionContextId}
-              onChange={(e) => setNewActionContextId(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300"
-            >
-              <option value="">No context</option>
-              {contexts?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {newActionType === 'waiting' && (
-            <input
-              value={newActionWaitingOn}
-              onChange={(e) => setNewActionWaitingOn(e.target.value)}
-              placeholder="Waiting on whom?"
-              className="w-40 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300 outline-none"
-            />
-          )}
-
-          {newActionType === 'scheduled' && (
-            <input
-              type="date"
-              value={newActionScheduledDate}
-              onChange={(e) => setNewActionScheduledDate(e.target.value)}
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300 outline-none"
-            />
-          )}
-
-          <button
-            type="submit"
-            className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white"
-          >
-            Add
-          </button>
-        </div>
+        </select>
+        <button
+          type="submit"
+          className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white"
+        >
+          Add
+        </button>
       </form>
 
       <div className="flex flex-col divide-y divide-neutral-900">
@@ -407,6 +353,18 @@ export function ProjectDetailView({
           <TaskRow key={a.id} action={a} />
         ))}
       </div>
+
+      {!!ideas.length && (
+        <>
+          <h2 className="mb-1 mt-6 text-xs uppercase tracking-wide text-neutral-600">Ideas for later</h2>
+          <p className="mb-2 text-xs text-neutral-600">Parked on Someday/Maybe — not on any of your lists.</p>
+          <div className="flex flex-col divide-y divide-neutral-900 opacity-70">
+            {ideas.map((a) => (
+              <TaskRow key={a.id} action={a} />
+            ))}
+          </div>
+        </>
+      )}
 
       {!!done.length && (
         <>
