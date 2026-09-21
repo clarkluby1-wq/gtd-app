@@ -77,6 +77,8 @@ export interface ReportItem {
   at: number
   /** Was on the Short List during this period. */
   starred: boolean
+  /** The project this step belongs to (actions only; a project's own id is its `id`). */
+  projectId?: string
   projectTitle?: string
   /** The Area of Focus of its project, if it has one. */
   areaId?: string
@@ -105,6 +107,7 @@ export function buildItems(input: {
         at: a.completedAt!,
         // A finished action keeps the day it was on the Short List, so this is "what you called important".
         starred: a.bigThreeDate !== undefined && inPeriod(a.bigThreeDate, period),
+        projectId: a.projectId,
         projectTitle: project?.title,
         areaId: project?.areaOfFocusId,
       }
@@ -134,6 +137,17 @@ export function partsOf(items: ReportItem[], excluded: ReadonlySet<string> = new
     projects: kept.filter((i) => i.kind === 'project'),
     others: kept.filter((i) => i.kind === 'action' && !i.starred),
   }
+}
+
+/**
+ * Leaving a finished project out of the report leaves out its steps too — otherwise its name would still show up on
+ * every step. Given the ids being ticked or unticked, this adds the steps of any project among them. (Steps can still
+ * be ticked back in one by one afterwards.)
+ */
+export function withProjectSteps(ids: readonly string[], items: readonly ReportItem[]): string[] {
+  const projectIds = new Set(items.filter((i) => i.kind === 'project' && ids.includes(i.id)).map((i) => i.id))
+  const steps = items.filter((i) => i.kind === 'action' && i.projectId !== undefined && projectIds.has(i.projectId)).map((i) => i.id)
+  return [...new Set([...ids, ...steps])]
 }
 
 export const totalOf = (parts: ReportParts) => parts.starred.length + parts.projects.length + parts.others.length

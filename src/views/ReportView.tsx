@@ -18,6 +18,7 @@ import {
   reportText,
   summaryLine,
   totalOf,
+  withProjectSteps,
   type BehindTheScenes,
   type Group,
   type GroupMode,
@@ -156,16 +157,21 @@ export function ReportView({
   const leftOut = items.filter((i) => excluded.has(i.id)).length
   const nothingToShare = totalOf(parts) === 0
 
+  // Ticking or unticking a finished project takes its steps with it (see withProjectSteps).
   const toggle = (id: string) =>
     setExcluded((prev) => {
       const next = new Set(prev)
-      if (!next.delete(id)) next.add(id)
+      const nowIncluded = next.has(id)
+      for (const each of withProjectSteps([id], items)) {
+        if (nowIncluded) next.delete(each)
+        else next.add(each)
+      }
       return next
     })
   const setMany = (ids: string[], include: boolean) =>
     setExcluded((prev) => {
       const next = new Set(prev)
-      for (const id of ids) {
+      for (const id of withProjectSteps(ids, items)) {
         if (include) next.delete(id)
         else next.add(id)
       }
@@ -254,7 +260,7 @@ export function ReportView({
         <div className="mb-5 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3 text-xs text-neutral-300">
           <p>
             Untick anything you'd rather leave out. It stays safely in the app — it just won't appear in what you print,
-            copy or show.
+            copy or show. Leaving out a finished project leaves out its steps too; you can tick any step back in.
           </p>
           <label className="mt-2 flex cursor-pointer items-center gap-2 text-neutral-400">
             <input
