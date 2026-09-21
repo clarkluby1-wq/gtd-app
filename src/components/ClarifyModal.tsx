@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { db } from '../db/db'
+import { ProjectPicker } from './ProjectPicker'
 import {
   clarifyAsNextAction,
   clarifyAsProject,
@@ -14,7 +15,7 @@ import {
   updateAction,
   type FirstActionSpec,
 } from '../db/operations'
-import type { Action, EnergyLevel, Project, ProjectStatus } from '../db/types'
+import type { Action, EnergyLevel, ProjectStatus } from '../db/types'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
@@ -659,7 +660,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               <FollowUpDatePicker value={followUpDate} onChange={setFollowUpDate} />
               {!isProject && (
                 <MoreOptions summary={projectTitleOf(linkedProjectId)}>
-                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} title={title} />
                 </MoreOptions>
               )}
               {projectNote('in Waiting For')}
@@ -697,7 +698,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               )}
               {!isProject && (
                 <MoreOptions summary={projectTitleOf(linkedProjectId)}>
-                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} title={title} />
                 </MoreOptions>
               )}
               {projectNote('on the Calendar')}
@@ -813,7 +814,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                   className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                 />
                 {!isProject && (
-                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />
+                  <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} title={title} />
                 )}
               </MoreOptions>
 
@@ -880,27 +881,17 @@ function MoreOptions({ summary, children }: { summary?: string; children: ReactN
 function ProjectSelect({
   value,
   onChange,
-  projects,
+  title,
 }: {
   value: string | undefined
   onChange: (id: string | undefined) => void
-  projects: Project[] | undefined
+  /** The item's wording, used to suggest projects. */
+  title: string
 }) {
   return (
     <>
       <label className="text-xs text-neutral-500">Part of an existing project? (optional)</label>
-      <select
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-      >
-        <option value="">No project</option>
-        {projects?.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.title}
-          </option>
-        ))}
-      </select>
+      <ProjectPicker value={value} onChange={onChange} title={title} />
     </>
   )
 }

@@ -6,6 +6,7 @@ import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
+import { ProjectPicker } from './ProjectPicker'
 
 /** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
 function historyLine(a: Action): string {
@@ -45,7 +46,6 @@ function toDateInputValue(ts?: number) {
 
 export function EditActionModal({ action, onClose }: { action: Action; onClose: () => void }) {
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
-  const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   // Same count the star on a Next Actions row uses, minus this action, so the cap can never disagree with it.
   const otherPinnedCount = useLiveQuery(
@@ -168,18 +168,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
 
         <div className="mb-4 flex flex-col gap-1.5">
           <label className="text-xs text-neutral-500">Project</label>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-          >
-            <option value="">No project</option>
-            {projects?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
+          <ProjectPicker value={projectId || undefined} onChange={(id) => setProjectId(id ?? '')} title={title} />
 
           {madeProject && (
             <p className="text-xs text-emerald-400">✓ New project “{madeProject}” created. This action is its first step.</p>
