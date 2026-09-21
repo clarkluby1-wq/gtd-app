@@ -9,7 +9,7 @@ import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 export type ViewKey =
   | 'search'
   | 'startday'
-  | 'today'
+  | 'report'
   | 'focus'
   | 'dashboard'
   | 'completed'
@@ -45,7 +45,7 @@ const SEARCH_ITEM: NavItem = { key: 'search', label: 'Search', icon: '🔍', ext
 
 const DO_NAV: NavItem[] = [
   { key: 'startday', label: 'Start My Day', icon: '☀️' },
-  { key: 'today', label: 'Today So Far', icon: '✨' },
+  { key: 'report', label: "What I've Done", icon: '✨' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
 ]

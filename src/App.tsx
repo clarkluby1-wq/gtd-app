@@ -11,7 +11,7 @@ import { seedDefaultsIfEmpty } from './db/db'
 import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
-import { TodayView } from './views/TodayView'
+import { ReportView } from './views/ReportView'
 import { InboxView } from './views/InboxView'
 import { StartDayView } from './views/StartDayView'
 import { FocusView } from './views/FocusView'
@@ -142,8 +142,8 @@ function App() {
           />
         )
         break
-      case 'today':
-        content = <TodayView onOpenProject={openProject} onViewNextActions={() => selectView('next')} />
+      case 'report':
+        content = <ReportView onOpenProject={openProject} onViewNextActions={() => selectView('next')} />
         break
       case 'dashboard':
         content = (
