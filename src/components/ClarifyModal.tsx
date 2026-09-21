@@ -120,6 +120,8 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
   const [dueDate, setDueDate] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
+  // A dated item is still "a call" or "an errand". Unlike Next Actions this starts empty — it isn't a batch to sort by place.
+  const [scheduleContextId, setScheduleContextId] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
 
@@ -314,8 +316,9 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             title: actionTitle,
             status: 'scheduled',
             scheduledDate: parseLocalDate(scheduledDate),
+            contextId: scheduleContextId || undefined,
           })
-        : clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId),
+        : clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId, scheduleContextId || undefined),
     )
 
   const confirmNextAction = () => {
@@ -645,6 +648,21 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              {contexts && contexts.length > 0 && (
+                <select
+                  value={scheduleContextId}
+                  onChange={(e) => setScheduleContextId(e.target.value)}
+                  aria-label="Context (optional)"
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                >
+                  <option value="">Context — optional (a call, an errand…)</option>
+                  {contexts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               {!isProject && (
                 <MoreOptions summary={projectTitleOf(linkedProjectId)}>
                   <ProjectSelect value={linkedProjectId} onChange={setLinkedProjectId} projects={projects} />

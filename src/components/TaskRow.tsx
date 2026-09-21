@@ -143,10 +143,11 @@ export function TaskRow({
           {action.title}
         </div>
         <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-neutral-500">
-          {/* Context/energy/time only mean something while this is an actionable Next Action — EditActionModal
-              keeps them in the record when you switch tabs so they aren't lost, but they shouldn't visually
-              leak onto a Waiting For / Someday / Scheduled row and imply this is currently engageable. */}
-          {action.status === 'next' && context && (
+          {/* Energy/time only mean something while this is an actionable Next Action — EditActionModal keeps them
+              in the record when you switch tabs so they aren't lost, but they shouldn't visually leak onto a
+              Waiting For / Someday / Scheduled row and imply this is currently engageable. Context is the exception
+              for Scheduled: a dated call or errand is still "a call" or "an errand". */}
+          {(action.status === 'next' || action.status === 'scheduled') && context && (
             <span className="rounded bg-neutral-800 px-1.5 py-0.5">{context.name}</span>
           )}
           {action.status === 'next' && action.energy && <span>⚡ {action.energy}</span>}

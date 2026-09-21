@@ -88,12 +88,13 @@ export async function clarifyAsNextAction(
 }
 
 /** Clarify into a scheduled (calendar) item for a specific date. */
-export async function clarifyAsScheduled(actionId: string, scheduledDate: number, projectId?: string) {
+export async function clarifyAsScheduled(actionId: string, scheduledDate: number, projectId?: string, contextId?: string) {
   const now = Date.now()
   await db.actions.update(actionId, {
     status: 'scheduled',
     scheduledDate,
     projectId,
+    contextId,
     clarifiedAt: now,
     touchedAt: now,
     order: await nextOrder(),

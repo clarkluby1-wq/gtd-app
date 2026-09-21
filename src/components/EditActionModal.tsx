@@ -112,6 +112,25 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
     onClose()
   }
 
+  // Shared by Next Action and Scheduled: a dated item is still "a call" or "an errand".
+  const contextField = (
+    <>
+      <label className="text-xs text-neutral-500">Context</label>
+      <select
+        value={contextId}
+        onChange={(e) => setContextId(e.target.value)}
+        className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+      >
+        <option value="">No context</option>
+        {contexts?.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </>
+  )
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-100 shadow-xl">
@@ -258,19 +277,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 </span>
               </button>
 
-              <label className="text-xs text-neutral-500">Context</label>
-              <select
-                value={contextId}
-                onChange={(e) => setContextId(e.target.value)}
-                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-              >
-                <option value="">No context</option>
-                {contexts?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              {contextField}
 
               <label className="text-xs text-neutral-500">Energy required</label>
               <div className="flex gap-2">
@@ -327,6 +334,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              {contextField}
             </>
           )}
         </div>
