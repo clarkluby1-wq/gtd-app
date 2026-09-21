@@ -2,7 +2,7 @@ import { closestCenter, DndContext } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
 import { DeepPlanModal } from '../components/DeepPlanModal'
@@ -43,6 +43,26 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
     () => new Set(allActions ? projects.filter((p) => isProjectStalled(p, allActions)).map((p) => p.id) : []),
     [projects, allActions],
   )
+
+  // "Needs a next step" is also a shortcut: it scrolls to the first such project, and to the next one on each click.
+  const stalledInOrder = projects.filter((p) => stalledIds.has(p.id))
+  const [tourIndex, setTourIndex] = useState<number | null>(null)
+  const [flashId, setFlashId] = useState<string | null>(null)
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const jumpToStalled = () => {
+    const count = stalledInOrder.length
+    if (count === 0) return
+    const next = tourIndex === null ? 0 : (tourIndex + 1) % count
+    const target = stalledInOrder[next]
+    setTourIndex(next)
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    document.getElementById(`project-${target.id}`)?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' })
+    // A soft glow so the eye lands on it.
+    setFlashId(target.id)
+    clearTimeout(flashTimer.current)
+    flashTimer.current = setTimeout(() => setFlashId(null), 1800)
+  }
 
   const createProject = async () => {
     if (!title.trim()) return
@@ -96,7 +116,15 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
       </p>
 
       {stalledIds.size > 0 && (
-        <p className="mb-4 text-xs text-amber-400">Needs a next step · {stalledIds.size}</p>
+        <div className="sticky top-0 z-10 -mx-2 mb-2 bg-neutral-950 px-2 py-2">
+          <button
+            onClick={jumpToStalled}
+            title="Jump to the projects that need a next step"
+            className="text-xs text-amber-400 hover:text-amber-300"
+          >
+            Needs a next step · {stalledIds.size > 1 && tourIndex !== null ? `${Math.min(tourIndex, stalledIds.size - 1) + 1} of ${stalledIds.size} — next` : stalledIds.size} ↓
+          </button>
+        </div>
       )}
 
       {creating && (
@@ -159,6 +187,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
                 project={p}
                 progress={progress(p.id)}
                 stalled={stalledIds.has(p.id)}
+                flash={flashId === p.id}
                 onOpen={() => onOpen(p.id)}
               />
             ))}
@@ -183,11 +212,13 @@ function SortableProjectCard({
   project,
   progress,
   stalled,
+  flash,
   onOpen,
 }: {
   project: OrderedProject
   progress: { done: number; total: number }
   stalled: boolean
+  flash: boolean
   onOpen: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
@@ -199,10 +230,11 @@ function SortableProjectCard({
   return (
     <div
       ref={setNodeRef}
+      id={`project-${project.id}`}
       style={style}
-      className={`group flex items-start gap-2 rounded-lg border bg-neutral-900 p-4 ${
+      className={`group flex items-start gap-2 rounded-lg border bg-neutral-900 p-4 transition-shadow duration-500 ${
         stalled ? 'border-amber-500/40 hover:border-amber-500/60' : 'border-neutral-800 hover:border-neutral-700'
-      }`}
+      } ${flash ? 'ring-2 ring-amber-400/70' : ''}`}
     >
       <button
         {...attributes}
