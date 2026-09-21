@@ -162,6 +162,10 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
           ))}
         </div>
 
+        {(type === 'next' || type === 'scheduled') && (
+          <div className="mb-4 flex flex-col gap-1.5">{contextField}</div>
+        )}
+
         <div className="mb-4 flex flex-col gap-1.5">
           <label className="text-xs text-neutral-500">Project</label>
           <select
@@ -277,8 +281,6 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 </span>
               </button>
 
-              {contextField}
-
               <label className="text-xs text-neutral-500">Energy required</label>
               <div className="flex gap-2">
                 {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (
@@ -334,7 +336,6 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
-              {contextField}
             </>
           )}
         </div>
