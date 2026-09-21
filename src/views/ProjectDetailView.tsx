@@ -53,9 +53,15 @@ export function ProjectDetailView({
     }
   }
 
+  // Something typed into an open box that hasn't been kept yet. Everything else on this page saves the moment you change it.
+  const editInProgress =
+    (editingTitle && titleDraft.trim() !== '' && titleDraft.trim() !== project.title) ||
+    (editingOutcome && outcomeDraft !== project.outcome) ||
+    (editingNotes && notesDraft.trim() !== (project.notes ?? ''))
+
   /**
-   * Everything on this page already saves as you go. "Save" is the way out that says so — and it also takes anything
-   * you're still typing (the title, the outcome, the notes) so closing never drops a half-finished edit.
+   * Everything on this page already saves as you go. This is the way out — and it also takes anything you're still
+   * typing (the title, the outcome, the notes) so closing never drops a half-finished edit.
    */
   const saveAndClose = async () => {
     const changes: Partial<Project> = {}
@@ -392,13 +398,27 @@ export function ProjectDetailView({
       )}
 
       <div className="sticky bottom-0 -mx-2 mt-8 flex items-center justify-between gap-3 border-t border-neutral-800 bg-neutral-950 px-2 py-3">
-        <p className="text-xs text-neutral-600">Changes save as you make them.</p>
-        <button
-          onClick={() => void saveAndClose()}
-          className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-        >
-          Save
-        </button>
+        {editInProgress ? (
+          <>
+            <p className="text-xs text-amber-400">You have an edit in progress.</p>
+            <button
+              onClick={() => void saveAndClose()}
+              className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+            >
+              Save
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-emerald-500">✓ All changes saved</p>
+            <button
+              onClick={() => void saveAndClose()}
+              className="rounded-md border border-emerald-600/60 px-5 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-600 hover:text-white"
+            >
+              Done
+            </button>
+          </>
+        )}
       </div>
 
       {confirmingDelete && (
