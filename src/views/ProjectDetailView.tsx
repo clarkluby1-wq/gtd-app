@@ -5,6 +5,7 @@ import { addActionToProject, completeProject, deleteProject, updateProject } fro
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
 import { celebrate, originOf } from '../lib/celebrate'
+import type { Project } from '../db/types'
 
 export function ProjectDetailView({
   projectId,
@@ -50,6 +51,19 @@ export function ProjectDetailView({
     if (trimmed && trimmed !== project.title) {
       updateProject(projectId, { title: trimmed })
     }
+  }
+
+  /**
+   * Everything on this page already saves as you go. "Save" is the way out that says so — and it also takes anything
+   * you're still typing (the title, the outcome, the notes) so closing never drops a half-finished edit.
+   */
+  const saveAndClose = async () => {
+    const changes: Partial<Project> = {}
+    if (editingTitle && titleDraft.trim() && titleDraft.trim() !== project.title) changes.title = titleDraft.trim()
+    if (editingOutcome) changes.outcome = outcomeDraft
+    if (editingNotes) changes.notes = notesDraft.trim() || undefined
+    if (Object.keys(changes).length > 0) await updateProject(projectId, changes)
+    onBack()
   }
 
   const open = actions?.filter((a) => a.status !== 'done' && a.status !== 'someday') ?? []
@@ -376,6 +390,16 @@ export function ProjectDetailView({
           </div>
         </>
       )}
+
+      <div className="sticky bottom-0 -mx-2 mt-8 flex items-center justify-between gap-3 border-t border-neutral-800 bg-neutral-950 px-2 py-3">
+        <p className="text-xs text-neutral-600">Changes save as you make them.</p>
+        <button
+          onClick={() => void saveAndClose()}
+          className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          Save
+        </button>
+      </div>
 
       {confirmingDelete && (
         <ConfirmDialog
