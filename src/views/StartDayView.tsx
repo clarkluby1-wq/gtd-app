@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
+import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
 import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree, unpinFromBigThree } from '../db/operations'
@@ -11,9 +12,10 @@ import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 
-type Step = 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
+type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
 
 const STEPS: { key: Step; label: string }[] = [
+  { key: 'commitments', label: 'Commitments' },
   { key: 'today', label: 'Today' },
   { key: 'inbox', label: 'Inbox' },
   { key: 'waiting', label: 'Waiting For' },
@@ -27,8 +29,8 @@ const PICK_PREVIEW = 8
 const NUDGE_PREVIEW = 5
 
 /**
- * A short, skippable walk through the start of a day: what's tied to today, what's waiting to be sorted, who
- * needs a nudge, then choosing a Short List. Nothing here is required — every step can be skipped, and the
+ * A short, skippable walk through the start of a day: what you've committed to (your calendars), what's tied to
+ * today in here, what's waiting to be sorted, who needs a nudge, then choosing a Short List. Nothing here is required — every step can be skipped, and the
  * steps are also reachable directly from the trail at the top.
  */
 export function StartDayView({
@@ -50,7 +52,7 @@ export function StartDayView({
   onViewCalendar: () => void
   onViewWeeklyReview: () => void
 }) {
-  const [step, setStep] = useState<Step>('today')
+  const [step, setStep] = useState<Step>('commitments')
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
   const [showAllPicks, setShowAllPicks] = useState(false)
 
@@ -151,8 +153,14 @@ export function StartDayView({
         ))}
       </div>
 
+      {step === 'commitments' && (
+        <Screen question="What have you committed to today?">
+          <CommitmentsStep />
+        </Screen>
+      )}
+
       {step === 'today' && (
-        <Screen question="What's already tied to today?">
+        <Screen question="What's already tied to today in here?">
           {(review.phase === 'today' || review.phase === 'open') && review.schedule && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
               <div className="min-w-0">
