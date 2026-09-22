@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { BigThree } from '../components/BigThree'
+import { useTodayShortList } from '../lib/shortList'
 import { TaskRow } from '../components/TaskRow'
 import { startOfDay, startOfToday } from '../lib/date'
 import { describeStatus } from '../lib/reviewSchedule'
@@ -33,10 +34,9 @@ export function TodayHomeView({
   const somedayProjectIds = useSomedayProjectIds()
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
 
-  const shortList = useLiveQuery(
-    () => db.actions.where('status').equals('next').filter((a) => a.bigThreeDate === today).toArray(),
-    [today],
-  )
+  // Not just Next Actions — a pinned Waiting For or Scheduled item is just as much today's short list.
+  const shortListRaw = useTodayShortList()
+  const shortList = (shortListRaw ?? []).filter((a) => notParked(a))
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const withDue = useLiveQuery(() => db.actions.filter((a) => a.status === 'next' && a.dueDate != null).toArray())
 
@@ -46,7 +46,7 @@ export function TodayHomeView({
     .filter((a) => (a.status === 'scheduled' ? a.scheduledDate! : a.dueDate!) >= today && (a.status === 'scheduled' ? a.scheduledDate! : a.dueDate!) < tomorrow)
     .sort((a, b) => a.order - b.order)
 
-  if (shortList === undefined || scheduled === undefined || withDue === undefined) return null
+  if (shortListRaw === undefined || scheduled === undefined || withDue === undefined) return null
 
   const heading = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 

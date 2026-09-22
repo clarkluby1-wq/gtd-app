@@ -9,6 +9,7 @@ import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
 import { startOfToday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { useTodayPinCount } from '../lib/shortList'
 import type { EnergyLevel } from '../db/types'
 
 export function NextActionsView({
@@ -25,7 +26,8 @@ export function NextActionsView({
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
   const today = startOfToday()
-  const pinnedTodayCount = (actions ?? []).filter((a) => a.bigThreeDate === today).length
+  // Global: a pinned Waiting For or Scheduled item uses a slot too, same cap as here.
+  const pinnedTodayCount = useTodayPinCount()
 
   const [contextId, setContextId] = useState<string>('all')
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')

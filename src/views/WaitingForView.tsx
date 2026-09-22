@@ -10,6 +10,7 @@ import { SortableTaskRow } from '../components/SortableTaskRow'
 import { TaskRow } from '../components/TaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { useTodayPinCount } from '../lib/shortList'
 import { lastFollowUpAt, needsNudge, NUDGE_AFTER_DAYS, wasFollowedUpToday, waitingStartedAt } from '../lib/waiting'
 
 type SortMode = 'mine' | 'longest' | 'newest'
@@ -68,6 +69,8 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
   const actions = useLiveQuery(() => db.actions.where('status').equals('waiting').sortBy('order'))
   const projects = useLiveQuery(() => db.projects.toArray())
   const somedayProjectIds = useSomedayProjectIds()
+  // Still date-specific and still something you're actively chasing — it can matter as much as a Next Action today.
+  const pinnedTodayCount = useTodayPinCount()
 
   const [view, setView] = useState(readView)
   const [nudgeOnly, setNudgeOnly] = useState(false)
@@ -135,6 +138,8 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
         action={a}
         showProject={view.group !== 'project'}
         showWaitingClock
+        showBigThreePin
+        pinnedTodayCount={pinnedTodayCount}
         extraAction={followUp(a)}
         onOpenProject={onOpenProject}
       />
@@ -232,6 +237,8 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
                     action={a}
                     showProject
                     showWaitingClock
+                    showBigThreePin
+                    pinnedTodayCount={pinnedTodayCount}
                     extraAction={followUp(a)}
                     onOpenProject={onOpenProject}
                   />

@@ -20,6 +20,7 @@ import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { parseLocalDate, startOfToday } from '../lib/date'
+import { useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
 const TIME_CHIPS: { minutes: number; label: string }[] = [
@@ -126,14 +127,9 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [waitingOn, setWaitingOn] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
 
-  // "This one matters today": puts the next action on today's Short List. With three already there, you pick one to swap out.
-  const shortListNow = useLiveQuery(() =>
-    db.actions
-      .where('status')
-      .equals('next')
-      .filter((a) => a.bigThreeDate === startOfToday())
-      .toArray(),
-  )
+  // "This one matters today": puts the next action on today's Short List. With three already there, you pick one to swap
+  // out — from any kind of pin, since a Waiting For or Scheduled item can hold a slot too.
+  const shortListNow = useActiveTodayPins()
   const [wantsShortList, setWantsShortList] = useState(false)
   const [choosingSwap, setChoosingSwap] = useState(false)
   const [replaceId, setReplaceId] = useState<string | undefined>()

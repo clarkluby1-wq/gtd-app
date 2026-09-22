@@ -5,6 +5,7 @@ import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
+import { useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
 
@@ -47,14 +48,8 @@ function toDateInputValue(ts?: number) {
 export function EditActionModal({ action, onClose }: { action: Action; onClose: () => void }) {
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
-  // Same count the star on a Next Actions row uses, minus this action, so the cap can never disagree with it.
-  const otherPinnedCount = useLiveQuery(
-    async () =>
-      (await db.actions.where('status').equals('next').toArray()).filter(
-        (a) => a.id !== action.id && a.bigThreeDate === startOfToday(),
-      ).length,
-    [action.id],
-  )
+  // Same count every star uses, minus this action, so the cap can never disagree with it — whatever kind of item is pinned.
+  const otherPinnedCount = useTodayPinCount(action.id)
 
   const [title, setTitle] = useState(action.title)
   const [type, setType] = useState<EditType>(statusToType(action.status))
@@ -106,8 +101,8 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       followUpDate: followUpDate ? parseLocalDate(followUpDate) : undefined,
       scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
-      // Only a Next Action can be a Short List pick; leaving Next (or unticking) releases the slot.
-      bigThreeDate: type === 'next' && bigThree ? startOfToday() : undefined,
+      // Someday items aren't committed to yet, so they can't hold a Short List slot; leaving Someday (or unticking) releases it.
+      bigThreeDate: type !== 'someday' && bigThree ? startOfToday() : undefined,
     })
     onClose()
   }
@@ -251,25 +246,27 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
             className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
           />
 
+          {type !== 'someday' && (
+            <button
+              type="button"
+              onClick={() => setBigThree((v) => !v)}
+              disabled={!bigThree && bigThreeFull}
+              title={bigThreeFull && !bigThree ? "Today's Short List is full — unpin one first" : undefined}
+              className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+                bigThree
+                  ? 'border border-amber-500/40 bg-amber-500/15 text-amber-300'
+                  : 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
+              }`}
+            >
+              <span>{bigThree ? "★ On today's Short List" : "☆ Add to today's Short List"}</span>
+              <span className="text-xs font-normal text-neutral-500">
+                {bigThreeFull && !bigThree ? 'Full — 3 of 3 used' : 'Pinned to the top today'}
+              </span>
+            </button>
+          )}
+
           {type === 'next' && (
             <>
-              <button
-                type="button"
-                onClick={() => setBigThree((v) => !v)}
-                disabled={!bigThree && bigThreeFull}
-                title={bigThreeFull && !bigThree ? "Today's Short List is full — unpin one first" : undefined}
-                className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
-                  bigThree
-                    ? 'border border-amber-500/40 bg-amber-500/15 text-amber-300'
-                    : 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
-                }`}
-              >
-                <span>{bigThree ? "★ On today's Short List" : "☆ Add to today's Short List"}</span>
-                <span className="text-xs font-normal text-neutral-500">
-                  {bigThreeFull && !bigThree ? 'Full — 3 of 3 used' : 'Pinned to the top today'}
-                </span>
-              </button>
-
               <label className="text-xs text-neutral-500">Energy required</label>
               <div className="flex gap-2">
                 {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (

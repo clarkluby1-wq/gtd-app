@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { useTodayPinCount } from '../lib/shortList'
 import { followUpPending } from '../lib/waiting'
 import type { Action } from '../db/types'
 
@@ -28,6 +29,8 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
   )
   const somedayProjectIds = useSomedayProjectIds()
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
+  // A dated item is still something you can flag as mattering today.
+  const pinnedTodayCount = useTodayPinCount()
 
   const groups = scheduled ? groupByDay([...scheduled.filter(notParked), ...(checkBacks ?? []).filter(notParked)]) : []
   const dueFiltered = withDue?.filter(notParked) ?? []
@@ -58,6 +61,8 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
                 action={a}
                 showProject
                 showWaitingClock={a.status === 'waiting'}
+                showBigThreePin
+                pinnedTodayCount={pinnedTodayCount}
                 onOpenProject={onOpenProject}
               />
             ))}
@@ -70,7 +75,7 @@ export function CalendarView({ onOpenProject }: { onOpenProject: (projectId: str
           <h2 className="mb-2 mt-6 text-sm font-medium text-amber-500">Upcoming Deadlines</h2>
           <div className="flex flex-col divide-y divide-neutral-900">
             {dueFiltered.map((a) => (
-              <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
+              <TaskRow key={a.id} action={a} showProject showBigThreePin pinnedTodayCount={pinnedTodayCount} onOpenProject={onOpenProject} />
             ))}
           </div>
         </>

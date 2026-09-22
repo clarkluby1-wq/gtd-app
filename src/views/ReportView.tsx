@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { reopenAction } from '../db/operations'
-import { startOfToday } from '../lib/date'
 import {
   PERIODS,
   behindTheScenesText,
@@ -27,6 +26,7 @@ import {
   type ReportItem,
   type ReportParts,
 } from '../lib/report'
+import { useTodayShortList } from '../lib/shortList'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 const OTHERS_PREVIEW = 10
@@ -78,7 +78,6 @@ export function ReportView({
   const period = periodFor(periodKey)
   const singleDay = isSingleDay(period)
   const isToday = periodKey === 'today'
-  const today = startOfToday()
   const { start, end } = period
 
   const doneActions = useLiveQuery(
@@ -101,10 +100,9 @@ export function ReportView({
   )
   const projects = useLiveQuery(() => db.projects.toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
-  const shortLeftRaw = useLiveQuery(
-    () => (isToday ? db.actions.where('status').equals('next').filter((a) => a.bigThreeDate === today).toArray() : []),
-    [isToday, today],
-  )
+  // Not just Next Actions — a pinned Waiting For or Scheduled item is just as much part of today's short list.
+  const shortListRaw = useTodayShortList()
+  const shortLeftRaw = isToday ? shortListRaw : []
   const behind = useLiveQuery(async (): Promise<BehindTheScenes> => {
     const captured = await db.captureEvents.where('createdAt').between(start, end, true, false).count()
     const all = await db.actions.toArray()
