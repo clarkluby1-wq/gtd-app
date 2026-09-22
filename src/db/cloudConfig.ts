@@ -8,7 +8,7 @@
  *
  * For trying things out, VITE_DEXIE_CLOUD_URL (in a local, uncommitted .env.local) overrides it on one machine.
  */
-const PUBLISHED_URL = ''
+const PUBLISHED_URL = 'https://zd0mzyn9i.dexie.cloud'
 
 export const CLOUD_DATABASE_URL: string = import.meta.env.VITE_DEXIE_CLOUD_URL || PUBLISHED_URL
 
