@@ -32,16 +32,19 @@ export function BigThree({
         </p>
       ) : (
         <div className="flex flex-col divide-y divide-neutral-900">
-          {actions.map((a) => (
-            <TaskRow
-              key={a.id}
-              action={a}
-              showProject
-              showBigThreePin
-              pinnedTodayCount={actions.length}
-              onOpenProject={onOpenProject}
-            />
-          ))}
+          {/* Done items sink to the bottom so today's list still reads as "what's left" at a glance. */}
+          {[...actions]
+            .sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'))
+            .map((a) => (
+              <TaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showBigThreePin
+                pinnedTodayCount={actions.length}
+                onOpenProject={onOpenProject}
+              />
+            ))}
         </div>
       )}
     </div>
