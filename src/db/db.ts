@@ -88,7 +88,9 @@ export const db = new GtdDatabase()
 
 // Sync stays off (no network, no sign-in) until a cloud database address is set in cloudConfig.ts.
 if (CLOUD_DATABASE_URL) {
-  db.cloud.configure({ databaseUrl: CLOUD_DATABASE_URL, requireAuth: false })
+  // nameSuffix defaults to true, which renames the working IndexedDB database (adding the cloud id) the moment
+  // this runs — silently abandoning everything already stored under the plain name. Keep the plain name.
+  db.cloud.configure({ databaseUrl: CLOUD_DATABASE_URL, requireAuth: false, nameSuffix: false })
 }
 
 const DEFAULT_CONTEXTS = ['@calls', '@computer', '@errands', '@home', '@office', '@anywhere']
