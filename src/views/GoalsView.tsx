@@ -255,7 +255,7 @@ function GoalRow({
           {goal.targetDate && <span>by {new Date(goal.targetDate).toLocaleDateString()}</span>}
         </div>
       </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+      <div className="flex gap-2 touch-reveal">
         {goal.status === 'active' && (
           <button
             onClick={() => updateGoal(goal.id, { status: 'achieved' })}

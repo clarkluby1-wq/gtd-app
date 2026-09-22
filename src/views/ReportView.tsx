@@ -521,7 +521,7 @@ function DoneRow({
         <button
           onClick={() => void reopenAction(item.id)}
           title="Mark it not done"
-          className="shrink-0 text-xs text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 focus:opacity-100"
+          className="shrink-0 touch-reveal text-xs text-neutral-600 hover:text-neutral-300 focus:opacity-100"
         >
           Undo
         </button>

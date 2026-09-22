@@ -135,7 +135,7 @@ function VisionRow({
         {areaName && <span className="text-xs text-emerald-400">{areaName}</span>}
         <button
           onClick={() => setConfirmingDelete(true)}
-          className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
+          className="touch-reveal text-neutral-600 hover:text-red-400"
         >
           ✕
         </button>

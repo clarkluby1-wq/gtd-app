@@ -93,7 +93,7 @@ export function TaskRow({
           {...dragHandle.attributes}
           {...dragHandle.listeners}
           style={{ touchAction: 'none' }}
-          className="shrink-0 cursor-grab text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-reveal text-neutral-600 hover:text-neutral-300 active:cursor-grabbing"
           title="Drag to reorder"
         >
           ⠿
@@ -130,7 +130,7 @@ export function TaskRow({
           className={`shrink-0 text-sm transition disabled:cursor-not-allowed disabled:opacity-20 ${
             pinnedToday
               ? 'text-amber-400'
-              : 'text-neutral-700 opacity-0 hover:text-amber-400 group-hover:opacity-100'
+              : 'touch-reveal text-neutral-700 hover:text-amber-400'
           }`}
         >
           {pinnedToday ? '★' : '☆'}
@@ -197,7 +197,7 @@ export function TaskRow({
 
       <button
         onClick={() => setConfirmingDelete(true)}
-        className="shrink-0 text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
+        className="shrink-0 touch-reveal text-neutral-600 hover:text-red-400"
         title="Delete"
       >
         ✕

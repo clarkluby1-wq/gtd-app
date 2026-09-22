@@ -8,6 +8,26 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/*
+ * A row's secondary controls (star, delete, drag handle) only reveal on mouse hover, on the element the hover
+ * happens to land on. On a touch screen "hover" never fires, so the same rule would hide them forever with no way
+ * to reveal them. `(hover: hover) and (pointer: fine)` is true for an actual mouse; on a touch device it's simply
+ * always visible.
+ */
+.touch-reveal {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  /* Higher specificity than the bare .touch-reveal rule above, so this reliably wins on a device with a real mouse,
+     regardless of which one Tailwind's build happens to place later in the stylesheet. */
+  .group .touch-reveal {
+    opacity: 0;
+  }
+  .group:hover .touch-reveal {
+    opacity: 1;
+  }
+}
+
 .celebrate-ring {
   position: fixed;
   z-index: 60;

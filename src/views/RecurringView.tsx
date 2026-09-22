@@ -181,7 +181,7 @@ function TemplateRow({
         </div>
         <div className="text-xs text-neutral-500">{describe(t)}</div>
       </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+      <div className="flex gap-2 touch-reveal">
         <button
           onClick={() => updateRecurringTemplate(t.id, { active: !t.active })}
           className="text-xs text-neutral-400 hover:text-emerald-400"

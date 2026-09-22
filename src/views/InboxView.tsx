@@ -124,7 +124,7 @@ function InboxRow({
         {...dragHandle.attributes}
         {...dragHandle.listeners}
         style={{ touchAction: 'none' }}
-        className="shrink-0 cursor-grab text-neutral-600 opacity-0 hover:text-neutral-300 group-hover:opacity-100 active:cursor-grabbing"
+        className="shrink-0 cursor-grab touch-reveal text-neutral-600 hover:text-neutral-300 active:cursor-grabbing"
         title="Drag to reorder"
       >
         ⠿
@@ -170,7 +170,7 @@ function InboxRow({
         </button>
         <button
           onClick={() => setConfirmingDelete(true)}
-          className="text-neutral-600 opacity-0 hover:text-red-400 group-hover:opacity-100"
+          className="touch-reveal text-neutral-600 hover:text-red-400"
           title="Delete"
         >
           ✕

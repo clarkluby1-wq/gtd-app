@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useCompletionToast } from './lib/completionToastContext'
 import { Sidebar, type ViewKey } from './components/Sidebar'
 import { CaptureBar } from './components/CaptureBar'
+import { MobileMoreSheet } from './components/MobileMoreSheet'
+import { MobileTabBar } from './components/MobileTabBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
@@ -16,6 +18,7 @@ import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { ReportView } from './views/ReportView'
 import { InboxView } from './views/InboxView'
 import { StartDayView } from './views/StartDayView'
+import { TodayHomeView } from './views/TodayHomeView'
 import { FocusView } from './views/FocusView'
 import { NO_FILTERS, type NextFilters } from './lib/nextFilters'
 import { SearchView } from './views/SearchView'
@@ -40,6 +43,7 @@ function App() {
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [showMindSweep, setShowMindSweep] = useState(false)
+  const [showMoreSheet, setShowMoreSheet] = useState(false)
   const [editGoalId, setEditGoalId] = useState<string | null>(null)
   const [goalReturnProjectId, setGoalReturnProjectId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -117,6 +121,9 @@ function App() {
     setInboxRun((n) => n + 1)
   }
 
+  // Focus and What Now? borrow another screen's place in the nav while they're open, so that screen still shows active.
+  const effectiveView = view === 'focus' ? focusReturn : view === 'whatnow' ? 'next' : view
+
   let content: ReactNode
   if (view === 'projects' && openProjectId) {
     content = (
@@ -136,6 +143,18 @@ function App() {
             focusTick={searchFocusTick}
             onOpenProject={openProject}
             onNavigate={selectView}
+          />
+        )
+        break
+      case 'today':
+        content = (
+          <TodayHomeView
+            onOpenProject={openProject}
+            onStartDay={() => selectView('startday')}
+            onViewNextActions={() => selectView('next')}
+            onViewCalendar={() => selectView('calendar')}
+            onViewReport={() => selectView('report')}
+            onViewWeeklyReview={startReview}
           />
         )
         break
@@ -251,7 +270,7 @@ function App() {
       <WeeklyReviewPrompt onStart={startReview} />
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
-          current={view === 'focus' ? focusReturn : view === 'whatnow' ? 'next' : view}
+          current={effectiveView}
           onSelect={selectView}
           onStartIntake={() => setShowIntake(true)}
           onStartMindSweep={() => setShowMindSweep(true)}
@@ -259,9 +278,24 @@ function App() {
         <div className="flex flex-1 flex-col overflow-hidden">
           <CaptureBar />
           <ContentArea>{content}</ContentArea>
+          <MobileTabBar
+            current={effectiveView}
+            onSelect={selectView}
+            onMore={() => setShowMoreSheet(true)}
+            moreActive={!['today', 'inbox', 'next', 'projects'].includes(effectiveView)}
+          />
         </div>
         {showIntake && <HorizonsIntakeWizard onClose={() => setShowIntake(false)} />}
         {showMindSweep && <MindSweepWizard onClose={() => setShowMindSweep(false)} />}
+        {showMoreSheet && (
+          <MobileMoreSheet
+            current={effectiveView}
+            onSelect={selectView}
+            onClose={() => setShowMoreSheet(false)}
+            onStartIntake={() => setShowIntake(true)}
+            onStartMindSweep={() => setShowMindSweep(true)}
+          />
+        )}
       </div>
     </CompletionToastProvider>
   )

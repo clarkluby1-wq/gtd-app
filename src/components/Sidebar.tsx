@@ -1,14 +1,12 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { db } from '../db/db'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { startOfToday } from '../lib/date'
+import { useNavBadges } from '../lib/useNavBadges'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSync } from '../lib/useSync'
-import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 export type ViewKey =
   | 'search'
+  | 'today'
   | 'startday'
   | 'report'
   | 'focus'
@@ -33,7 +31,7 @@ export type ViewKey =
 const SEARCH_SHORTCUT =
   typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl K'
 
-interface NavItem {
+export interface NavItem {
   key: ViewKey
   label: string
   icon: string
@@ -42,41 +40,42 @@ interface NavItem {
 
 // The menu is grouped by how often it's used: what you do every day, what you keep track of, then two folded-away
 // groups. What Now? isn't listed — it's reached from Next Actions and Start My Day.
-const SEARCH_ITEM: NavItem = { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT }
+export const SEARCH_ITEM: NavItem = { key: 'search', label: 'Search', icon: '🔍', extra: SEARCH_SHORTCUT }
 
-const DO_NAV: NavItem[] = [
+export const DO_NAV: NavItem[] = [
+  { key: 'today', label: 'Today', icon: '🏠' },
   { key: 'startday', label: 'Start My Day', icon: '☀️' },
   { key: 'report', label: "What I've Done", icon: '✨' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'next', label: 'Next Actions', icon: '✅' },
 ]
 
-const TRACK_NAV: NavItem[] = [
+export const TRACK_NAV: NavItem[] = [
   { key: 'projects', label: 'Projects', icon: '📁' },
   { key: 'waiting', label: 'Waiting For', icon: '⏳' },
   { key: 'calendar', label: 'Calendar', icon: '📅' },
   { key: 'someday', label: 'Someday / Maybe', icon: '🌙' },
 ]
 
-const REVIEW_NAV: NavItem[] = [
+export const REVIEW_NAV: NavItem[] = [
   { key: 'review', label: 'Weekly Review', icon: '🔄' },
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'completed', label: 'Recently Completed', icon: '☑️' },
 ]
 
-const MORE_NAV: NavItem[] = [
+export const MORE_NAV: NavItem[] = [
   { key: 'reference', label: 'Reference', icon: '📎' },
   { key: 'recurring', label: 'Recurring', icon: '🔁' },
 ]
 
-const HORIZONS_NAV: (NavItem & { altitude: string })[] = [
+export const HORIZONS_NAV: (NavItem & { altitude: string })[] = [
   { key: 'purpose', label: 'Purpose & Principles', icon: '🌟', altitude: '50k ft' },
   { key: 'vision', label: 'Vision', icon: '🔭', altitude: '40k ft' },
   { key: 'goals', label: 'Goals', icon: '🎯', altitude: '30k ft' },
   { key: 'areas', label: 'Areas of Focus', icon: '🧭', altitude: '20k ft' },
 ]
 
-const SETTINGS_ITEM: NavItem = { key: 'settings', label: 'Settings', icon: '⚙️' }
+export const SETTINGS_ITEM: NavItem = { key: 'settings', label: 'Settings', icon: '⚙️' }
 
 const REVIEW_KEYS: ViewKey[] = REVIEW_NAV.map((n) => n.key)
 const MORE_KEYS: ViewKey[] = [...MORE_NAV.map((n) => n.key), ...HORIZONS_NAV.map((n) => n.key), 'settings']
@@ -115,24 +114,16 @@ export function Sidebar({
 }) {
   const { blocked } = useCompletionToast()
   const [stored, setStored] = useState(readOpen)
-  const somedayProjectIds = useSomedayProjectIds()
   const reviewStatus = useReviewStatus()
   const sync = useSync()
   const reviewNeedsAttention = reviewStatus.phase === 'today' || reviewStatus.phase === 'open'
-  const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
-  const nextActions = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
-  const waitingActions = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
-  const doneActions = useLiveQuery(() => db.actions.where('status').equals('done').toArray())
-  const completedTodayCount = doneActions?.filter((a) => (a.completedAt ?? 0) >= startOfToday()).length
-  const notParked = (a: { projectId?: string }) => !a.projectId || !somedayProjectIds.has(a.projectId)
-  const nextCount = nextActions?.filter(notParked).length
-  const waitingCount = waitingActions?.filter(notParked).length
+  const badges = useNavBadges()
 
   const badge = (key: ViewKey): number | undefined => {
-    if (key === 'inbox') return inboxCount
-    if (key === 'next') return nextCount
-    if (key === 'waiting') return waitingCount
-    if (key === 'completed') return completedTodayCount
+    if (key === 'inbox') return badges.inbox
+    if (key === 'next') return badges.next
+    if (key === 'waiting') return badges.waiting
+    if (key === 'completed') return badges.completedToday
     return undefined
   }
 
@@ -192,7 +183,7 @@ export function Sidebar({
   return (
     <nav
       inert={blocked}
-      className="flex h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200"
+      className="hidden h-full w-60 flex-col gap-1 overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-3 text-neutral-200 md:flex"
     >
       <div className="mb-3 px-2 text-lg font-semibold tracking-tight text-white">GTD</div>
       {item(SEARCH_ITEM)}
