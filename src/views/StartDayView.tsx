@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
@@ -11,6 +11,7 @@ import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
 import { useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
+import { markStartDayReachedGo } from '../lib/startDayStatus'
 import type { Action } from '../db/types'
 
 type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
@@ -39,6 +40,7 @@ export function StartDayView({
   onProcessInbox,
   onViewInbox,
   onFocus,
+  onViewToday,
   onViewNextActions,
   onViewWaitingFor,
   onViewWhatNow,
@@ -51,6 +53,8 @@ export function StartDayView({
   /** Just opens the Inbox to look through, same as Next Actions does — no processing forced. */
   onViewInbox: () => void
   onFocus: () => void
+  /** Back to the Today home screen — the natural "I'm done here" exit once you've been through this. */
+  onViewToday: () => void
   onViewNextActions: () => void
   onViewWaitingFor: () => void
   onViewWhatNow: () => void
@@ -60,6 +64,12 @@ export function StartDayView({
   const [step, setStep] = useState<Step>('commitments')
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
   const [showAllPicks, setShowAllPicks] = useState(false)
+
+  // Reaching the last step — however you got here, walked through or jumped straight to it — counts as having
+  // been through this today. Lets the Today screen stop leading with "Start your day" once you actually have.
+  useEffect(() => {
+    if (step === 'go') markStartDayReachedGo()
+  }, [step])
 
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const nexts = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
@@ -367,19 +377,23 @@ export function StartDayView({
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={onFocus}
+              onClick={onViewToday}
               className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
             >
-              Start focusing →
+              Go to Today →
             </button>
             <button
-              onClick={onViewWhatNow}
+              onClick={onFocus}
+              title="One task at a time, nothing else in view"
               className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
             >
-              Not sure? Ask What Now?
+              Start focusing
             </button>
           </div>
-          <button onClick={onViewNextActions} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
+          <button onClick={onViewWhatNow} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
+            Not sure? Ask What Now?
+          </button>
+          <button onClick={onViewNextActions} className="mt-1 block text-xs text-neutral-500 hover:text-neutral-300">
             Or browse all Next Actions
           </button>
         </Screen>

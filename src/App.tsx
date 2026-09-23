@@ -165,6 +165,7 @@ function App() {
             onProcessInbox={startInboxProcessing}
             onViewInbox={() => selectView('inbox')}
             onFocus={() => startFocus()}
+            onViewToday={() => selectView('today')}
             onViewNextActions={() => selectView('next')}
             onViewWaitingFor={() => selectView('waiting')}
             onViewWhatNow={() => selectView('whatnow')}

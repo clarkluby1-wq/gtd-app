@@ -7,6 +7,7 @@ import { startOfDay, startOfToday } from '../lib/date'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
+import { hasReachedGoToday } from '../lib/startDayStatus'
 import type { Action } from '../db/types'
 
 /**
@@ -32,6 +33,9 @@ export function TodayHomeView({
   const today = startOfToday()
   const review = useReviewStatus()
   const somedayProjectIds = useSomedayProjectIds()
+  // Once you've already been through the guided walkthrough today, leading with it again reads as "didn't I
+  // just do this?" — so the Short List takes the prime spot instead, and Start Your Day becomes a quiet revisit.
+  const alreadyStarted = hasReachedGoToday()
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
 
   // Not just Next Actions — a pinned Waiting For or Scheduled item is just as much today's short list.
@@ -70,20 +74,28 @@ export function TodayHomeView({
         </button>
       )}
 
-      <button
-        onClick={onStartDay}
-        className="mb-6 flex w-full items-center justify-between gap-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-4 py-4 text-left hover:border-emerald-700"
-      >
-        <div>
-          <div className="font-medium text-neutral-100">Start your day →</div>
-          <div className="text-sm text-neutral-500">A quick guided look before you dive in</div>
-        </div>
-        <span className="text-2xl" aria-hidden>
-          ☀️
-        </span>
-      </button>
+      {!alreadyStarted && (
+        <button
+          onClick={onStartDay}
+          className="mb-6 flex w-full items-center justify-between gap-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-4 py-4 text-left hover:border-emerald-700"
+        >
+          <div>
+            <div className="font-medium text-neutral-100">Start your day →</div>
+            <div className="text-sm text-neutral-500">A quick guided look before you dive in</div>
+          </div>
+          <span className="text-2xl" aria-hidden>
+            ☀️
+          </span>
+        </button>
+      )}
 
       <BigThree actions={shortList} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
+
+      {alreadyStarted && (
+        <button onClick={onStartDay} className="mb-6 mt-2 text-xs text-neutral-500 hover:text-neutral-300">
+          ↻ Revisit Start My Day
+        </button>
+      )}
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-2 text-sm font-medium text-neutral-300">On your calendar today</h2>
