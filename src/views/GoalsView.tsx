@@ -20,6 +20,7 @@ export function GoalsView({
 
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [areaOfFocusId, setAreaOfFocusId] = useState('')
   const [visionId, setVisionId] = useState('')
   const [targetDate, setTargetDate] = useState('')
@@ -28,11 +29,13 @@ export function GoalsView({
     if (!title.trim() || !areaOfFocusId) return
     await createGoal({
       title: title.trim(),
+      description: description.trim() || undefined,
       areaOfFocusId,
       visionId: visionId || undefined,
       targetDate: targetDate ? parseLocalDate(targetDate) : undefined,
     })
     setTitle('')
+    setDescription('')
     setAreaOfFocusId('')
     setVisionId('')
     setTargetDate('')
@@ -70,6 +73,13 @@ export function GoalsView({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Goal title"
+            className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Details, why it matters, what done looks like (optional)"
+            rows={3}
             className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
           />
           <select
@@ -149,6 +159,7 @@ function GoalRow({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [editing, setEditing] = useState(startEditing)
   const [title, setTitle] = useState(goal.title)
+  const [description, setDescription] = useState(goal.description ?? '')
   const [visionId, setVisionId] = useState(goal.visionId ?? '')
   const [targetDate, setTargetDate] = useState(toDateInputValue(goal.targetDate))
   const rowRef = useRef<HTMLDivElement>(null)
@@ -159,6 +170,7 @@ function GoalRow({
 
   const startEdit = () => {
     setTitle(goal.title)
+    setDescription(goal.description ?? '')
     setVisionId(goal.visionId ?? '')
     setTargetDate(toDateInputValue(goal.targetDate))
     setEditing(true)
@@ -169,6 +181,7 @@ function GoalRow({
     if (!trimmed) return
     await updateGoal(goal.id, {
       title: trimmed,
+      description: description.trim() || undefined,
       visionId: visionId || undefined,
       targetDate: targetDate ? parseLocalDate(targetDate) : undefined,
     })
@@ -187,6 +200,16 @@ function GoalRow({
             if (e.key === 'Escape') setEditing(false)
           }}
           placeholder="Goal title"
+          className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          placeholder="Details, why it matters, what done looks like (optional)"
+          rows={3}
           className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
         />
         {areaName && (
@@ -254,6 +277,9 @@ function GoalRow({
           {areaName && <span className="text-emerald-400">{areaName}</span>}
           {goal.targetDate && <span>by {new Date(goal.targetDate).toLocaleDateString()}</span>}
         </div>
+        {goal.description && (
+          <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-400">{goal.description}</p>
+        )}
       </div>
       <div className="flex gap-2 touch-reveal">
         {goal.status === 'active' && (
