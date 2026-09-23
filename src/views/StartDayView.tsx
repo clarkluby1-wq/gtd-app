@@ -208,16 +208,15 @@ export function StartDayView({
             </p>
           )}
           <p className="mt-4 text-xs text-neutral-500">
-            Anything else that actually has to happen at a specific time or day today? That's easy to miss when
-            it's sitting in{' '}
+            Anything time-specific hiding in{' '}
             <button onClick={onViewNextActions} className="text-emerald-400 hover:text-emerald-300">
               Next Actions
             </button>{' '}
             or the{' '}
             <button onClick={onProcessInbox} className="text-emerald-400 hover:text-emerald-300">
               Inbox
-            </button>{' '}
-            instead of here — give it a date and it'll show up on this screen from then on.
+            </button>
+            ? Give it a date and it'll show up here.
           </p>
           <button onClick={onViewCalendar} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
             See the whole Calendar →
