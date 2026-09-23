@@ -114,7 +114,6 @@ export function CommitmentsStep() {
 
       <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">As you look, ask yourself</h3>
       <ul className="mb-5 flex flex-col gap-1.5 text-sm text-neutral-300">
-        <li>What has a time attached to it today?</li>
         <li>Is there anything to prepare, or travel time to allow for?</li>
         <li>Is anyone counting on me today?</li>
       </ul>
