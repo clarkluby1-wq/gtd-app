@@ -9,7 +9,7 @@ import { db } from '../db/db'
 import { ClarifyModal } from '../components/ClarifyModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { InboxProcessor } from '../components/InboxProcessor'
-import { deleteAction, doItNow, updateAction } from '../db/operations'
+import { deleteAction, doItNow, sendToSomeday, updateAction } from '../db/operations'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
@@ -161,6 +161,13 @@ function InboxRow({
           className="rounded-md border border-emerald-800 px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-600 hover:text-white"
         >
           ✓ Done
+        </button>
+        <button
+          onClick={() => sendToSomeday(item.id)}
+          title="Already know it's not for now — send it to Someday/Maybe without processing"
+          className="rounded-md border border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-400 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
+        >
+          🌙 Someday
         </button>
         <button
           onClick={onClarify}

@@ -445,11 +445,19 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
           <div className="mb-4 text-sm text-neutral-400">{stepQuestion(step, isProject)}</div>
 
           {step === 'actionable' && (
-            <div className="flex gap-2">
-              <Btn primary onClick={() => go('singleOrProject')}>
-                Yes
-              </Btn>
-              <Btn onClick={() => go('notActionable')}>No</Btn>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <Btn primary onClick={() => go('singleOrProject')}>
+                  Yes
+                </Btn>
+                <Btn onClick={() => go('notActionable')}>No</Btn>
+              </div>
+              <button
+                onClick={() => finish(() => sendToSomeday(item.id))}
+                className="self-start text-xs text-neutral-500 hover:text-neutral-300"
+              >
+                🌙 Already know it's not for now — send straight to Someday/Maybe
+              </button>
             </div>
           )}
 
