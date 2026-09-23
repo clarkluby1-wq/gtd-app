@@ -303,15 +303,6 @@ export function ReportView({
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium text-neutral-300">Today's Short List</h2>
-            {shortTotal > 0 && (
-              <span className="flex items-center gap-2 text-xs text-neutral-400">
-                <span className="text-base tracking-wide text-amber-400" aria-hidden>
-                  {'★'.repeat(won.length)}
-                  <span className="text-neutral-600">{'☆'.repeat(shortLeft.length)}</span>
-                </span>
-                {won.length} of {shortTotal} done
-              </span>
-            )}
           </div>
 
           {shortTotal === 0 ? (
