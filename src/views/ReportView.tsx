@@ -335,7 +335,7 @@ export function ReportView({
                     ))}
                   </div>
                   <p className="mt-2 px-3 text-xs text-neutral-600">
-                    Whatever's left is safe in Next Actions — it just stops being pinned at midnight.
+                    Whatever's left is safe in Next Actions — it just stops being pinned when your next workday starts.
                   </p>
                 </div>
               )}

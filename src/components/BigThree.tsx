@@ -16,7 +16,7 @@ export function BigThree({
       <div className="mb-3 flex items-center gap-1.5">
         <h2 className="text-sm font-medium text-neutral-300">Today's Short List</h2>
         <span
-          title="Up to three things you're committed to today, picked from Next Actions. It's not a second to-do list, just a flag on items already in Next Actions. Whatever's left unfinished quietly stops being pinned at midnight, no guilt."
+          title="Up to three things you're committed to today, picked from Next Actions. It's not a second to-do list, just a flag on items already in Next Actions. Whatever's left unfinished quietly stops being pinned when your next workday starts, no guilt."
           className="cursor-help text-xs text-neutral-500 hover:text-neutral-300"
         >
           ⓘ

@@ -152,7 +152,7 @@ export function describeStatus(schedule: ReviewSchedule, now: Date, doneThisWeek
 interface PromptState {
   /** Which week this belongs to; a new week starts fresh. */
   week: number
-  /** The day (midnight) the user already answered the prompt. */
+  /** The workday the user already answered the prompt (startOfWorkday, not midnight). */
   handledDay?: number
   snoozeUntil?: number
   /** "Not this week." */
