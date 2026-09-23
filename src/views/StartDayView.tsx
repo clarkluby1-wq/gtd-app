@@ -4,13 +4,13 @@ import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
 import { TaskRow } from '../components/TaskRow'
-import { pinToBigThree, unpinFromBigThree } from '../db/operations'
-import { formatShortDate, startOfDay, startOfToday, startOfWorkday } from '../lib/date'
+import { pinToBigThree } from '../db/operations'
+import { startOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
-import { useYesterdaysOpenPicks } from '../lib/shortList'
+import { useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
 import type { Action } from '../db/types'
 
 type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
@@ -65,10 +65,13 @@ export function StartDayView({
   const nexts = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
   const waiting = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
-  const contexts = useLiveQuery(() => db.contexts.toArray())
   const somedayProjectIds = useSomedayProjectIds()
   const review = useReviewStatus()
   const yesterdaysPicksRaw = useYesterdaysOpenPicks()
+  // The real Short List, across every status it can come from — not just what's picked below, which is Next
+  // Actions only. Keeps the count and cap honest with what Next Actions / Waiting For / Calendar already show.
+  const pinnedTodayCount = useTodayPinCount()
+  const activeShortList = useActiveTodayPins()
 
   // Calendar-real today, for grouping items that carry an actual scheduled/due date below.
   const today = startOfToday()
@@ -114,9 +117,6 @@ export function StartDayView({
     [waiting, somedayProjectIds, justFollowedUp],
   )
 
-  const contextName = (id?: string) => contexts?.find((c) => c.id === id)?.name
-
-  // Rows stay where they are when you tap a star — a list that re-sorts under your finger is disorienting.
   const picks = useMemo(
     () =>
       (nexts ?? [])
@@ -131,8 +131,7 @@ export function StartDayView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nexts, somedayProjectIds, workdayToday],
   )
-  const shortList = picks.filter((a) => a.bigThreeDate === workdayToday)
-  const atCap = shortList.length >= SHORT_LIST_MAX
+  const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
   // The preview never hides something already chosen — moot now that starring pops it to the top, but stays
   // as a safety net if the preview count were ever smaller than the Short List cap.
   const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === workdayToday)
@@ -292,8 +291,8 @@ export function StartDayView({
       {step === 'shortlist' && (
         <Screen question="What are the few things you want to move today?">
           <p className="mb-3 text-xs text-neutral-500">
-            Pick up to {SHORT_LIST_MAX} — {shortList.length} of {SHORT_LIST_MAX} chosen. Optional; you can also decide
-            later from Next Actions.
+            Pick up to {SHORT_LIST_MAX} — {pinnedTodayCount ?? 0} of {SHORT_LIST_MAX} chosen. Optional; you can also
+            decide later from Next Actions.
           </p>
 
           {yesterdaysPicks.length > 0 && (
@@ -325,36 +324,16 @@ export function StartDayView({
           ) : (
             <>
               <div className="flex flex-col divide-y divide-neutral-900">
-                {shownPicks.map((a) => {
-                  const chosen = a.bigThreeDate === workdayToday
-                  const detail = [contextName(a.contextId), a.dueDate != null ? `due ${formatShortDate(a.dueDate)}` : '']
-                    .filter(Boolean)
-                    .join(' · ')
-                  return (
-                    <div key={a.id} className="flex items-center gap-3 px-3 py-2">
-                      <button
-                        onClick={() => (chosen ? unpinFromBigThree(a.id) : pinToBigThree(a.id))}
-                        disabled={!chosen && atCap}
-                        title={
-                          chosen
-                            ? "Remove from today's Short List"
-                            : atCap
-                              ? "Today's Short List is full — remove one first"
-                              : "Add to today's Short List"
-                        }
-                        className={`shrink-0 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-20 ${
-                          chosen ? 'text-amber-400' : 'text-neutral-600 hover:text-amber-400'
-                        }`}
-                      >
-                        {chosen ? '★' : '☆'}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm text-neutral-100">{a.title}</div>
-                        {detail && <div className="truncate text-xs text-neutral-500">{detail}</div>}
-                      </div>
-                    </div>
-                  )
-                })}
+                {shownPicks.map((a) => (
+                  <TaskRow
+                    key={a.id}
+                    action={a}
+                    showProject
+                    showBigThreePin
+                    pinnedTodayCount={pinnedTodayCount}
+                    onOpenProject={onOpenProject}
+                  />
+                ))}
               </div>
               {picks.length > shownPicks.length && (
                 <button
@@ -373,11 +352,11 @@ export function StartDayView({
         <Screen question="That's the setup. Ready?">
           <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
             <h2 className="mb-2 text-sm font-medium text-neutral-300">Today's Short List</h2>
-            {shortList.length === 0 ? (
+            {(activeShortList ?? []).length === 0 ? (
               <p className="text-sm text-neutral-500">Nothing chosen — that's fine. You can still pick as you go.</p>
             ) : (
               <ul className="flex flex-col gap-1">
-                {shortList.map((a) => (
+                {(activeShortList ?? []).map((a) => (
                   <li key={a.id} className="flex items-center gap-2 text-sm text-neutral-100">
                     <span className="text-amber-400">★</span>
                     <span className="truncate">{a.title}</span>
