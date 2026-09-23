@@ -121,17 +121,20 @@ export function StartDayView({
     () =>
       (nexts ?? [])
         .filter(notParked)
-        // Deadlines first, soonest first, then your own order.
+        // Starring one pops it straight to the top, so the choice is visible right away. Below that: deadlines
+        // first, soonest first, then your own order.
         .sort(
           (a, b) =>
+            Number(b.bigThreeDate === workdayToday) - Number(a.bigThreeDate === workdayToday) ||
             Number(b.dueDate != null) - Number(a.dueDate != null) || (a.dueDate ?? 0) - (b.dueDate ?? 0) || a.order - b.order,
         ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nexts, somedayProjectIds],
+    [nexts, somedayProjectIds, workdayToday],
   )
   const shortList = picks.filter((a) => a.bigThreeDate === workdayToday)
   const atCap = shortList.length >= SHORT_LIST_MAX
-  // The preview never hides something already chosen, wherever it sits in the list.
+  // The preview never hides something already chosen — moot now that starring pops it to the top, but stays
+  // as a safety net if the preview count were ever smaller than the Short List cap.
   const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === workdayToday)
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
