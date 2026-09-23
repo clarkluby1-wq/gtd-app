@@ -3,7 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { BigThree } from '../components/BigThree'
 import { TaskRow } from '../components/TaskRow'
-import { startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 import { useTodayShortList, useTodayPinCount } from '../lib/shortList'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
@@ -39,7 +39,7 @@ export function WhatNowView({
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const somedayProjectIds = useSomedayProjectIds()
-  const today = startOfToday()
+  const today = startOfWorkday()
   // Not just Next Actions — a pinned Waiting For or Scheduled item belongs in this reminder too.
   const bigThreeActions = useTodayShortList() ?? []
   const pinnedTodayCount = useTodayPinCount()

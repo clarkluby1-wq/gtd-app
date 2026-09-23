@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
-import { formatShortDate, parseLocalDate, startOfToday } from '../lib/date'
+import { formatShortDate, parseLocalDate, startOfWorkday } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
 import { useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
@@ -68,7 +68,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [newProjectArea, setNewProjectArea] = useState('')
   const [madeProject, setMadeProject] = useState<string | null>(null)
   const [notes, setNotes] = useState(action.notes ?? '')
-  const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfToday())
+  const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfWorkday())
   const bigThreeFull = (otherPinnedCount ?? 0) >= 3
 
   const createProject = async () => {
@@ -102,7 +102,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
       notes: notes.trim() || undefined,
       // Someday items aren't committed to yet, so they can't hold a Short List slot; leaving Someday (or unticking) releases it.
-      bigThreeDate: type !== 'someday' && bigThree ? startOfToday() : undefined,
+      bigThreeDate: type !== 'someday' && bigThree ? startOfWorkday() : undefined,
     })
     onClose()
   }

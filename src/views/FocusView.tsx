@@ -4,7 +4,7 @@ import { db } from '../db/db'
 import { completeAction } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { formatShortDate, startOfToday } from '../lib/date'
+import { formatShortDate, startOfWorkday } from '../lib/date'
 import { describeFilters, matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
@@ -27,7 +27,7 @@ export function FocusView({
   const contexts = useLiveQuery(() => db.contexts.toArray())
   const somedayProjectIds = useSomedayProjectIds()
   const { notify } = useCompletionToast()
-  const today = startOfToday()
+  const today = startOfWorkday()
 
   const [skipped, setSkipped] = useState<Set<string>>(new Set())
   const [doneCount, setDoneCount] = useState(0)

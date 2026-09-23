@@ -4,7 +4,7 @@ import { db } from '../db/db'
 import { completeProject, createAction, reopenAction } from '../db/operations'
 import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
 import { celebrateCompletion, isLastOpenAction } from '../lib/celebrateCompletion'
-import { parseLocalDate, startOfToday } from '../lib/date'
+import { parseLocalDate, startOfWorkday } from '../lib/date'
 import type { Action, ActionStatus } from '../db/types'
 
 const PHRASES = ['Nice.', 'One down.', 'Momentum.', 'Progress counts.', "That's a win.", 'Done and dusted.']
@@ -44,7 +44,7 @@ export function CompletionToast({
     db.actions
       .where('status')
       .equals('done')
-      .filter((a) => (a.completedAt ?? 0) >= startOfToday())
+      .filter((a) => (a.completedAt ?? 0) >= startOfWorkday())
       .count(),
   )
   const projectFinished = useLiveQuery(() => isLastOpenAction(completedAction), [completedAction.id])

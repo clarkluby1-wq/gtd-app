@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
-import { startOfToday } from './date'
+import { previousWorkdayStart, startOfWorkday } from './date'
 import type { Action } from '../db/types'
 
 /**
@@ -11,7 +11,7 @@ import type { Action } from '../db/types'
 
 /** Everything pinned for today, whatever it is now — including something you already finished today. */
 export function useTodayShortList(): Action[] | undefined {
-  const today = startOfToday()
+  const today = startOfWorkday()
   return useLiveQuery(() => db.actions.filter((a) => a.bigThreeDate === today).toArray(), [today])
 }
 
@@ -24,4 +24,20 @@ export function useActiveTodayPins(excludeId?: string): Action[] | undefined {
 /** How many of the 3 slots are in use right now. */
 export function useTodayPinCount(excludeId?: string): number | undefined {
   return useActiveTodayPins(excludeId)?.length
+}
+
+/**
+ * Yesterday's picks that are still open — the list clears every workday so nothing lingers making you feel
+ * behind, but this surfaces what didn't get finished as an informed *option*, not a carried-over obligation.
+ * Pull one back in, or ignore it entirely; either way it quietly stops showing once the next workday starts.
+ */
+export function useYesterdaysOpenPicks(): Action[] | undefined {
+  const yesterday = previousWorkdayStart()
+  return useLiveQuery(
+    () =>
+      db.actions
+        .filter((a) => a.bigThreeDate === yesterday && a.status !== 'done' && a.status !== 'trash')
+        .toArray(),
+    [yesterday],
+  )
 }

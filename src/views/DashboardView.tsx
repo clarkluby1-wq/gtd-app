@@ -6,7 +6,7 @@ import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { ageInDays, ageLabel, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
-import { startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 import type { Action, AreaOfFocus, Project } from '../db/types'
 
 const ACCENT = '#10b981' // emerald-500 — this app's existing brand accent
@@ -59,10 +59,10 @@ export function DashboardView({
   const waitingActionsRaw = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
   const somedayProjectIds = useSomedayProjectIds()
   const capturedToday = useLiveQuery(
-    () => db.captureEvents.where('createdAt').aboveOrEqual(startOfToday()).count(),
+    () => db.captureEvents.where('createdAt').aboveOrEqual(startOfWorkday()).count(),
     [],
   )
-  const todayStart = startOfToday()
+  const todayStart = startOfWorkday()
   const actionsCompletedToday = (allActions ?? []).filter(
     (a) => a.status === 'done' && (a.completedAt ?? 0) >= todayStart,
   ).length
@@ -82,7 +82,7 @@ export function DashboardView({
   )
 
   const bigThreeActions = useMemo(() => {
-    const today = startOfToday()
+    const today = startOfWorkday()
     return (allActions ?? []).filter((a) => a.bigThreeDate === today)
   }, [allActions])
 

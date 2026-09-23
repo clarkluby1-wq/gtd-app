@@ -1,5 +1,5 @@
 import type { Action, Project } from '../db/types'
-import { startOfDay } from './date'
+import { startOfWorkday } from './date'
 import { startOfReviewWeek } from './reviewSchedule'
 
 /**
@@ -34,7 +34,7 @@ function addDays(dayStart: number, days: number): number {
 
 /** Weeks run Monday to Sunday, like the Weekly Review. "This week" is Monday up to and including today. */
 export function periodFor(key: PeriodKey, now = Date.now()): Period {
-  const today = startOfDay(now)
+  const today = startOfWorkday(now)
   const label = PERIODS.find((p) => p.key === key)!.label
   switch (key) {
     case 'today':
@@ -170,7 +170,7 @@ export function dayLabel(ts: number): string {
  * covers everything that group stands for — Short List wins and finished projects included.
  */
 export function groupKeyOf(item: ReportItem, mode: GroupMode, areaIds: ReadonlySet<string>, singleDay: boolean): string {
-  if (mode === 'day') return singleDay ? 'all' : String(startOfDay(item.at))
+  if (mode === 'day') return singleDay ? 'all' : String(startOfWorkday(item.at))
   return item.areaId && areaIds.has(item.areaId) ? item.areaId : 'none'
 }
 
@@ -187,7 +187,7 @@ export function groupItems(
     if (singleDay) return [{ key: 'all', label: '', items }]
     const days = new Map<number, ReportItem[]>()
     for (const item of items) {
-      const day = startOfDay(item.at)
+      const day = startOfWorkday(item.at)
       days.set(day, [...(days.get(day) ?? []), item])
     }
     return [...days.entries()].sort((a, b) => b[0] - a[0]).map(([day, list]) => ({ key: String(day), label: dayLabel(day), items: list }))

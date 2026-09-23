@@ -7,7 +7,7 @@ import { updateAction } from '../db/operations'
 import { SortableTaskRow } from '../components/SortableTaskRow'
 import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
-import { startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { useTodayPinCount } from '../lib/shortList'
 import type { EnergyLevel } from '../db/types'
@@ -25,7 +25,7 @@ export function NextActionsView({
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const somedayProjectIds = useSomedayProjectIds()
-  const today = startOfToday()
+  const today = startOfWorkday()
   // Global: a pinned Waiting For or Scheduled item uses a slot too, same cap as here.
   const pinnedTodayCount = useTodayPinCount()
 

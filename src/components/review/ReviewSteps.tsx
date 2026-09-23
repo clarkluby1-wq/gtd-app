@@ -12,7 +12,7 @@ import {
 import { createBackup, backupAgeLabel, getLastBackupAt, isBackupDue } from '../../db/backup'
 import { setReviewItemDone, setReviewSubDone, toggleReviewSub } from '../../db/weeklyReview'
 import { getHiddenInboxKeys, setHiddenInboxKeys } from '../../lib/weeklyReviewTemplate'
-import { formatShortDate, startOfToday } from '../../lib/date'
+import { formatShortDate, startOfToday, startOfWorkday } from '../../lib/date'
 import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
 import { staleNextActions } from '../../lib/staleness'
 import { useSomedayProjectIds } from '../../lib/useSomedayProjectIds'
@@ -182,7 +182,7 @@ export function WinsStep({ since }: { since: number }) {
   const starredDays = [...days.entries()].sort((a, b) => b[0] - a[0])
 
   const finishedProjects = [...(projects ?? [])].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
-  const today = startOfToday()
+  const today = startOfWorkday()
   const dayLabel = (day: number) =>
     day === today ? 'Today' : new Date(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 

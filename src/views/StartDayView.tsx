@@ -5,11 +5,12 @@ import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
 import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree, unpinFromBigThree } from '../db/operations'
-import { formatShortDate, startOfDay, startOfToday } from '../lib/date'
+import { formatShortDate, startOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
+import { useYesterdaysOpenPicks } from '../lib/shortList'
 import type { Action } from '../db/types'
 
 type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
@@ -63,7 +64,9 @@ export function StartDayView({
   const contexts = useLiveQuery(() => db.contexts.toArray())
   const somedayProjectIds = useSomedayProjectIds()
   const review = useReviewStatus()
+  const yesterdaysPicksRaw = useYesterdaysOpenPicks()
 
+  // Calendar-real today, for grouping items that carry an actual scheduled/due date below.
   const today = startOfToday()
   const tomorrow = (() => {
     const d = new Date(today)
@@ -75,8 +78,11 @@ export function StartDayView({
     d.setDate(d.getDate() + 1)
     return startOfDay(d.getTime())
   })()
+  // Your workday (4:30am-anchored), for anything about the Short List — working past midnight shouldn't reset it.
+  const workdayToday = startOfWorkday()
 
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
+  const yesterdaysPicks = (yesterdaysPicksRaw ?? []).filter(notParked)
 
   // The day a scheduled or deadline item is tied to. A Next Action only counts when it has a real due date.
   const dayOf = (a: Action) => (a.status === 'scheduled' ? a.scheduledDate : a.dueDate)
@@ -119,10 +125,10 @@ export function StartDayView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nexts, somedayProjectIds],
   )
-  const shortList = picks.filter((a) => a.bigThreeDate === today)
+  const shortList = picks.filter((a) => a.bigThreeDate === workdayToday)
   const atCap = shortList.length >= SHORT_LIST_MAX
   // The preview never hides something already chosen, wherever it sits in the list.
-  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === today)
+  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === workdayToday)
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
   const goNext = () => setStep(STEPS[Math.min(stepIndex + 1, STEPS.length - 1)].key)
@@ -271,13 +277,38 @@ export function StartDayView({
             Pick up to {SHORT_LIST_MAX} — {shortList.length} of {SHORT_LIST_MAX} chosen. Optional; you can also decide
             later from Next Actions.
           </p>
+
+          {yesterdaysPicks.length > 0 && (
+            <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+              <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                Yesterday's picks, still open
+              </h3>
+              <div className="flex flex-col divide-y divide-neutral-900">
+                {yesterdaysPicks.map((a) => (
+                  <div key={a.id} className="flex items-center gap-3 py-2">
+                    <div className="min-w-0 flex-1 truncate text-sm text-neutral-300">{a.title}</div>
+                    <button
+                      onClick={() => pinToBigThree(a.id)}
+                      disabled={atCap}
+                      title={atCap ? "Today's Short List is full — remove one first" : 'Pull into today'}
+                      className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      Pull into today
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-neutral-600">Nothing to do here — leave them be and they'll quietly stop showing.</p>
+            </div>
+          )}
+
           {picks.length === 0 ? (
             <Calm>No Next Actions yet. Sorting your Inbox will fill this in.</Calm>
           ) : (
             <>
               <div className="flex flex-col divide-y divide-neutral-900">
                 {shownPicks.map((a) => {
-                  const chosen = a.bigThreeDate === today
+                  const chosen = a.bigThreeDate === workdayToday
                   const detail = [contextName(a.contextId), a.dueDate != null ? `due ${formatShortDate(a.dueDate)}` : '']
                     .filter(Boolean)
                     .join(' · ')

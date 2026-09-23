@@ -1,5 +1,5 @@
 import type { Action } from '../db/types'
-import { startOfToday } from './date'
+import { startOfToday, startOfWorkday } from './date'
 import { ageInDays } from './staleness'
 
 /** After this many days without contact, a Waiting For item is due a nudge. */
@@ -34,8 +34,9 @@ export function lastFollowUpAt(action: Action): number | undefined {
   return action.followUps?.[action.followUps.length - 1]
 }
 
-/** Followed up since midnight — these sink to the bottom of the list for today, then return to their place tomorrow. */
+/** Followed up today (your workday, not literal midnight) — these sink to the bottom of the list, then return
+ *  to their place once the next workday starts. */
 export function wasFollowedUpToday(action: Action): boolean {
   const last = lastFollowUpAt(action)
-  return last !== undefined && last >= startOfToday()
+  return last !== undefined && last >= startOfWorkday()
 }

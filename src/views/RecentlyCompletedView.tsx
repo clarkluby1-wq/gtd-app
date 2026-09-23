@@ -3,13 +3,13 @@ import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { updateProject } from '../db/operations'
-import { startOfDay, startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 import type { Action, Project } from '../db/types'
 
 type Entry = { completedAt: number } & ({ kind: 'action'; action: Action } | { kind: 'project'; project: Project })
 
 function formatDayHeading(day: number) {
-  const today = startOfToday()
+  const today = startOfWorkday()
   const oneDay = 24 * 60 * 60 * 1000
   if (day === today - oneDay) return 'Yesterday'
   return new Date(day).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
@@ -30,14 +30,14 @@ export function RecentlyCompletedView({ onOpenProject }: { onOpenProject: (id: s
     return [...actionEntries, ...projectEntries].sort((a, b) => b.completedAt - a.completedAt)
   }, [doneActions, doneProjects])
 
-  const today = startOfToday()
+  const today = startOfWorkday()
   const todayEntries = entries.filter((e) => e.completedAt >= today)
   const olderEntries = entries.filter((e) => e.completedAt < today)
 
   const olderByDay = useMemo(() => {
     const map = new Map<number, Entry[]>()
     for (const e of olderEntries) {
-      const day = startOfDay(e.completedAt)
+      const day = startOfWorkday(e.completedAt)
       if (!map.has(day)) map.set(day, [])
       map.get(day)!.push(e)
     }

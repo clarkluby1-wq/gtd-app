@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { db } from './db'
-import { startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 import type { DueReminder } from '../lib/reminders'
 import type { Action, ActionStatus, EnergyLevel, Project, ProjectStatus, ReminderState } from './types'
 
@@ -343,7 +343,7 @@ export async function restoreAction(action: Action) {
 
 /** Add an action to today's Short List. Caller is responsible for enforcing the 3-item cap. */
 export async function pinToBigThree(actionId: string) {
-  await db.actions.update(actionId, { bigThreeDate: startOfToday(), touchedAt: Date.now() })
+  await db.actions.update(actionId, { bigThreeDate: startOfWorkday(), touchedAt: Date.now() })
 }
 
 export async function unpinFromBigThree(actionId: string) {

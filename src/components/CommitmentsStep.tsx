@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { startOfToday } from '../lib/date'
+import { startOfWorkday } from '../lib/date'
 
 const CALENDARS = [
   { key: 'work', label: 'Work calendar' },
@@ -14,7 +14,7 @@ const HIDDEN_KEY = 'gtd.startDay.hiddenCalendars'
 function loadChecked(): Set<string> {
   try {
     const raw = JSON.parse(localStorage.getItem(CHECKED_KEY) ?? 'null')
-    if (raw && raw.day === startOfToday() && Array.isArray(raw.keys)) {
+    if (raw && raw.day === startOfWorkday() && Array.isArray(raw.keys)) {
       return new Set(raw.keys.filter((k: unknown): k is string => typeof k === 'string'))
     }
   } catch {
@@ -25,7 +25,7 @@ function loadChecked(): Set<string> {
 
 function saveChecked(keys: Set<string>) {
   try {
-    localStorage.setItem(CHECKED_KEY, JSON.stringify({ day: startOfToday(), keys: [...keys] }))
+    localStorage.setItem(CHECKED_KEY, JSON.stringify({ day: startOfWorkday(), keys: [...keys] }))
   } catch {
     // The ticks just won't be remembered.
   }

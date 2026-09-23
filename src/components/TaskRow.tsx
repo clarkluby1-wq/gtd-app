@@ -6,7 +6,7 @@ import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { formatShortDate, startOfToday } from '../lib/date'
+import { formatShortDate, startOfToday, startOfWorkday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
 import { followUpPending, needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
@@ -83,7 +83,7 @@ export function TaskRow({
   const { notify } = useCompletionToast()
 
   const done = action.status === 'done'
-  const pinnedToday = action.bigThreeDate === startOfToday()
+  const pinnedToday = action.bigThreeDate === startOfWorkday()
   const atCap = (pinnedTodayCount ?? 0) >= 3
 
   return (

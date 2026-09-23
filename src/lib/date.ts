@@ -29,3 +29,33 @@ export function startOfDay(timestamp: number): number {
 export function startOfToday(): number {
   return startOfDay(Date.now())
 }
+
+/**
+ * The hour a new "workday" begins — later than midnight, so working past midnight doesn't reset things
+ * mid-session. Only concepts that are really about *your* day (Today's Short List, Start My Day, daily
+ * counts, the Weekly Review prompt, ...) use this. Calendar dates and times — a scheduled item's actual
+ * day, a due date, a follow-up date — stay literal and keep using startOfDay / startOfToday above.
+ */
+const WORKDAY_START_HOUR = 4
+const WORKDAY_START_MINUTE = 30
+
+/** Start of the workday containing `timestamp` (defaults to now): that day at 4:30am, or the day before's
+ *  4:30am if it's not 4:30am yet. Two moments before and after the boundary but on the same real calendar
+ *  day still land in different workdays; two moments either side of midnight but before 4:30am land in
+ *  the same one. */
+export function startOfWorkday(timestamp: number = Date.now()): number {
+  const d = new Date(timestamp)
+  d.setHours(WORKDAY_START_HOUR, WORKDAY_START_MINUTE, 0, 0)
+  if (d.getTime() > timestamp) {
+    d.setDate(d.getDate() - 1)
+  }
+  return d.getTime()
+}
+
+/** The workday immediately before the one containing `timestamp` (defaults to now). Uses calendar-day
+ *  arithmetic (not a fixed 24h subtraction), so it stays correct across a DST change. */
+export function previousWorkdayStart(timestamp: number = Date.now()): number {
+  const d = new Date(startOfWorkday(timestamp))
+  d.setDate(d.getDate() - 1)
+  return d.getTime()
+}

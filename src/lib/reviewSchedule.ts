@@ -2,7 +2,12 @@
  * The Weekly Review only works if it keeps happening, so the user picks a regular slot ("Every Thursday at 2:00 pm")
  * and the app helps them keep it: it shows the slot, mentions it on that day, and asks once when the time comes.
  * Weeks run Monday to Sunday, the same as the review's own week. Everything here takes `now` so it can be tested.
+ *
+ * The slot itself is a real clock time, so matching it against "today" (startOfDayOf) stays calendar-real. Only
+ * whether the prompt has already been answered in this stretch of working (handledDay, below) uses the workday
+ * boundary, so working past midnight doesn't bring the prompt back before you've actually started a new day.
  */
+import { startOfWorkday } from './date'
 
 export interface ReviewSchedule {
   /** 0 = Sunday … 6 = Saturday. */
@@ -185,7 +190,7 @@ export function shouldPromptReview(
   const moment = effectiveMoment(schedule, now)
   if (t < moment) return false
   if (startOfDayOf(moment) !== startOfDayOf(t)) return false
-  if (state.handledDay === startOfDayOf(t)) return false
+  if (state.handledDay === startOfWorkday(t)) return false
   if (state.snoozeUntil !== undefined && t < state.snoozeUntil) return false
   return true
 }
@@ -193,7 +198,7 @@ export function shouldPromptReview(
 /** "Start my review": it has been answered for today, so it won't ask again if the review is left unfinished. */
 export function markReviewPromptHandled(now: Date) {
   const week = startOfReviewWeek(now)
-  writePromptState({ ...readPromptState(week), handledDay: startOfDayOf(now.getTime()) })
+  writePromptState({ ...readPromptState(week), handledDay: startOfWorkday(now.getTime()) })
 }
 
 export function snoozeReviewPrompt(now: Date, minutes = 60) {

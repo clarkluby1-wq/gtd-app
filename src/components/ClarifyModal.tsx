@@ -19,7 +19,7 @@ import type { Action, EnergyLevel, ProjectStatus } from '../db/types'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { parseLocalDate, startOfToday } from '../lib/date'
+import { parseLocalDate, startOfWorkday } from '../lib/date'
 import { useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -338,7 +338,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
       energy,
       timeEstimateMin,
       dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
-      bigThreeDate: wantsShortList ? startOfToday() : undefined,
+      bigThreeDate: wantsShortList ? startOfWorkday() : undefined,
     }
     // Only swap something out if the list is still full right now — it may have freed up while you were deciding.
     const swapOut = wantsShortList && shortListFull ? replaceId : undefined

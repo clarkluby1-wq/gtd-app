@@ -1,7 +1,7 @@
 import { db } from '../db/db'
 import type { Action, ActionStatus } from '../db/types'
 import { celebrate, getCelebrationLevel, originOf } from './celebrate'
-import { startOfToday } from './date'
+import { startOfWorkday } from './date'
 
 /** Parked (someday) actions aren't commitments, so they don't keep a project "open". */
 const OPEN_STATUSES: ActionStatus[] = ['next', 'waiting', 'scheduled']
@@ -23,7 +23,7 @@ export async function isLastOpenAction(completed: Action): Promise<boolean> {
 }
 
 async function clearsBigThree(completed: Action): Promise<boolean> {
-  const today = startOfToday()
+  const today = startOfWorkday()
   if (completed.bigThreeDate !== today) return false
   const otherPinned = await db.actions
     .filter((a) => a.id !== completed.id && a.bigThreeDate === today && a.status !== 'trash')
