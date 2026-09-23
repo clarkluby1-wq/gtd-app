@@ -37,6 +37,7 @@ const NUDGE_PREVIEW = 5
 export function StartDayView({
   onOpenProject,
   onProcessInbox,
+  onViewInbox,
   onFocus,
   onViewNextActions,
   onViewWaitingFor,
@@ -45,7 +46,10 @@ export function StartDayView({
   onViewWeeklyReview,
 }: {
   onOpenProject: (projectId: string) => void
+  /** Jumps straight into the guided "process one at a time" flow — the Inbox step's own button. */
   onProcessInbox: () => void
+  /** Just opens the Inbox to look through, same as Next Actions does — no processing forced. */
+  onViewInbox: () => void
   onFocus: () => void
   onViewNextActions: () => void
   onViewWaitingFor: () => void
@@ -213,7 +217,7 @@ export function StartDayView({
               Next Actions
             </button>{' '}
             or the{' '}
-            <button onClick={onProcessInbox} className="text-emerald-400 hover:text-emerald-300">
+            <button onClick={onViewInbox} className="text-emerald-400 hover:text-emerald-300">
               Inbox
             </button>
             ? Give it a date and it'll show up here.

@@ -163,6 +163,7 @@ function App() {
           <StartDayView
             onOpenProject={openProject}
             onProcessInbox={startInboxProcessing}
+            onViewInbox={() => selectView('inbox')}
             onFocus={() => startFocus()}
             onViewNextActions={() => selectView('next')}
             onViewWaitingFor={() => selectView('waiting')}
