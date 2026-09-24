@@ -1,6 +1,7 @@
+import { hasTimeOfDay } from './date'
 import type { Action } from '../db/types'
 
-export type ReminderKind = 'today' | 'tomorrow'
+export type ReminderKind = 'today' | 'tomorrow' | 'now'
 export interface DueReminder {
   action: Action
   kind: ReminderKind
@@ -44,12 +45,21 @@ function startOfDayOf(timestamp: number): number {
  * - "tomorrow": scheduled for tomorrow, and the heads-up hasn't been dealt with.
  * - "today": scheduled for today AND you asked to be reminded on the day — or, as a safety net, nobody was
  *   ever told (the app wasn't open yesterday), so you still get a warning, late.
+ * - "now": has an actual time of day (not just a day), and the clock has reached or passed it today. Fires
+ *   once, whenever it's first noticed — if the app wasn't open right at the moment, it still fires late
+ *   rather than silently never, same safety-net spirit as "today" above.
  *
  * Skipped: recurring occurrences (a daily habit would pop up every morning), items parked in a Someday
- * project, and anything touched *today* — you just scheduled it, so a pop-up would only be noise. A
+ * project, and anything touched *today* — you just scheduled it, so a pop-up would only be noise (this
+ * doesn't apply to "now", which is about the clock, not about when you last touched the item). A
  * rescheduled item starts fresh, because its saved state is tied to the old date.
  */
-export function dueReminders(actions: Action[], somedayProjectIds: Set<string>, todayStart: number): DueReminder[] {
+export function dueReminders(
+  actions: Action[],
+  somedayProjectIds: Set<string>,
+  todayStart: number,
+  now: number = Date.now(),
+): DueReminder[] {
   const tomorrowStart = startOfNextDay(todayStart)
   const due: DueReminder[] = []
 
@@ -65,6 +75,10 @@ export function dueReminders(actions: Action[], somedayProjectIds: Set<string>, 
       due.push({ action, kind: 'tomorrow' })
     } else if (day === todayStart && !state?.dayOfDone && (state?.remindOnDay || (!state?.headsUpDone && settledBeforeToday))) {
       due.push({ action, kind: 'today' })
+    }
+
+    if (day === todayStart && hasTimeOfDay(action.scheduledDate) && now >= action.scheduledDate && !state?.atTimeDone) {
+      due.push({ action, kind: 'now' })
     }
   }
   return due.sort((a, b) => a.action.order - b.action.order)

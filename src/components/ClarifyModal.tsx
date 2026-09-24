@@ -19,7 +19,7 @@ import type { Action, EnergyLevel, ProjectStatus } from '../db/types'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { parseLocalDate, startOfWorkday } from '../lib/date'
+import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
 import { useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -81,7 +81,7 @@ function stepQuestion(step: Step, isProject: boolean): string {
     case 'delegate':
       return "Who's going to do it?"
     case 'schedule':
-      return 'Which day does it need to happen?'
+      return 'Which day (and time, if it matters) does it need to happen?'
     case 'assignNextAction':
       return 'Anything that will help you pick this up later? All optional.'
   }
@@ -122,6 +122,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
   const [dueDate, setDueDate] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
   // A dated item is still "a call" or "an errand". Unlike Next Actions this starts empty — it isn't a batch to sort by place.
   const [scheduleContextId, setScheduleContextId] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
@@ -325,10 +326,15 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
         ? saveProject('active', {
             title: actionTitle,
             status: 'scheduled',
-            scheduledDate: parseLocalDate(scheduledDate),
+            scheduledDate: parseLocalDateTime(scheduledDate, scheduledTime || undefined),
             contextId: scheduleContextId || undefined,
           })
-        : clarifyAsScheduled(item.id, parseLocalDate(scheduledDate), linkedProjectId, scheduleContextId || undefined),
+        : clarifyAsScheduled(
+            item.id,
+            parseLocalDateTime(scheduledDate, scheduledTime || undefined),
+            linkedProjectId,
+            scheduleContextId || undefined,
+          ),
     )
 
   const confirmNextAction = () => {
@@ -607,7 +613,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             <div className="flex flex-col gap-2">
               <Btn onClick={startTimer}>⏱ Do it now — under 2 minutes</Btn>
               <Btn onClick={() => go('delegate')}>👤 Someone else does it</Btn>
-              <Btn onClick={() => go('schedule')}>📅 On a specific day</Btn>
+              <Btn onClick={() => go('schedule')}>📅 On a specific day and/or time</Btn>
               <Btn primary onClick={() => go('assignNextAction')}>
                 ✅ Next time I get to it
               </Btn>
@@ -678,13 +684,22 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
           {step === 'schedule' && (
             <div className="flex flex-col gap-3">
-              <input
-                autoFocus
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-              />
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                />
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  aria-label="Time — optional, only if it truly has to happen then"
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                />
+              </div>
               {contexts && contexts.length > 0 && (
                 <select
                   value={scheduleContextId}
@@ -708,6 +723,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               {projectNote('on the Calendar')}
               <Btn primary disabled={!scheduledDate} onClick={confirmSchedule}>
                 Confirm — schedule for {scheduledDate || '…'}
+                {scheduledDate && scheduledTime ? ` at ${formatTimeOfDay(parseLocalDateTime(scheduledDate, scheduledTime))}` : ''}
               </Btn>
             </div>
           )}

@@ -6,7 +6,7 @@ import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { formatShortDate, startOfToday, startOfWorkday } from '../lib/date'
+import { formatShortDate, formatTimeOfDay, hasTimeOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
 import { followUpPending, needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
@@ -154,7 +154,10 @@ export function TaskRow({
           {action.status === 'next' && action.timeEstimateMin != null && <span>⏱ {action.timeEstimateMin}m</span>}
           {action.dueDate && <span className="text-amber-500">due {formatDate(action.dueDate)}</span>}
           {action.status === 'scheduled' && action.scheduledDate && (
-            <span className="text-sky-400">{formatDate(action.scheduledDate)}</span>
+            <span className="text-sky-400">
+              {formatDate(action.scheduledDate)}
+              {hasTimeOfDay(action.scheduledDate) && ` · ${formatTimeOfDay(action.scheduledDate)}`}
+            </span>
           )}
           {action.status === 'waiting' && action.waitingOn && <span>waiting on {action.waitingOn}</span>}
           {showWaitingClock && action.status === 'waiting' && <WaitingClock action={action} />}

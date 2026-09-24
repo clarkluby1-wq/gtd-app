@@ -90,6 +90,8 @@ export interface ReminderState {
   remindOnDay?: boolean
   /** The same-day reminder has been dealt with. */
   dayOfDone?: boolean
+  /** The exact-time pop-up (for an item with a time of day, not just a day) has already fired. */
+  atTimeDone?: boolean
 }
 
 export interface Action {

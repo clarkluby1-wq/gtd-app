@@ -304,9 +304,17 @@ export async function acknowledgeReminders(items: DueReminder[], remindOnDay: bo
       const current = await db.actions.get(action.id)
       if (current?.scheduledDate === undefined) continue
       const previous = current.reminder?.forDate === current.scheduledDate ? current.reminder : undefined
-      const next: ReminderState = { ...previous, forDate: current.scheduledDate, headsUpDone: true }
-      if (kind === 'tomorrow') next.remindOnDay = remindOnDay
-      else next.dayOfDone = true
+      const next: ReminderState = { ...previous, forDate: current.scheduledDate }
+      // "now" (the exact-time ping) is independent of the day-level heads-up flow below — dealing with
+      // one shouldn't mark the other as handled.
+      if (kind === 'now') next.atTimeDone = true
+      else if (kind === 'tomorrow') {
+        next.headsUpDone = true
+        next.remindOnDay = remindOnDay
+      } else {
+        next.headsUpDone = true
+        next.dayOfDone = true
+      }
       await db.actions.update(action.id, { reminder: next })
     }
   })

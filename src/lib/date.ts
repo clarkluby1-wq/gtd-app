@@ -4,6 +4,40 @@ export function parseLocalDate(dateStr: string): number {
   return new Date(year, month - 1, day).getTime()
 }
 
+/** Parse a `<input type="date">` value plus an optional `<input type="time">` value ("HH:MM") into one local
+ *  timestamp. No time given falls back to local midnight — the existing convention for "just a day", no
+ *  specific time attached. */
+export function parseLocalDateTime(dateStr: string, timeStr?: string): number {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  if (!timeStr) return new Date(year, month - 1, day).getTime()
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return new Date(year, month - 1, day, hours, minutes).getTime()
+}
+
+/** Whether a timestamp carries an actual time of day, rather than just standing for "this day" at midnight. */
+export function hasTimeOfDay(timestamp: number): boolean {
+  const d = new Date(timestamp)
+  return d.getHours() !== 0 || d.getMinutes() !== 0
+}
+
+/** "1:45 pm" — only meaningful when hasTimeOfDay(timestamp) is true. */
+export function formatTimeOfDay(timestamp: number): string {
+  const d = new Date(timestamp)
+  const hours = d.getHours()
+  const minutes = d.getMinutes()
+  const suffix = hours >= 12 ? 'pm' : 'am'
+  const twelve = hours % 12 === 0 ? 12 : hours % 12
+  return `${twelve}:${String(minutes).padStart(2, '0')} ${suffix}`
+}
+
+/** Format a timestamp as the local "HH:MM" an `<input type="time">` expects, or '' when it has no time of
+ *  day set (see hasTimeOfDay). */
+export function toTimeInputValue(timestamp?: number): string {
+  if (timestamp === undefined || !hasTimeOfDay(timestamp)) return ''
+  const d = new Date(timestamp)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 /** "Sep 10", or "Sep 10, 2025" when it isn't this year, so an old date is never ambiguous. */
 export function formatShortDate(timestamp: number): string {
   const d = new Date(timestamp)

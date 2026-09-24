@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
-import { formatShortDate, parseLocalDate, startOfWorkday } from '../lib/date'
+import { formatShortDate, parseLocalDate, parseLocalDateTime, startOfWorkday, toTimeInputValue } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
 import { useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
@@ -60,6 +60,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [waitingOn, setWaitingOn] = useState(action.waitingOn ?? '')
   const [followUpDate, setFollowUpDate] = useState(toDateInputValue(action.followUpDate))
   const [scheduledDate, setScheduledDate] = useState(toDateInputValue(action.scheduledDate))
+  const [scheduledTime, setScheduledTime] = useState(toTimeInputValue(action.scheduledDate))
   const [projectId, setProjectId] = useState(action.projectId ?? '')
   // "This has grown into a project": makes a new project right here and links this action to it as its first step.
   const [makingProject, setMakingProject] = useState(false)
@@ -99,7 +100,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
       waitingOn: waitingOn.trim() || undefined,
       followUpDate: followUpDate ? parseLocalDate(followUpDate) : undefined,
-      scheduledDate: scheduledDate ? parseLocalDate(scheduledDate) : undefined,
+      scheduledDate: scheduledDate ? parseLocalDateTime(scheduledDate, scheduledTime || undefined) : undefined,
       notes: notes.trim() || undefined,
       // Someday items aren't committed to yet, so they can't hold a Short List slot; leaving Someday (or unticking) releases it.
       bigThreeDate: type !== 'someday' && bigThree ? startOfWorkday() : undefined,
@@ -315,13 +316,22 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
 
           {type === 'scheduled' && (
             <>
-              <label className="text-xs text-neutral-500">Scheduled date</label>
-              <input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-              />
+              <label className="text-xs text-neutral-500">Scheduled date and/or time</label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                />
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  aria-label="Time — optional, only if it truly has to happen then"
+                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                />
+              </div>
             </>
           )}
         </div>
