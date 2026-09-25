@@ -39,7 +39,9 @@ import { WeeklyReviewView } from './views/WeeklyReviewView'
 import { SettingsView } from './views/SettingsView'
 
 function App() {
-  const [view, setView] = useState<ViewKey>('inbox')
+  // Opens on Today — the calm home base. Sorting the Inbox is something you choose to do, not the first thing the
+  // app asks of you (the Inbox count still shows in the menu; capturing is always available in the bar above).
+  const [view, setView] = useState<ViewKey>('today')
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [showMindSweep, setShowMindSweep] = useState(false)

@@ -6,6 +6,9 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## September 25, 2026
 
+**The app opens on Today**
+On your phone and on desktop, the app now starts on the Today screen instead of the Inbox. Sorting the Inbox is something you choose to do, and its count still shows in the menu. "Capture anything on your mind" stays at the top of every screen.
+
 **A roomier Inbox on your phone**
 Each Inbox item now gets the full width for its text, with Done, Someday and Clarify on their own line underneath, so nothing is squeezed or cut off at the edge of the screen.
 
