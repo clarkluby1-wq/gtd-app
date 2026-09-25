@@ -5,7 +5,7 @@ import { captureToInbox } from '../db/operations'
 import { TaskRow } from '../components/TaskRow'
 import type { ViewKey } from '../components/Sidebar'
 import { escapeRegExp, matchSnippet, matchesAll, tokenize } from '../lib/search'
-import type { Action, ActionStatus, Project, RecurringTemplate, ReferenceItem } from '../db/types'
+import type { Action, ActionStatus, Project, ReferenceItem } from '../db/types'
 
 const MIN_CHARS = 2
 const GROUP_CAP = 25
@@ -18,7 +18,6 @@ type GroupKey =
   | 'someday'
   | 'inbox'
   | 'reference'
-  | 'recurring'
   | 'completed'
 
 const GROUP_ORDER: GroupKey[] = [
@@ -29,7 +28,6 @@ const GROUP_ORDER: GroupKey[] = [
   'someday',
   'inbox',
   'reference',
-  'recurring',
   'completed',
 ]
 
@@ -41,7 +39,6 @@ const GROUP_LABELS: Record<GroupKey, string> = {
   someday: 'Someday / Maybe',
   inbox: 'Inbox',
   reference: 'Reference',
-  recurring: 'Recurring',
   completed: 'Completed',
 }
 
@@ -58,7 +55,6 @@ type ResultItem = { id: string; titleHit: boolean; recency: number } & (
   | { kind: 'action'; action: Action; snippet?: string }
   | { kind: 'project'; project: Project; snippet?: string }
   | { kind: 'reference'; reference: ReferenceItem; snippet?: string }
-  | { kind: 'recurring'; template: RecurringTemplate }
 )
 
 function emptyGroups(): Record<GroupKey, ResultItem[]> {
@@ -70,7 +66,6 @@ function emptyGroups(): Record<GroupKey, ResultItem[]> {
     someday: [],
     inbox: [],
     reference: [],
-    recurring: [],
     completed: [],
   }
 }
@@ -91,7 +86,6 @@ export function SearchView({
   const actions = useLiveQuery(() => db.actions.toArray())
   const projects = useLiveQuery(() => db.projects.toArray())
   const references = useLiveQuery(() => db.references.toArray())
-  const templates = useLiveQuery(() => db.recurringTemplates.toArray())
   const inputRef = useRef<HTMLInputElement>(null)
   const [captured, setCaptured] = useState<string | null>(null)
 
@@ -105,7 +99,7 @@ export function SearchView({
   const searching = trimmed.length >= MIN_CHARS
 
   const groups = useMemo(() => {
-    if (!searching || !actions || !projects || !references || !templates) return null
+    if (!searching || !actions || !projects || !references) return null
     const out = emptyGroups()
     const projectById = new Map(projects.map((p) => [p.id, p]))
 
@@ -153,16 +147,11 @@ export function SearchView({
       })
     }
 
-    for (const t of templates) {
-      if (!matchesAll(tokens, t.title)) continue
-      out.recurring.push({ kind: 'recurring', id: t.id, template: t, titleHit: true, recency: t.createdAt })
-    }
-
     for (const key of GROUP_ORDER) {
       out[key].sort((a, b) => Number(b.titleHit) - Number(a.titleHit) || b.recency - a.recency)
     }
     return out
-  }, [searching, tokens, actions, projects, references, templates])
+  }, [searching, tokens, actions, projects, references])
 
   const total = groups ? GROUP_ORDER.reduce((n, k) => n + groups[k].length, 0) : 0
 
@@ -175,7 +164,7 @@ export function SearchView({
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Search</h1>
       <p className="mb-4 text-sm text-neutral-500">
-        Find anything you've captured — actions, projects, Someday/Maybe, Reference, and recurring items.
+        Find anything you've captured — actions, projects, Someday/Maybe, and Reference.
       </p>
 
       <input
@@ -300,41 +289,25 @@ function ResultRow({
     )
   }
 
-  if (item.kind === 'reference') {
-    const { reference, snippet } = item
-    return (
-      <button
-        onClick={() => onNavigate('reference')}
-        className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left hover:bg-neutral-900"
-      >
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center text-sm" title="Reference">
-          📎
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm text-neutral-100">
-            <Highlight text={reference.title} tokens={tokens} />
-          </div>
-          {snippet && (
-            <div className="mt-0.5 truncate text-xs text-neutral-500">
-              <Highlight text={snippet} tokens={tokens} />
-            </div>
-          )}
-        </div>
-      </button>
-    )
-  }
-
+  const { reference, snippet } = item
   return (
     <button
-      onClick={() => onNavigate('recurring')}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-neutral-900"
+      onClick={() => onNavigate('reference')}
+      className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left hover:bg-neutral-900"
     >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-sm" title="Recurring">
-        🔁
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-sm" title="Reference">
+        📎
       </span>
-      <span className="truncate text-sm text-neutral-100">
-        <Highlight text={item.template.title} tokens={tokens} />
-      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm text-neutral-100">
+          <Highlight text={reference.title} tokens={tokens} />
+        </div>
+        {snippet && (
+          <div className="mt-0.5 truncate text-xs text-neutral-500">
+            <Highlight text={snippet} tokens={tokens} />
+          </div>
+        )}
+      </div>
     </button>
   )
 }

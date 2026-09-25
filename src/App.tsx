@@ -12,7 +12,6 @@ import { WeeklyReviewPrompt } from './components/WeeklyReviewPrompt'
 import { cloudEnabled } from './db/cloudConfig'
 import { db, seedDefaultsIfEmpty } from './db/db'
 import { mergeDuplicateDefaults } from './db/dedupe'
-import { generateDueOccurrences } from './db/recurring'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { ReportView } from './views/ReportView'
@@ -34,7 +33,6 @@ import { PurposeView } from './views/PurposeView'
 import { VisionView } from './views/VisionView'
 import { GoalsView } from './views/GoalsView'
 import { AreasOfFocusView } from './views/AreasOfFocusView'
-import { RecurringView } from './views/RecurringView'
 import { WeeklyReviewView } from './views/WeeklyReviewView'
 import { SettingsView } from './views/SettingsView'
 
@@ -60,9 +58,7 @@ function App() {
   const [focusReturn, setFocusReturn] = useState<ViewKey>('next')
 
   useEffect(() => {
-    void seedDefaultsIfEmpty()
-      .then(() => mergeDuplicateDefaults())
-      .then(() => generateDueOccurrences())
+    void seedDefaultsIfEmpty().then(() => mergeDuplicateDefaults())
   }, [])
 
   // Two devices can each set up the starter contexts and areas before they've met; tidy the doubles after every sync.
@@ -245,9 +241,6 @@ function App() {
         break
       case 'areas':
         content = <AreasOfFocusView onOpenProject={openProject} />
-        break
-      case 'recurring':
-        content = <RecurringView />
         break
       case 'review':
         content = (

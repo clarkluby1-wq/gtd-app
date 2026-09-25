@@ -93,9 +93,9 @@ export function SettingsView() {
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Calendar reminders</div>
         <p className="mb-3 text-sm text-neutral-500">
-          A pop-up the day before a calendar item, with an option to be reminded again on the day. It can only
-          appear while the app is open in a browser tab, so it also shows up late if you weren't in the app the
-          day before. Recurring items don't trigger it.
+          A pop-up the day before a calendar item, with an option to be reminded again on the day — and, for an
+          item with a set time, another as that time arrives. It can only appear while the app is open in a
+          browser tab, so it also shows up late if you weren't in the app when it was due.
         </p>
         <div className="flex gap-2">
           {[

@@ -9,6 +9,12 @@ What's changed in the GTD app, in plain language — newest first.
 **A longer Short List**
 Today's Short List now holds up to five things instead of three.
 
+**Recurring is taken out for now**
+The Recurring section is gone from the menu and from Search while it gets rethought. Anything you had saved there is kept safely and will be there if it comes back.
+
+**Reminder wording updated**
+The calendar reminders note in Settings now mentions the pop-up that appears when a timed item's time arrives.
+
 ---
 
 ## September 24, 2026

@@ -24,7 +24,6 @@ export type ViewKey =
   | 'vision'
   | 'goals'
   | 'areas'
-  | 'recurring'
   | 'review'
   | 'settings'
 
@@ -65,7 +64,6 @@ export const REVIEW_NAV: NavItem[] = [
 
 export const MORE_NAV: NavItem[] = [
   { key: 'reference', label: 'Reference', icon: '📎' },
-  { key: 'recurring', label: 'Recurring', icon: '🔁' },
 ]
 
 export const HORIZONS_NAV: (NavItem & { altitude: string })[] = [
