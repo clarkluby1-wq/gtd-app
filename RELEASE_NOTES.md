@@ -9,6 +9,9 @@ What's changed in the GTD app, in plain language — newest first.
 **A longer Short List**
 Today's Short List now holds up to five things instead of three.
 
+**Capture by voice with Siri (iPhone)**
+Opening the app with `?capture=your text` at the end of its address now drops that text straight into your Inbox and shows a brief "Captured" confirmation. Paired with a Shortcut ("Dictate Text" then "Open URLs"), you can say "Hey Siri, add to GTD" and speak the thought. On iPhone this opens in Safari, so sign in once there so it syncs to your home-screen app.
+
 **See which project a finished step belongs to**
 When you tick something off, the confirmation card now shows the project's name in [square brackets]. If that was the last open step, the "nothing else open — mark project complete" message names the project too.
 

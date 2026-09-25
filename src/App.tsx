@@ -12,6 +12,8 @@ import { WeeklyReviewPrompt } from './components/WeeklyReviewPrompt'
 import { cloudEnabled } from './db/cloudConfig'
 import { db, seedDefaultsIfEmpty } from './db/db'
 import { mergeDuplicateDefaults } from './db/dedupe'
+import { captureToInbox } from './db/operations'
+import { takeCaptureParam } from './lib/urlCapture'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { ReportView } from './views/ReportView'
@@ -56,9 +58,23 @@ function App() {
   // Focus mode is entered from Next Actions or Start My Day, carrying that screen's filters, and returns there.
   const [focusFilters, setFocusFilters] = useState<NextFilters>(NO_FILTERS)
   const [focusReturn, setFocusReturn] = useState<ViewKey>('next')
+  // Set when the app was opened with ?capture=... (e.g. a Siri Shortcut) and that text just got captured.
+  const [captureConfirmation, setCaptureConfirmation] = useState<string | null>(null)
 
   useEffect(() => {
     void seedDefaultsIfEmpty().then(() => mergeDuplicateDefaults())
+  }, [])
+
+  // Lets something outside the app — a Siri Shortcut, a bookmarklet — capture straight to the Inbox by
+  // opening ?capture=<text>. The param is stripped from the URL synchronously inside takeCaptureParam,
+  // before this capture even starts, so a reload can't repeat it.
+  useEffect(() => {
+    const text = takeCaptureParam()
+    if (!text) return
+    void captureToInbox(text).then(() => {
+      setCaptureConfirmation(text)
+      setTimeout(() => setCaptureConfirmation(null), 4000)
+    })
   }, [])
 
   // Two devices can each set up the starter contexts and areas before they've met; tidy the doubles after every sync.
@@ -263,6 +279,19 @@ function App() {
       <SearchHotkey onTrigger={openSearch} />
       <ReminderPrompt />
       <WeeklyReviewPrompt onStart={startReview} />
+      {captureConfirmation && (
+        <div
+          role="status"
+          className="fixed left-1/2 top-4 z-[70] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-emerald-800 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-100 shadow-xl"
+        >
+          <span className="text-emerald-400" aria-hidden>
+            ✓
+          </span>
+          <span className="truncate">
+            Captured: <span className="text-neutral-300">"{captureConfirmation}"</span>
+          </span>
+        </div>
+      )}
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <Sidebar
           current={effectiveView}
