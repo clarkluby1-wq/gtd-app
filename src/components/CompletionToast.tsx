@@ -49,6 +49,8 @@ export function CompletionToast({
   )
   const projectFinished = useLiveQuery(() => isLastOpenAction(completedAction), [completedAction.id])
   const projectId = completedAction.projectId
+  // So the card can say *which* project this step belonged to — "nothing else open" means little unless you can see whose.
+  const project = useLiveQuery(() => (projectId ? db.projects.get(projectId) : undefined), [projectId])
   const showAcknowledgement = getCelebrationLevel() !== 'off' && doneToday !== undefined
 
   // A blocked completion attempt shakes the card (or, for reduced motion, flashes its outline) so it's clear why nothing happened.
@@ -105,8 +107,9 @@ export function CompletionToast({
       className="w-80 rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-neutral-100 shadow-xl"
     >
       <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="text-sm">
+        <div className="min-w-0 text-sm">
           <span className="text-emerald-400">✓ Done:</span> {completedAction.title}
+          {project && <div className="mt-1 text-xs text-neutral-400">↳ [{project.title}]</div>}
         </div>
         <button onClick={undo} title="Undo — wasn't actually done" className="shrink-0 text-neutral-600 hover:text-red-400">
           ✕
@@ -134,7 +137,8 @@ export function CompletionToast({
               }}
               className="w-full rounded-md bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500 hover:text-neutral-950"
             >
-              ✓ Nothing else open — mark project complete
+              ✓ Nothing else open{project ? <> in <span className="font-semibold">[{project.title}]</span></> : ''} — mark
+              project complete
             </button>
           )}
           <button

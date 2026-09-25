@@ -9,6 +9,9 @@ What's changed in the GTD app, in plain language — newest first.
 **A longer Short List**
 Today's Short List now holds up to five things instead of three.
 
+**See which project a finished step belongs to**
+When you tick something off, the confirmation card now shows the project's name in [square brackets]. If that was the last open step, the "nothing else open — mark project complete" message names the project too.
+
 **Recurring is taken out for now**
 The Recurring section is gone from the menu and from Search while it gets rethought. Anything you had saved there is kept safely and will be there if it comes back.
 
