@@ -6,6 +6,12 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## September 25, 2026
 
+**A roomier Inbox on your phone**
+Each Inbox item now gets the full width for its text, with Done, Someday and Clarify on their own line underneath, so nothing is squeezed or cut off at the edge of the screen.
+
+**Easier-to-tap menu bar on your phone**
+The bar along the bottom sits fully on screen instead of pressing against the edge of the phone, and its buttons are a little taller.
+
 **A longer Short List**
 Today's Short List now holds up to five things instead of three.
 

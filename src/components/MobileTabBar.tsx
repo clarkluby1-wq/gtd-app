@@ -28,13 +28,13 @@ export function MobileTabBar({
   const badgeFor = (key: ViewKey) => (key === 'inbox' ? badges.inbox : key === 'next' ? badges.next : undefined)
 
   const tabClass = (active: boolean) =>
-    `flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] ${
+    `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] ${
       active ? 'text-emerald-400' : 'text-neutral-500'
     }`
 
   return (
     <nav
-      className="flex shrink-0 items-stretch border-t border-neutral-800 bg-neutral-950 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="flex shrink-0 items-stretch border-t border-neutral-800 bg-neutral-950 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden"
       aria-label="Sections"
     >
       {TABS.map((t) => {

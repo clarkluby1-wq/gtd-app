@@ -9,6 +9,16 @@ body {
 }
 
 /*
+ * The app fills the screen exactly. On an iPhone, `100vh` counts the area behind Safari's toolbar, so the page ends
+ * up taller than what you can see and the bottom tab bar gets pushed down against the edge — hard to tap. `100dvh`
+ * is the height actually visible right now. The 100vh line is only a fallback for browsers that don't know dvh.
+ */
+.app-height {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/*
  * A row's secondary controls (star, delete, drag handle) only reveal on mouse hover, on the element the hover
  * happens to land on. On a touch screen "hover" never fires, so the same rule would hide them forever with no way
  * to reveal them. `(hover: hover) and (pointer: fine)` is true for an actual mouse; on a touch device it's simply

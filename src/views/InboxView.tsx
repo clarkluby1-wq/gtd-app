@@ -119,7 +119,9 @@ function InboxRow({
   }
 
   return (
-    <div className="group flex items-center justify-between gap-3 py-3">
+    // On a phone the title gets the full width and the buttons drop to their own line underneath; from `md` up
+    // it's the single row it always was.
+    <div className="group flex flex-wrap items-center gap-x-3 gap-y-2 py-3 md:flex-nowrap md:justify-between">
       <button
         {...dragHandle.attributes}
         {...dragHandle.listeners}
@@ -143,18 +145,18 @@ function InboxRow({
               setEditing(false)
             }
           }}
-          className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
+          className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-sm text-neutral-100 outline-none"
         />
       ) : (
         <span
           onClick={() => setEditing(true)}
-          className="flex-1 cursor-pointer text-sm text-neutral-100 hover:underline"
+          className="min-w-0 flex-1 cursor-pointer break-words text-sm text-neutral-100 hover:underline"
         >
           {item.title}
         </span>
       )}
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full shrink-0 items-center gap-2 pl-6 md:w-auto md:pl-0">
         <button
           onClick={markDone}
           title="Already handled this — mark it done without processing"
@@ -177,7 +179,7 @@ function InboxRow({
         </button>
         <button
           onClick={() => setConfirmingDelete(true)}
-          className="touch-reveal text-neutral-600 hover:text-red-400"
+          className="touch-reveal ml-auto text-neutral-600 hover:text-red-400 md:ml-0"
           title="Delete"
         >
           ✕

@@ -292,7 +292,7 @@ function App() {
           </span>
         </div>
       )}
-      <div className="flex h-screen bg-neutral-950 text-neutral-100">
+      <div className="app-height flex bg-neutral-950 text-neutral-100">
         <Sidebar
           current={effectiveView}
           onSelect={selectView}
