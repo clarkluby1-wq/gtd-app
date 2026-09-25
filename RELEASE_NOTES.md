@@ -4,7 +4,61 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## September 25, 2026
+
+**A longer Short List**
+Today's Short List now holds up to five things instead of three.
+
+---
+
+## September 24, 2026
+
+**Times for things that happen at a specific time**
+When you schedule something for a specific day, you can now add a time too. It shows up as "Sep 24 · 1:45 pm" wherever the item appears, and items within a day are listed earliest first.
+
+**A pop-up when the time arrives**
+If the app is open when a timed item's moment comes, a "Right now" reminder appears. It only works while the app is open — it can't reach you if the tab is closed.
+
+---
+
+## September 23, 2026
+
+**Start My Day ends at Today**
+The last step now leads with "Go to Today," so you're not pushed into focus mode. "Start focusing" is still there if you want it.
+
+**Today leads with your Short List once you've started your day**
+After you've been through Start My Day, the Short List takes the top spot on Today, and "Start your day" shrinks to a quiet "Revisit" link.
+
+**Easier Short List picking in Start My Day**
+Starring something moves it straight to the top. You can tick the circle to mark something done right there if you spot that it's already finished. The "chosen" count now includes everything on your Short List, including Waiting For and Calendar items.
+
+**Time-specific things, prompted in the right place**
+The "anything time-specific hiding in Next Actions or the Inbox?" reminder now sits in the Today step, with links that simply open those lists to look through.
+
+**Quick route to Someday/Maybe**
+Each Inbox item has a one-tap "Someday" button, and Clarify has a small "already know it's not for now" link, so you don't have to answer "is it actionable?" for things you already know are parked.
+
+**Details for Goals**
+Goals now have a description box for the detail, the why, and what done looks like.
+
+**A calmer "What I've Done"**
+Removed the "1 of 4 done" star tally from the Short List section, so it only shows what you did.
+
+---
+
 ## September 22, 2026
+
+**A real app icon**
+The home screen icon is now a proper GTD icon, and the app opens full-screen without browser bars when added to an iPhone home screen.
+
+**Your day starts at 4:30am, not midnight**
+The Short List, Start My Day, daily counts, and "Today" in What I've Done now roll over at 4:30am, so working past midnight doesn't reset things mid-session. Calendar dates, due dates and reminders still follow the real date.
+
+**Yesterday's picks**
+Start My Day's Short List step shows yesterday's picks that are still open, with a one-tap "Pull into today" — or just ignore them.
+
+**Finished Short List items move to the bottom**
+Completed items drop below what's still to do.
 
 **Sync between devices**
 Sign in from Settings to keep the same tasks and projects on your computer and your phone. Works offline too, and catches back up once you're online again.

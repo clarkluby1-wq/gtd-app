@@ -6,6 +6,7 @@ import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
+import { SHORT_LIST_MAX } from '../lib/shortList'
 import { formatShortDate, formatTimeOfDay, hasTimeOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
 import { followUpPending, needsNudge, waitingStartedAt } from '../lib/waiting'
@@ -66,7 +67,7 @@ export function TaskRow({
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
   /** Show the Short List pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
   showBigThreePin?: boolean
-  /** How many actions are pinned for today, to enforce the 3-item cap. Only used when showBigThreePin is true. */
+  /** How many actions are pinned for today, to enforce the Short List cap. Only used when showBigThreePin is true. */
   pinnedTodayCount?: number
   /** Makes the "↳ Project" badge (when showProject is set) clickable, jumping into that project. */
   onOpenProject?: (projectId: string) => void
@@ -84,7 +85,7 @@ export function TaskRow({
 
   const done = action.status === 'done'
   const pinnedToday = action.bigThreeDate === startOfWorkday()
-  const atCap = (pinnedTodayCount ?? 0) >= 3
+  const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
 
   return (
     <div className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-900">

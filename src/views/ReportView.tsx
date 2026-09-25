@@ -26,7 +26,7 @@ import {
   type ReportItem,
   type ReportParts,
 } from '../lib/report'
-import { useTodayShortList } from '../lib/shortList'
+import { SHORT_LIST_MAX_WORD, useTodayShortList } from '../lib/shortList'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 
 const OTHERS_PREVIEW = 10
@@ -309,7 +309,7 @@ export function ReportView({
             <p className="text-sm text-neutral-500">
               Nothing on today's Short List.{' '}
               <button onClick={onViewNextActions} className="text-emerald-400 hover:text-emerald-300">
-                Pick up to three from Next Actions →
+                Pick up to {SHORT_LIST_MAX_WORD} from Next Actions →
               </button>
             </p>
           ) : (
@@ -356,7 +356,7 @@ export function ReportView({
         </section>
       ) : (
         <p className="mb-6 text-xs text-neutral-500">
-          Star up to three things each day and they'll gather here — proof of what you decided mattered most.
+          Star up to {SHORT_LIST_MAX_WORD} things each day and they'll gather here — proof of what you decided mattered most.
         </p>
       )}
 

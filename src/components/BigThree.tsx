@@ -1,3 +1,4 @@
+import { SHORT_LIST_MAX_WORD } from '../lib/shortList'
 import { TaskRow } from './TaskRow'
 import type { Action } from '../db/types'
 
@@ -16,7 +17,7 @@ export function BigThree({
       <div className="mb-3 flex items-center gap-1.5">
         <h2 className="text-sm font-medium text-neutral-300">Today's Short List</h2>
         <span
-          title="Up to three things you're committed to today, picked from Next Actions. It's not a second to-do list, just a flag on items already in Next Actions. Whatever's left unfinished quietly stops being pinned when your next workday starts, no guilt."
+          title={`Up to ${SHORT_LIST_MAX_WORD} things you're committed to today, picked from Next Actions. It's not a second to-do list, just a flag on items already in Next Actions. Whatever's left unfinished quietly stops being pinned when your next workday starts, no guilt.`}
           className="cursor-help text-xs text-neutral-500 hover:text-neutral-300"
         >
           ⓘ
@@ -27,7 +28,7 @@ export function BigThree({
         <p className="text-sm text-neutral-500">
           Nothing pinned yet.{' '}
           <button onClick={onViewNextActions} className="text-emerald-400 hover:text-emerald-300">
-            Pin up to three from Next Actions →
+            Pin up to {SHORT_LIST_MAX_WORD} from Next Actions →
           </button>
         </p>
       ) : (

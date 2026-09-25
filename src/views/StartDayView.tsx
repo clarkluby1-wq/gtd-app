@@ -10,7 +10,7 @@ import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
-import { useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
+import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
 import { markStartDayReachedGo } from '../lib/startDayStatus'
 import type { Action } from '../db/types'
 
@@ -25,7 +25,6 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'go', label: 'Go' },
 ]
 
-const SHORT_LIST_MAX = 3
 /** Enough to choose from without turning the pick into a scroll; the rest is one click away. */
 const PICK_PREVIEW = 8
 const NUDGE_PREVIEW = 5

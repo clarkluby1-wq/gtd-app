@@ -349,7 +349,7 @@ export async function restoreAction(action: Action) {
   await db.actions.put(action)
 }
 
-/** Add an action to today's Short List. Caller is responsible for enforcing the 3-item cap. */
+/** Add an action to today's Short List. Caller is responsible for enforcing the cap (SHORT_LIST_MAX in lib/shortList). */
 export async function pinToBigThree(actionId: string) {
   await db.actions.update(actionId, { bigThreeDate: startOfWorkday(), touchedAt: Date.now() })
 }

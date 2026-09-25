@@ -14,6 +14,7 @@ import { setReviewItemDone, setReviewSubDone, toggleReviewSub } from '../../db/w
 import { getHiddenInboxKeys, setHiddenInboxKeys } from '../../lib/weeklyReviewTemplate'
 import { formatShortDate, startOfToday, startOfWorkday } from '../../lib/date'
 import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
+import { SHORT_LIST_MAX_WORD } from '../../lib/shortList'
 import { staleNextActions } from '../../lib/staleness'
 import { useSomedayProjectIds } from '../../lib/useSomedayProjectIds'
 import { needsNudge, waitingStartedAt } from '../../lib/waiting'
@@ -213,7 +214,7 @@ export function WinsStep({ since }: { since: number }) {
         </section>
       ) : (
         <p className="mb-6 text-xs text-neutral-500">
-          Star up to three things each day and they'll gather here — proof of what you decided mattered most.
+          Star up to {SHORT_LIST_MAX_WORD} things each day and they'll gather here — proof of what you decided mattered most.
         </p>
       )}
 

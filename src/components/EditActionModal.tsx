@@ -5,7 +5,7 @@ import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, parseLocalDateTime, startOfWorkday, toTimeInputValue } from '../lib/date'
 import { followUpPending, waitingStartedAt } from '../lib/waiting'
-import { useTodayPinCount } from '../lib/shortList'
+import { SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
 
@@ -70,7 +70,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [madeProject, setMadeProject] = useState<string | null>(null)
   const [notes, setNotes] = useState(action.notes ?? '')
   const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfWorkday())
-  const bigThreeFull = (otherPinnedCount ?? 0) >= 3
+  const bigThreeFull = (otherPinnedCount ?? 0) >= SHORT_LIST_MAX
 
   const createProject = async () => {
     const name = newProjectName.trim()
@@ -261,7 +261,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
             >
               <span>{bigThree ? "★ On today's Short List" : "☆ Add to today's Short List"}</span>
               <span className="text-xs font-normal text-neutral-500">
-                {bigThreeFull && !bigThree ? 'Full — 3 of 3 used' : 'Pinned to the top today'}
+                {bigThreeFull && !bigThree ? `Full — ${SHORT_LIST_MAX} of ${SHORT_LIST_MAX} used` : 'Pinned to the top today'}
               </span>
             </button>
           )}

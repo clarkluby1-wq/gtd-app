@@ -20,7 +20,7 @@ import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
-import { useActiveTodayPins } from '../lib/shortList'
+import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
 const TIME_CHIPS: { minutes: number; label: string }[] = [
@@ -128,13 +128,13 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [waitingOn, setWaitingOn] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
 
-  // "This one matters today": puts the next action on today's Short List. With three already there, you pick one to swap
+  // "This one matters today": puts the next action on today's Short List. With it already full, you pick one to swap
   // out — from any kind of pin, since a Waiting For or Scheduled item can hold a slot too.
   const shortListNow = useActiveTodayPins()
   const [wantsShortList, setWantsShortList] = useState(false)
   const [choosingSwap, setChoosingSwap] = useState(false)
   const [replaceId, setReplaceId] = useState<string | undefined>()
-  const shortListFull = (shortListNow?.length ?? 0) >= 3
+  const shortListFull = (shortListNow?.length ?? 0) >= SHORT_LIST_MAX
   const replacing = shortListNow?.find((a) => a.id === replaceId)
   // The captured wording is often a rough note ("need to get Steve to do Sunday's game, need to message him").
   // It can be reworded right here, into a clear next action, and everything after uses the new wording.
@@ -774,7 +774,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               {choosingSwap ? (
                 <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
                   <p className="mb-2 text-sm text-neutral-200">
-                    Today's Short List already has three. Swap one out for this?
+                    Today's Short List already has {SHORT_LIST_MAX_WORD}. Swap one out for this?
                   </p>
                   <div className="flex flex-col gap-1.5">
                     {shortListNow?.map((a) => (

@@ -9,7 +9,7 @@ import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
 import { startOfWorkday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { useTodayPinCount } from '../lib/shortList'
+import { SHORT_LIST_MAX_WORD, useTodayPinCount } from '../lib/shortList'
 import type { EnergyLevel } from '../db/types'
 
 export function NextActionsView({
@@ -61,7 +61,7 @@ export function NextActionsView({
       </div>
       <p className="mb-4 text-sm text-neutral-500">
         Engage: filter by what you can actually do right now — where you are, how much energy you have, how much
-        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to add up to three to today's Short List
+        time you've got. Drag the ⠿ handle to reorder. Hover a row and click ☆ to add up to {SHORT_LIST_MAX_WORD} to today's Short List
         — pinned items always float to the top, within any filter.{' '}
         <button onClick={onAskWhatNow} className="text-emerald-400 hover:text-emerald-300">
           Not sure what fits? Ask What Now? →
