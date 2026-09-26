@@ -167,7 +167,6 @@ function App() {
             onStartDay={() => selectView('startday')}
             onViewNextActions={() => selectView('next')}
             onViewCalendar={() => selectView('calendar')}
-            onViewReport={() => selectView('report')}
             onViewWeeklyReview={startReview}
           />
         )

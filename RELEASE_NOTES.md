@@ -4,6 +4,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## September 26, 2026
+
+**A calmer Today screen**
+Your Short List always comes first now. "Start your day" is a small, quiet line underneath instead of a big card, and it looks the same whether or not you've done it, on every device. The "See what I've done" link is gone from Today; you'll still find What I've Done in the menu (under "More" on your phone).
+
+---
+
 ## September 25, 2026
 
 **The app opens on Today**

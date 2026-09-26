@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
@@ -11,7 +11,6 @@ import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { needsNudge, waitingStartedAt } from '../lib/waiting'
 import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
-import { markStartDayReachedGo } from '../lib/startDayStatus'
 import type { Action } from '../db/types'
 
 type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
@@ -63,12 +62,6 @@ export function StartDayView({
   const [step, setStep] = useState<Step>('commitments')
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
   const [showAllPicks, setShowAllPicks] = useState(false)
-
-  // Reaching the last step — however you got here, walked through or jumped straight to it — counts as having
-  // been through this today. Lets the Today screen stop leading with "Start your day" once you actually have.
-  useEffect(() => {
-    if (step === 'go') markStartDayReachedGo()
-  }, [step])
 
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const nexts = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
