@@ -6,6 +6,9 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## September 26, 2026
 
+**Several goals per area in the guided setup**
+The Goals step of "Set up your Horizons" now lets you enter more than one goal for each area. Each goal gets its own line, "+ Add another" appears under every area, and pressing Enter starts the next line. Goals you'd already added on the Goals screen now all show up here too, where before only the first did. Keep them short — you can add detail later on the Goals screen.
+
 **A calmer Today screen**
 Your Short List always comes first now. "Start your day" is a small, quiet line underneath instead of a big card, and it looks the same whether or not you've done it, on every device. The "See what I've done" link is gone from Today; you'll still find What I've Done in the menu (under "More" on your phone).
 

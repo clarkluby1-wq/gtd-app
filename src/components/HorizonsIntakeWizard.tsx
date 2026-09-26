@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db/db'
 import { createGoal, createVision, getPurpose, updateGoal, updatePurpose, updateVision } from '../db/horizons'
@@ -7,6 +7,18 @@ import { createGoal, createVision, getPurpose, updateGoal, updatePurpose, update
 type Step = 'intro' | 'areas' | 'goals' | 'vision' | 'purpose' | 'done'
 
 const STEPS: Step[] = ['areas', 'goals', 'vision', 'purpose']
+
+/** One line in an Area's goal list. `id` appears once it's saved; `saved` is the title as stored. */
+interface GoalRow {
+  key: string
+  id?: string
+  text: string
+  saved: string
+  /** Rows you add yourself take the cursor straight away; rows that were already there don't. */
+  autoFocus?: boolean
+}
+
+const blankRow = (autoFocus = false): GoalRow => ({ key: uuid(), text: '', saved: '', autoFocus })
 
 export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('intro')
@@ -16,8 +28,10 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
   const goals = useLiveQuery(() => db.goals.toArray())
 
   const [newArea, setNewArea] = useState('')
-  const [goalDrafts, setGoalDrafts] = useState<Record<string, string>>({})
-  const [goalIds, setGoalIds] = useState<Record<string, string>>({})
+  // Every Area holds a list of goals, not just one — same as the Goals screen.
+  const [goalRows, setGoalRows] = useState<Record<string, GoalRow[]>>({})
+  // Rows whose first save is still in flight, so tabbing away twice can't create the same goal twice.
+  const savingRows = useRef(new Set<string>())
   const [visionId, setVisionId] = useState<string | undefined>()
   const [visionStatement, setVisionStatement] = useState('')
   const [purposeStatement, setPurposeStatement] = useState('')
@@ -41,17 +55,17 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
       setVisionStatement(overarchingVision.statement)
     }
 
-    const nextGoalIds: Record<string, string> = {}
-    const nextGoalDrafts: Record<string, string> = {}
+    // Every active goal in each Area (oldest first), plus one empty line if there are none yet.
+    const nextRows: Record<string, GoalRow[]> = {}
     for (const area of areas) {
-      const existing = goals.find((g) => g.areaOfFocusId === area.id)
-      if (existing) {
-        nextGoalIds[area.id] = existing.id
-        nextGoalDrafts[area.id] = existing.title
-      }
+      const mine = goals
+        .filter((g) => g.areaOfFocusId === area.id && g.status === 'active')
+        .sort((a, b) => a.createdAt - b.createdAt)
+      nextRows[area.id] = mine.length
+        ? mine.map((g) => ({ key: g.id, id: g.id, text: g.title, saved: g.title }))
+        : [blankRow()]
     }
-    setGoalIds(nextGoalIds)
-    setGoalDrafts(nextGoalDrafts)
+    setGoalRows(nextRows)
 
     setSeeded(true)
   }, [seeded, areas, purpose, visions, goals])
@@ -59,7 +73,9 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
   const addArea = async () => {
     if (!newArea.trim()) return
     const count = await db.areasOfFocus.count()
-    await db.areasOfFocus.add({ id: uuid(), name: newArea.trim(), order: count })
+    const id = uuid()
+    await db.areasOfFocus.add({ id, name: newArea.trim(), order: count })
+    setGoalRows((prev) => ({ ...prev, [id]: [blankRow()] }))
     setNewArea('')
   }
 
@@ -82,17 +98,34 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
     }
   }
 
-  /** Same create-once-then-update pattern per area. */
-  const saveGoal = (areaId: string, nextTitle: string) => {
-    const trimmed = nextTitle.trim()
-    const existingId = goalIds[areaId]
-    if (existingId) {
-      void updateGoal(existingId, { title: trimmed })
-    } else if (trimmed) {
-      void createGoal({ title: trimmed, areaOfFocusId: areaId }).then((g) =>
-        setGoalIds((prev) => ({ ...prev, [areaId]: g.id })),
-      )
+  const patchGoalRow = (areaId: string, key: string, patch: Partial<GoalRow>) =>
+    setGoalRows((prev) => ({
+      ...prev,
+      [areaId]: (prev[areaId] ?? []).map((r) => (r.key === key ? { ...r, ...patch } : r)),
+    }))
+
+  const addGoalRow = (areaId: string) =>
+    setGoalRows((prev) => ({ ...prev, [areaId]: [...(prev[areaId] ?? []), blankRow(true)] }))
+
+  /** Create-once-then-update, per line. Saves on blur, so closing the wizard mid-step never loses anything. */
+  const saveGoalRow = (areaId: string, row: GoalRow) => {
+    const trimmed = row.text.trim()
+    if (row.id) {
+      // A saved goal is never left untitled — clearing the line just puts its title back. Removing a goal
+      // is done on the Goals screen, where it asks first.
+      if (!trimmed) patchGoalRow(areaId, row.key, { text: row.saved })
+      else if (trimmed !== row.saved) {
+        void updateGoal(row.id, { title: trimmed })
+        patchGoalRow(areaId, row.key, { saved: trimmed })
+      }
+      return
     }
+    if (!trimmed || savingRows.current.has(row.key)) return
+    savingRows.current.add(row.key)
+    void createGoal({ title: trimmed, areaOfFocusId: areaId }).then((g) => {
+      savingRows.current.delete(row.key)
+      patchGoalRow(areaId, row.key, { id: g.id, saved: trimmed })
+    })
   }
 
   const goNext = () => {
@@ -178,20 +211,53 @@ export function HorizonsIntakeWizard({ onClose }: { onClose: () => void }) {
               <p className="mb-1 text-sm text-neutral-400">
                 What do you want from each area in the next year or two?
               </p>
-              <p className="mb-4 text-xs text-neutral-600">Saves as you go — safe to close anytime.</p>
-              <div className="flex flex-col gap-3">
-                {areas?.map((a) => (
-                  <div key={a.id}>
-                    <label className="mb-1 block text-xs text-neutral-500">{a.name}</label>
-                    <input
-                      value={goalDrafts[a.id] ?? ''}
-                      onChange={(e) => setGoalDrafts((prev) => ({ ...prev, [a.id]: e.target.value }))}
-                      onBlur={(e) => saveGoal(a.id, e.target.value)}
-                      placeholder={`A 1-2 year goal for ${a.name}…`}
-                      className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                    />
-                  </div>
-                ))}
+              <p className="mb-1 text-xs text-neutral-600">Saves as you go — safe to close anytime.</p>
+              <p className="mb-4 text-xs text-neutral-600">
+                Keep each goal short — one to three per area is plenty, and an area can stay empty. Add detail
+                later on the Goals screen.
+              </p>
+              <div className="flex flex-col gap-4">
+                {areas?.map((a) => {
+                  const rows = goalRows[a.id] ?? []
+                  const lastIsEmpty = rows.length > 0 && !rows[rows.length - 1].text.trim()
+                  return (
+                    <div key={a.id}>
+                      <label className="mb-1 block text-xs text-neutral-500">{a.name}</label>
+                      <div className="flex flex-col gap-2">
+                        {rows.map((r, i) => (
+                          <input
+                            key={r.key}
+                            autoFocus={r.autoFocus}
+                            value={r.text}
+                            onChange={(e) => patchGoalRow(a.id, r.key, { text: e.target.value })}
+                            onBlur={() => saveGoalRow(a.id, r)}
+                            onKeyDown={(e) => {
+                              // Enter saves this one and opens the next line, so several goals flow without the mouse.
+                              if (e.key !== 'Enter') return
+                              e.preventDefault()
+                              saveGoalRow(a.id, r)
+                              if (i === rows.length - 1 && r.text.trim()) addGoalRow(a.id)
+                            }}
+                            placeholder={i === 0 ? `A 1-2 year goal for ${a.name}…` : `Another goal for ${a.name}…`}
+                            className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
+                          />
+                        ))}
+                      </div>
+                      {/* Always here, so every area looks the same. With an empty line already open there's nothing to
+                          add yet, so it just takes you to that line rather than piling up blanks. */}
+                      <button
+                        onClick={(e) => {
+                          if (!lastIsEmpty) return addGoalRow(a.id)
+                          const inputs = e.currentTarget.parentElement?.querySelectorAll('input')
+                          inputs?.[inputs.length - 1]?.focus()
+                        }}
+                        className="mt-1.5 text-xs text-neutral-500 hover:text-neutral-300"
+                      >
+                        + {rows.length === 0 ? 'Add a goal' : 'Add another'}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
