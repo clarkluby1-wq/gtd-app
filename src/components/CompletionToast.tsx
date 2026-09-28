@@ -5,6 +5,7 @@ import { completeProject, createAction, reopenAction } from '../db/operations'
 import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
 import { celebrateCompletion, isLastOpenAction } from '../lib/celebrateCompletion'
 import { parseLocalDate, startOfWorkday } from '../lib/date'
+import { useWaitingOnNames } from '../lib/waiting'
 import type { Action, ActionStatus } from '../db/types'
 
 const PHRASES = ['Nice.', 'One down.', 'Momentum.', 'Progress counts.', "That's a win.", 'Done and dusted.']
@@ -39,6 +40,7 @@ export function CompletionToast({
   const [waitingOn, setWaitingOn] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
+  const waitingOnNames = useWaitingOnNames()
   const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
   const doneToday = useLiveQuery(() =>
     db.actions
@@ -194,12 +196,20 @@ export function CompletionToast({
           )}
 
           {type === 'waiting' && (
-            <input
-              value={waitingOn}
-              onChange={(e) => setWaitingOn(e.target.value)}
-              placeholder="Waiting on whom?"
-              className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs outline-none"
-            />
+            <>
+              <input
+                value={waitingOn}
+                onChange={(e) => setWaitingOn(e.target.value)}
+                list="waiting-on-names-toast"
+                placeholder="Waiting on whom?"
+                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs outline-none"
+              />
+              <datalist id="waiting-on-names-toast">
+                {waitingOnNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </>
           )}
 
           {type === 'scheduled' && (
@@ -220,7 +230,7 @@ export function CompletionToast({
             </button>
             <button
               onClick={(e) => void submit(e.currentTarget)}
-              disabled={!title.trim()}
+              disabled={!title.trim() || (type === 'waiting' && !waitingOn.trim())}
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
             >
               Add

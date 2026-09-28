@@ -1,3 +1,6 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { useMemo } from 'react'
+import { db } from '../db/db'
 import type { Action } from '../db/types'
 import { startOfToday, startOfWorkday } from './date'
 import { ageInDays } from './staleness'
@@ -39,4 +42,15 @@ export function lastFollowUpAt(action: Action): number | undefined {
 export function wasFollowedUpToday(action: Action): boolean {
   const last = lastFollowUpAt(action)
   return last !== undefined && last >= startOfWorkday()
+}
+
+/** Every distinct name ever typed into "waiting on", alphabetically — for autocomplete, so "John" and "john"
+ *  don't quietly become two different people. */
+export function useWaitingOnNames(): string[] {
+  const rows = useLiveQuery(() => db.actions.filter((a) => !!a.waitingOn).toArray())
+  return useMemo(() => {
+    const names = new Set<string>()
+    for (const a of rows ?? []) if (a.waitingOn) names.add(a.waitingOn)
+    return [...names].sort((a, b) => a.localeCompare(b))
+  }, [rows])
 }

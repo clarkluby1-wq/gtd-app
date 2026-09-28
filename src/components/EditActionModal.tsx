@@ -4,7 +4,7 @@ import { db } from '../db/db'
 import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, parseLocalDateTime, startOfWorkday, toTimeInputValue } from '../lib/date'
-import { followUpPending, waitingStartedAt } from '../lib/waiting'
+import { followUpPending, useWaitingOnNames, waitingStartedAt } from '../lib/waiting'
 import { SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
@@ -50,6 +50,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   // Same count every star uses, minus this action, so the cap can never disagree with it — whatever kind of item is pinned.
   const otherPinnedCount = useTodayPinCount(action.id)
+  const waitingOnNames = useWaitingOnNames()
 
   const [title, setTitle] = useState(action.title)
   const [type, setType] = useState<EditType>(statusToType(action.status))
@@ -308,8 +309,15 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
               <input
                 value={waitingOn}
                 onChange={(e) => setWaitingOn(e.target.value)}
+                list="waiting-on-names-edit"
+                placeholder="A name — who is it?"
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              <datalist id="waiting-on-names-edit">
+                {waitingOnNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
               <FollowUpDatePicker value={followUpDate} onChange={setFollowUpDate} />
             </>
           )}
@@ -343,7 +351,9 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
           </button>
           <button
             onClick={save}
-            className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+            disabled={type === 'waiting' && !waitingOn.trim()}
+            title={type === 'waiting' && !waitingOn.trim() ? 'Who is it waiting on?' : undefined}
+            className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Save
           </button>

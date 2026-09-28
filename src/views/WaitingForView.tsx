@@ -14,7 +14,7 @@ import { useTodayPinCount } from '../lib/shortList'
 import { lastFollowUpAt, needsNudge, NUDGE_AFTER_DAYS, wasFollowedUpToday, waitingStartedAt } from '../lib/waiting'
 
 type SortMode = 'mine' | 'longest' | 'newest'
-type GroupMode = 'none' | 'project'
+type GroupMode = 'none' | 'project' | 'person'
 
 const SORT_OPTIONS: { value: SortMode; label: string; hint: string }[] = [
   { value: 'mine', label: 'Sort: My order', hint: 'Drag the ⠿ handle to reorder.' },
@@ -36,7 +36,7 @@ function readView(): { sort: SortMode; group: GroupMode } {
     const saved = JSON.parse(localStorage.getItem(VIEW_KEY) ?? '{}')
     return {
       sort: SORT_OPTIONS.some((o) => o.value === saved.sort) ? saved.sort : 'mine',
-      group: saved.group === 'project' ? 'project' : 'none',
+      group: saved.group === 'project' || saved.group === 'person' ? saved.group : 'none',
     }
   } catch {
     return { sort: 'mine', group: 'none' }
@@ -103,6 +103,21 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
   const groups = useMemo(() => {
     if (view.group === 'none') {
       return [{ key: 'all', title: undefined, projectId: undefined, ...splitParked(visible) }]
+    }
+    if (view.group === 'person') {
+      const byPerson = new Map<string, Action[]>()
+      for (const a of visible) {
+        const key = a.waitingOn?.trim() || 'none'
+        byPerson.set(key, [...(byPerson.get(key) ?? []), a])
+      }
+      return [...byPerson.entries()]
+        .map(([key, items]) => ({
+          key,
+          title: key === 'none' ? 'No name yet' : key,
+          projectId: undefined,
+          ...splitParked(items),
+        }))
+        .sort((a, b) => (a.key === 'none' ? 1 : b.key === 'none' ? -1 : a.title.localeCompare(b.title)))
     }
     const byProject = new Map<string, Action[]>()
     for (const a of visible) {
@@ -186,6 +201,7 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
             >
               <option value="none">Group: None</option>
               <option value="project">Group: By project</option>
+              <option value="person">Group: By person</option>
             </select>
             <button
               onClick={() => setNudgeOnly((v) => !v)}

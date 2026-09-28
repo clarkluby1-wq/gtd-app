@@ -20,6 +20,7 @@ import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
+import { useWaitingOnNames } from '../lib/waiting'
 import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -114,6 +115,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
+  const waitingOnNames = useWaitingOnNames()
 
   const [contextId, setContextId] = useState<string | undefined>(readLastContextId)
   const [contextTouched, setContextTouched] = useState(false)
@@ -448,6 +450,11 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
+          <datalist id="waiting-on-names-clarify">
+            {waitingOnNames.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
           <div className="mb-4 text-sm text-neutral-400">{stepQuestion(step, isProject)}</div>
 
           {step === 'actionable' && (
@@ -480,6 +487,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
               <input
                 value={waitingOn}
                 onChange={(e) => setWaitingOn(e.target.value)}
+                list="waiting-on-names-clarify"
                 placeholder="Who is it waiting on?"
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
@@ -664,6 +672,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 autoFocus
                 value={waitingOn}
                 onChange={(e) => setWaitingOn(e.target.value)}
+                list="waiting-on-names-clarify"
                 placeholder="Who is it delegated to?"
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />

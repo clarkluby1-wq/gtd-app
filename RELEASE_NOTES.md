@@ -4,6 +4,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## September 28, 2026
+
+**Always know who a Waiting For is waiting on**
+"Who is it waiting on?" is now required whenever you mark something Waiting For, wherever you do it — so a name never goes missing. As you type, it suggests names you've used before, so "Sarah" doesn't quietly split into "sarah" and "Sarah W." on different items. And Waiting For now has a "Group: By person" option, right next to "By project" — group by it and each person's name becomes its own heading, so you never have to scan a line to see who you're waiting on.
+
+---
+
 ## September 26, 2026
 
 **Several goals per area in the guided setup**
