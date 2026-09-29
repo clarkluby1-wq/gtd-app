@@ -4,6 +4,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## September 29, 2026
+
+**A new "End My Day" — plan tonight instead of the morning of**
+Some evenings you'd rather decide tomorrow's approach before you close out, instead of figuring it out the next morning. End My Day walks through: clearing the Inbox, what's already tied to tomorrow, choosing up to five things for tomorrow's Short List (with a one-tap way to carry today's still-open picks forward), one last capture box for anything on your mind, and a quiet close. It's reachable anywhere Start My Day is — the menu, the phone's More sheet, and a quiet link on Today.
+
+---
+
 ## September 28, 2026
 
 **Always know who a Waiting For is waiting on**

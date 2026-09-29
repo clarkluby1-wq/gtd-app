@@ -8,6 +8,7 @@ export type ViewKey =
   | 'search'
   | 'today'
   | 'startday'
+  | 'endday'
   | 'report'
   | 'focus'
   | 'dashboard'
@@ -44,6 +45,7 @@ export const SEARCH_ITEM: NavItem = { key: 'search', label: 'Search', icon: '�
 export const DO_NAV: NavItem[] = [
   { key: 'today', label: 'Today', icon: '🏠' },
   { key: 'startday', label: 'Start My Day', icon: '☀️' },
+  { key: 'endday', label: 'End My Day', icon: '🌆' },
   { key: 'report', label: "What I've Done", icon: '✨' },
   { key: 'inbox', label: 'Inbox', icon: '📥' },
   { key: 'next', label: 'Next Actions', icon: '✅' },

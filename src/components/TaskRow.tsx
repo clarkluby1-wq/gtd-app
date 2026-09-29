@@ -55,6 +55,7 @@ export function TaskRow({
   dragHandle,
   showBigThreePin,
   pinnedTodayCount,
+  pinDate,
   onOpenProject,
 }: {
   action: Action
@@ -67,8 +68,10 @@ export function TaskRow({
   dragHandle?: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }
   /** Show the Short List pin toggle. Only meaningful in the Next Actions view — that's the one trusted list it pins from. */
   showBigThreePin?: boolean
-  /** How many actions are pinned for today, to enforce the Short List cap. Only used when showBigThreePin is true. */
+  /** How many actions are pinned for the target day, to enforce the Short List cap. Only used when showBigThreePin is true. */
   pinnedTodayCount?: number
+  /** Which day's Short List the star pins into. Defaults to today — End My Day passes tomorrow's workday start instead. */
+  pinDate?: number
   /** Makes the "↳ Project" badge (when showProject is set) clickable, jumping into that project. */
   onOpenProject?: (projectId: string) => void
 }) {
@@ -84,7 +87,8 @@ export function TaskRow({
   const { notify } = useCompletionToast()
 
   const done = action.status === 'done'
-  const pinnedToday = action.bigThreeDate === startOfWorkday()
+  const targetDate = pinDate ?? startOfWorkday()
+  const pinnedToday = action.bigThreeDate === targetDate
   const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
 
   return (
@@ -119,14 +123,14 @@ export function TaskRow({
 
       {showBigThreePin && (
         <button
-          onClick={() => (pinnedToday ? unpinFromBigThree(action.id) : pinToBigThree(action.id))}
+          onClick={() => (pinnedToday ? unpinFromBigThree(action.id) : pinToBigThree(action.id, targetDate))}
           disabled={!pinnedToday && atCap}
           title={
             pinnedToday
-              ? "Remove from today's Short List"
+              ? `Remove from ${pinDate ? "tomorrow's" : "today's"} Short List`
               : atCap
-                ? "Today's Short List is full — remove one first"
-                : "Add to today's Short List"
+                ? `${pinDate ? "Tomorrow's" : "Today's"} Short List is full — remove one first`
+                : `Add to ${pinDate ? "tomorrow's" : "today's"} Short List`
           }
           className={`shrink-0 text-sm transition disabled:cursor-not-allowed disabled:opacity-20 ${
             pinnedToday

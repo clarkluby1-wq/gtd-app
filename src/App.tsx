@@ -19,6 +19,7 @@ import { RecentlyCompletedView } from './views/RecentlyCompletedView'
 import { ReportView } from './views/ReportView'
 import { InboxView } from './views/InboxView'
 import { StartDayView } from './views/StartDayView'
+import { EndDayView } from './views/EndDayView'
 import { TodayHomeView } from './views/TodayHomeView'
 import { FocusView } from './views/FocusView'
 import { NO_FILTERS, type NextFilters } from './lib/nextFilters'
@@ -165,6 +166,7 @@ function App() {
           <TodayHomeView
             onOpenProject={openProject}
             onStartDay={() => selectView('startday')}
+            onEndDay={() => selectView('endday')}
             onViewNextActions={() => selectView('next')}
             onViewCalendar={() => selectView('calendar')}
             onViewWeeklyReview={startReview}
@@ -184,6 +186,18 @@ function App() {
             onViewWhatNow={() => selectView('whatnow')}
             onViewCalendar={() => selectView('calendar')}
             onViewWeeklyReview={startReview}
+          />
+        )
+        break
+      case 'endday':
+        content = (
+          <EndDayView
+            onOpenProject={openProject}
+            onProcessInbox={startInboxProcessing}
+            onViewInbox={() => selectView('inbox')}
+            onViewToday={() => selectView('today')}
+            onViewNextActions={() => selectView('next')}
+            onViewCalendar={() => selectView('calendar')}
           />
         )
         break

@@ -349,9 +349,10 @@ export async function restoreAction(action: Action) {
   await db.actions.put(action)
 }
 
-/** Add an action to today's Short List. Caller is responsible for enforcing the cap (SHORT_LIST_MAX in lib/shortList). */
-export async function pinToBigThree(actionId: string) {
-  await db.actions.update(actionId, { bigThreeDate: startOfWorkday(), touchedAt: Date.now() })
+/** Add an action to a day's Short List — today by default, or a chosen date (e.g. tomorrow, from End My Day).
+ *  Caller is responsible for enforcing the cap (SHORT_LIST_MAX in lib/shortList). */
+export async function pinToBigThree(actionId: string, date: number = startOfWorkday()) {
+  await db.actions.update(actionId, { bigThreeDate: date, touchedAt: Date.now() })
 }
 
 export async function unpinFromBigThree(actionId: string) {

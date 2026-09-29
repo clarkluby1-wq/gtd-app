@@ -17,12 +17,14 @@ import type { Action } from '../db/types'
 export function TodayHomeView({
   onOpenProject,
   onStartDay,
+  onEndDay,
   onViewNextActions,
   onViewCalendar,
   onViewWeeklyReview,
 }: {
   onOpenProject: (projectId: string) => void
   onStartDay: () => void
+  onEndDay: () => void
   onViewNextActions: () => void
   onViewCalendar: () => void
   onViewWeeklyReview: () => void
@@ -71,8 +73,11 @@ export function TodayHomeView({
       <BigThree actions={shortList} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
 
       {/* A quiet door, never a prompt: always the same on every device, so it can't read as "didn't I just do this?" */}
-      <button onClick={onStartDay} className="mb-6 -mt-2 text-sm text-neutral-500 hover:text-neutral-300">
+      <button onClick={onStartDay} className="-mt-2 block text-sm text-neutral-500 hover:text-neutral-300">
         ☀️ Start your day — a quick guided look →
+      </button>
+      <button onClick={onEndDay} className="mb-6 block text-sm text-neutral-500 hover:text-neutral-300">
+        🌆 End your day — plan for tomorrow →
       </button>
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">

@@ -93,3 +93,11 @@ export function previousWorkdayStart(timestamp: number = Date.now()): number {
   d.setDate(d.getDate() - 1)
   return d.getTime()
 }
+
+/** The workday immediately after the one containing `timestamp` (defaults to now) — "tomorrow" for anything
+ *  that's about *your* day, like a Short List pin chosen the night before during End My Day. */
+export function nextWorkdayStart(timestamp: number = Date.now()): number {
+  const d = new Date(startOfWorkday(timestamp))
+  d.setDate(d.getDate() + 1)
+  return d.getTime()
+}
