@@ -465,12 +465,22 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 </Btn>
                 <Btn onClick={() => go('notActionable')}>No</Btn>
               </div>
-              <button
-                onClick={() => finish(() => sendToSomeday(item.id))}
-                className="self-start text-xs text-neutral-500 hover:text-neutral-300"
-              >
-                🌙 Already know it's not for now — send straight to Someday/Maybe
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => markDoneNow(e.currentTarget)}
+                  title="Already handled this — mark it done without going further"
+                  className="rounded-md border border-emerald-800 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-600 hover:text-white"
+                >
+                  ✓ Done
+                </button>
+                <button
+                  onClick={() => finish(() => sendToSomeday(item.id))}
+                  title="Already know it's not for now — send it to Someday/Maybe without going further"
+                  className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
+                >
+                  🌙 Someday
+                </button>
+              </div>
             </div>
           )}
 

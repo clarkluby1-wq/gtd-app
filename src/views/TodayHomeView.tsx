@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { BigThree } from '../components/BigThree'
-import { useTodayShortList } from '../lib/shortList'
+import { useTodayPinCount, useTodayShortList } from '../lib/shortList'
 import { TaskRow } from '../components/TaskRow'
 import { startOfDay, startOfToday } from '../lib/date'
 import { describeStatus } from '../lib/reviewSchedule'
@@ -36,6 +36,7 @@ export function TodayHomeView({
 
   // Not just Next Actions — a pinned Waiting For or Scheduled item is just as much today's short list.
   const shortListRaw = useTodayShortList()
+  const pinnedTodayCount = useTodayPinCount()
   const shortList = (shortListRaw ?? []).filter((a) => notParked(a))
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const withDue = useLiveQuery(() => db.actions.filter((a) => a.status === 'next' && a.dueDate != null).toArray())
@@ -87,7 +88,14 @@ export function TodayHomeView({
         ) : (
           <div className="flex flex-col divide-y divide-neutral-900">
             {onCalendarToday.map((a) => (
-              <TaskRow key={a.id} action={a} showProject onOpenProject={onOpenProject} />
+              <TaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showBigThreePin
+                pinnedTodayCount={pinnedTodayCount}
+                onOpenProject={onOpenProject}
+              />
             ))}
           </div>
         )}

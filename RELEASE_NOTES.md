@@ -4,6 +4,16 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 1, 2026
+
+**Star items straight from "On your calendar today"**
+Anything shown in the "On your calendar today" box on the Today screen can now be starred onto your Short List directly, same as everywhere else — no need to go find it in Next Actions first.
+
+**A proper Done button in Clarify**
+"Is it actionable?" now has quick ✓ Done and 🌙 Someday buttons, styled to match the ones already on each Inbox row, instead of small text links — easier to spot and tap when something you're clarifying turns out to already be finished.
+
+---
+
 ## September 29, 2026
 
 **A new "End My Day" — plan tonight instead of the morning of**
