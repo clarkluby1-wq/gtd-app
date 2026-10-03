@@ -9,6 +9,9 @@ What's changed in the GTD app, in plain language — newest first.
 **Add things straight to the Calendar**
 The Calendar screen has a new "+ Add to calendar" button. Type what's happening, pick the day (and a time or context if it matters), and it goes straight onto that day — no stop in the Inbox. The form stays open so you can add several in a row.
 
+**Capture right where the thought hits, in Start My Day**
+On the first step, each "As you look, ask yourself" question now has a quiet "Yes, capture it" link. Tap it, type what came to mind (there's an example in the box), and press Enter — it goes straight to your Inbox and shows a "✓ Captured" line. Nothing extra shows until you tap. The old "drop it in the capture bar" note is gone.
+
 **Cancel, Close and Undo now mean the same thing everywhere**
 Anything you're filling in has a quiet "Cancel" at the bottom left (the Calendar's quick-add used to say "Done adding," and a couple of places said "Never mind"). The longer guided flows say "Close," and the Natural Planning window now has both Cancel and Back. The ✕ symbol now only ever means delete: the "done" card's ✕ is a plain "Undo," and the Reports screen's "✕ Close" is just "Close." Pressing Esc now closes the Edit window, Clarify, delete confirmations and the Calendar's quick-add. In the "what's next?" card, Cancel now steps back to your choices instead of closing the card.
 

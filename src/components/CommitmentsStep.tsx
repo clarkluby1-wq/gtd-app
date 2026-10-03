@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { captureToInbox } from '../db/operations'
 import { startOfWorkday } from '../lib/date'
 
 const CALENDARS = [
@@ -113,15 +114,79 @@ export function CommitmentsStep() {
       </div>
 
       <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">As you look, ask yourself</h3>
-      <ul className="mb-5 flex flex-col gap-1.5 text-sm text-neutral-300">
-        <li>Is there anything to prepare, or travel time to allow for?</li>
-        <li>Is anyone counting on me today?</li>
-      </ul>
+      <div className="mb-2 flex flex-col gap-1">
+        <PromptRow
+          question="Is there anything to prepare, or travel time to allow for?"
+          example="Print the agenda and pack a charger"
+        />
+        <PromptRow question="Is anyone counting on me today?" example="Reply to Priya about the budget" />
+      </div>
+    </div>
+  )
+}
 
-      <p className="text-xs text-neutral-500">
-        Spotted something you need to do or get ready for? Drop it in the capture bar at the top — it goes straight to
-        your Inbox.
-      </p>
+/** A question with a way to act on a "yes" right where you thought it — straight to the Inbox, no detour to the bar above. */
+function PromptRow({ question, example }: { question: string; example: string }) {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
+  const [captured, setCaptured] = useState<string[]>([])
+
+  const submit = () => {
+    const title = value.trim()
+    if (!title) return
+    setValue('')
+    void captureToInbox(title).then(() => setCaptured((prev) => [...prev, title]))
+  }
+
+  return (
+    <div className="py-1.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-sm text-neutral-300">{question}</span>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`shrink-0 text-xs ${open ? 'text-neutral-500 hover:text-neutral-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+        >
+          {open ? 'Close' : 'Yes, capture it'}
+        </button>
+      </div>
+
+      {open && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submit()
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setOpen(false)
+              }
+            }}
+            placeholder={example}
+            className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none placeholder:text-neutral-500"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500"
+          >
+            Add
+          </button>
+        </form>
+      )}
+
+      {captured.map((t, i) => (
+        <div key={i} className="mt-1.5 flex items-center gap-2 text-xs text-emerald-400">
+          <span aria-hidden>✓</span>
+          <span className="truncate text-neutral-400">Captured: {t}</span>
+        </div>
+      ))}
     </div>
   )
 }
