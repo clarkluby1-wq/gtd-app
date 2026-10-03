@@ -650,7 +650,7 @@ function ReportSheet({
             Print / Save as PDF
           </button>
           <button autoFocus onClick={onClose} className={barButton}>
-            ✕ Close
+            Close
           </button>
         </div>
       </div>

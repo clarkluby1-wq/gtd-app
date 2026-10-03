@@ -4,6 +4,24 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 3, 2026
+
+**Add things straight to the Calendar**
+The Calendar screen has a new "+ Add to calendar" button. Type what's happening, pick the day (and a time or context if it matters), and it goes straight onto that day — no stop in the Inbox. The form stays open so you can add several in a row.
+
+**Cancel, Close and Undo now mean the same thing everywhere**
+Anything you're filling in has a quiet "Cancel" at the bottom left (the Calendar's quick-add used to say "Done adding," and a couple of places said "Never mind"). The longer guided flows say "Close," and the Natural Planning window now has both Cancel and Back. The ✕ symbol now only ever means delete: the "done" card's ✕ is a plain "Undo," and the Reports screen's "✕ Close" is just "Close." Pressing Esc now closes the Edit window, Clarify, delete confirmations and the Calendar's quick-add. In the "what's next?" card, Cancel now steps back to your choices instead of closing the card.
+
+The Calendar's "+ Add to calendar" now saves and closes when you press Add, instead of staying open.
+
+**Type a time instead of picking one**
+Wherever you give something a time (the Calendar's quick-add, the Edit window, and Clarify), you can now just type it: "7pm", "1130a", "11:30 am", "noon" or "19:30". The app shows what it understood, like "→ 7:00 pm". Without am/pm it guesses the way a workday goes — 8 to 11 is morning, 1 to 7 is afternoon — and a quick "7a" fixes a wrong guess.
+
+**No more "Invalid Date" on the Calendar**
+Something marked Scheduled without a day used to show up under "Invalid Date." It's now listed under "No date yet" so you can open it and give it a day. And you can no longer save an item as Scheduled without choosing a day, in the Edit window or the "what's next?" card.
+
+---
+
 ## October 1, 2026
 
 **Star items straight from "On your calendar today"**

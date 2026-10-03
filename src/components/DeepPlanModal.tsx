@@ -59,9 +59,6 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
           <span className="text-xs uppercase tracking-wide text-neutral-500">
             Natural Planning · {STEP_TITLE[step]}
           </span>
-          <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
-            Close
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -215,12 +212,19 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
         </div>
 
         <div className="flex items-center justify-between border-t border-neutral-800 px-5 py-3">
-          <button
-            onClick={() => (stepIndex > 0 ? setStep(STEPS[stepIndex - 1]) : onClose())}
-            className="text-xs text-neutral-500 hover:text-neutral-300"
-          >
-            {stepIndex > 0 ? '← Back' : 'Cancel'}
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-300">
+              Cancel
+            </button>
+            {stepIndex > 0 && (
+              <button
+                onClick={() => setStep(STEPS[stepIndex - 1])}
+                className="text-xs text-neutral-500 hover:text-neutral-300"
+              >
+                ← Back
+              </button>
+            )}
+          </div>
           <div className="flex gap-1">
             {STEPS.map((s) => (
               <span key={s} className={`h-1.5 w-6 rounded-full ${s === step ? 'bg-emerald-500' : 'bg-neutral-700'}`} />

@@ -1,3 +1,5 @@
+import { useEscapeKey } from '../lib/useEscapeKey'
+
 export function ConfirmDialog({
   title = 'Delete this?',
   message,
@@ -11,6 +13,7 @@ export function ConfirmDialog({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  useEscapeKey(onCancel)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-xl border border-neutral-800 bg-neutral-900 p-5 text-neutral-100 shadow-xl">

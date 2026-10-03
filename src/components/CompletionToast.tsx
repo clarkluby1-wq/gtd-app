@@ -113,8 +113,8 @@ export function CompletionToast({
           <span className="text-emerald-400">✓ Done:</span> {completedAction.title}
           {project && <div className="mt-1 text-xs text-neutral-400">↳ [{project.title}]</div>}
         </div>
-        <button onClick={undo} title="Undo — wasn't actually done" className="shrink-0 text-neutral-600 hover:text-red-400">
-          ✕
+        <button onClick={undo} title="Undo — wasn't actually done" className="shrink-0 text-xs text-neutral-500 hover:text-red-400">
+          Undo
         </button>
       </div>
 
@@ -222,15 +222,14 @@ export function CompletionToast({
           )}
 
           <div className="flex justify-between pt-1">
-            <button
-              onClick={(e) => closeWithReward(e.currentTarget)}
-              className="text-xs text-neutral-500 hover:text-neutral-300"
-            >
+            <button onClick={() => setExpanded(false)} className="text-xs text-neutral-500 hover:text-neutral-300">
               Cancel
             </button>
             <button
               onClick={(e) => void submit(e.currentTarget)}
-              disabled={!title.trim() || (type === 'waiting' && !waitingOn.trim())}
+              disabled={
+                !title.trim() || (type === 'waiting' && !waitingOn.trim()) || (type === 'scheduled' && !scheduledDate)
+              }
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
             >
               Add

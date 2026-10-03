@@ -30,6 +30,47 @@ export function formatTimeOfDay(timestamp: number): string {
   return `${twelve}:${String(minutes).padStart(2, '0')} ${suffix}`
 }
 
+/**
+ * Read a time someone typed — "7pm", "1130a", "11:30 am", "noon", "19:30" — into "HH:MM", or null if it can't be
+ * read. Without am/pm, 8–11 is taken as morning and 1–7 as afternoon (the way a workday goes); 12 is noon, and
+ * 0 or 13–23 are 24-hour times. A leading zero ("0730") also means 24-hour.
+ */
+export function parseTypedTime(input: string): string | null {
+  const text = input.toLowerCase().replace(/[\s.]/g, '')
+  if (text === 'noon') return '12:00'
+  if (text === 'midnight') return '00:00'
+  const match = /^(\d{1,4})(?::(\d{1,2}))?(a|am|p|pm)?$/.exec(text)
+  if (!match) return null
+  const [, digits, colonMinutes, suffix] = match
+  let hours: number
+  let minutes: number
+  if (colonMinutes !== undefined) {
+    if (digits.length > 2) return null
+    hours = Number(digits)
+    minutes = Number(colonMinutes)
+  } else if (digits.length <= 2) {
+    hours = Number(digits)
+    minutes = 0
+  } else if (digits.length === 3) {
+    hours = Number(digits[0])
+    minutes = Number(digits.slice(1))
+  } else {
+    hours = Number(digits.slice(0, 2))
+    minutes = Number(digits.slice(2))
+  }
+  if (minutes > 59) return null
+  if (suffix) {
+    if (hours < 1 || hours > 12) return null
+    const pm = suffix.startsWith('p')
+    hours = (hours % 12) + (pm ? 12 : 0)
+  } else if (hours > 23) {
+    return null
+  } else if (hours >= 1 && hours <= 12 && !digits.startsWith('0')) {
+    if (hours >= 1 && hours <= 7) hours += 12
+  }
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
 /** Format a timestamp as the local "HH:MM" an `<input type="time">` expects, or '' when it has no time of
  *  day set (see hasTimeOfDay). */
 export function toTimeInputValue(timestamp?: number): string {

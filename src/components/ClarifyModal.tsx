@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { ProjectPicker } from './ProjectPicker'
+import { TimeField } from './TimeField'
 import {
   clarifyAsNextAction,
   clarifyAsProject,
@@ -21,6 +22,7 @@ import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
 import { useWaitingOnNames } from '../lib/waiting'
+import { useEscapeKey } from '../lib/useEscapeKey'
 import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -195,6 +197,9 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     savedNotesRef.current = trimmed
     await updateAction(item.id, { notes: trimmed || undefined })
   }
+
+  // Esc does what the footer's Cancel / "Stop for now" does.
+  useEscapeKey(() => void flushNotes().then(onClose))
 
   // A remembered context may have been deleted since; never save (or show) one that no longer exists.
   const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
@@ -406,7 +411,11 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                   e.preventDefault()
                   commitTitle()
                 }
-                if (e.key === 'Escape') cancelTitleEdit()
+                if (e.key === 'Escape') {
+                  // Only undoes the reword; the window itself stays open.
+                  e.preventDefault()
+                  cancelTitleEdit()
+                }
               }}
               className="mt-1 w-full resize-none rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-base font-medium text-neutral-100 outline-none"
             />
@@ -711,13 +720,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                   onChange={(e) => setScheduledDate(e.target.value)}
                   className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                 />
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  aria-label="Time — optional, only if it truly has to happen then"
-                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                />
+                <TimeField value={scheduledTime} onChange={setScheduledTime} />
               </div>
               {contexts && contexts.length > 0 && (
                 <select
@@ -814,7 +817,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                     onClick={() => setChoosingSwap(false)}
                     className="mt-2 text-xs text-neutral-500 hover:text-neutral-300"
                   >
-                    Never mind
+                    Cancel
                   </button>
                 </div>
               ) : wantsShortList ? (

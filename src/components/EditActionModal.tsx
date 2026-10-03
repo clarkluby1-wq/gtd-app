@@ -8,6 +8,8 @@ import { followUpPending, useWaitingOnNames, waitingStartedAt } from '../lib/wai
 import { SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
+import { TimeField } from './TimeField'
+import { useEscapeKey } from '../lib/useEscapeKey'
 
 /** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
 function historyLine(a: Action): string {
@@ -51,6 +53,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   // Same count every star uses, minus this action, so the cap can never disagree with it — whatever kind of item is pinned.
   const otherPinnedCount = useTodayPinCount(action.id)
   const waitingOnNames = useWaitingOnNames()
+  useEscapeKey(onClose)
 
   const [title, setTitle] = useState(action.title)
   const [type, setType] = useState<EditType>(statusToType(action.status))
@@ -72,6 +75,13 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [notes, setNotes] = useState(action.notes ?? '')
   const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfWorkday())
   const bigThreeFull = (otherPinnedCount ?? 0) >= SHORT_LIST_MAX
+  // An item can't be saved as Waiting For without a name, or as Scheduled without a day — it would be unplaceable.
+  const saveBlocker =
+    type === 'waiting' && !waitingOn.trim()
+      ? 'Who is it waiting on?'
+      : type === 'scheduled' && !scheduledDate
+        ? 'Which day is it scheduled for?'
+        : undefined
 
   const createProject = async () => {
     const name = newProjectName.trim()
@@ -231,7 +241,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                   onClick={() => setMakingProject(false)}
                   className="text-xs text-neutral-500 hover:text-neutral-300"
                 >
-                  Never mind
+                  Cancel
                 </button>
               </div>
             </div>
@@ -332,13 +342,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                   onChange={(e) => setScheduledDate(e.target.value)}
                   className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
                 />
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  aria-label="Time — optional, only if it truly has to happen then"
-                  className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
-                />
+                <TimeField value={scheduledTime} onChange={setScheduledTime} />
               </div>
             </>
           )}
@@ -351,8 +355,8 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
           </button>
           <button
             onClick={save}
-            disabled={type === 'waiting' && !waitingOn.trim()}
-            title={type === 'waiting' && !waitingOn.trim() ? 'Who is it waiting on?' : undefined}
+            disabled={saveBlocker !== undefined}
+            title={saveBlocker}
             className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Save
