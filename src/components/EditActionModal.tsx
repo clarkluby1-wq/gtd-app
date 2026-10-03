@@ -10,6 +10,8 @@ import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
 import { TimeField } from './TimeField'
 import { useEscapeKey } from '../lib/useEscapeKey'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
+import { SimilarNotice } from './SimilarNotice'
 
 /** "Added Sep 1 · Waiting since Sep 10 · Followed up Sep 15, Sep 22" — everything you might want to recall about a task, in one line. */
 function historyLine(a: Action): string {
@@ -69,6 +71,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   // "This has grown into a project": makes a new project right here and links this action to it as its first step.
   const [makingProject, setMakingProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const similarProject = useSimilarExisting(makingProject ? newProjectName : '', action.id)
   const [newProjectOutcome, setNewProjectOutcome] = useState('')
   const [newProjectArea, setNewProjectArea] = useState('')
   const [madeProject, setMadeProject] = useState<string | null>(null)
@@ -207,6 +210,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
                 onChange={(e) => setNewProjectName(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              <SimilarNotice match={similarProject} />
               <label className="text-xs text-neutral-500">What does "done" look like? (optional)</label>
               <textarea
                 value={newProjectOutcome}

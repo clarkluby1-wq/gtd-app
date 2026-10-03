@@ -1,6 +1,6 @@
 import { db } from '../db/db'
 import type { Action, ActionStatus } from '../db/types'
-import { flagSimilar, type Candidate } from './similar'
+import { findSimilar, flagSimilar, type Candidate } from './similar'
 
 /** Where an existing item lives, worded to follow "Already have: <title> —". Done and trashed items are never compared. */
 const STATUS_LABEL: Partial<Record<ActionStatus, string>> = {
@@ -9,6 +9,26 @@ const STATUS_LABEL: Partial<Record<ActionStatus, string>> = {
   waiting: 'in Waiting For',
   scheduled: 'on your Calendar',
   someday: 'in Someday / Maybe',
+}
+
+/**
+ * The closest thing already in the system to a title being typed or clarified right now, if it's close enough to
+ * mention. Same cautious matching and same pool as the Mind Sweep check; `excludeId` keeps an item from matching itself.
+ */
+export async function findExistingMatch(title: string, excludeId?: string): Promise<Candidate | undefined> {
+  if (!title.trim()) return undefined
+  const [actions, projects] = await Promise.all([
+    db.actions.where('status').anyOf(Object.keys(STATUS_LABEL)).toArray(),
+    db.projects.where('status').anyOf('active', 'someday').toArray(),
+  ])
+  const candidates: Candidate[] = [
+    ...actions
+      .filter((a) => a.id !== excludeId)
+      .map((a) => ({ title: a.title, label: STATUS_LABEL[a.status] ?? 'in your system' })),
+    ...projects.map((p) => ({ title: p.title, label: p.status === 'someday' ? 'in Someday / Maybe (a project)' : 'in Projects' })),
+  ]
+  const match = findSimilar(title, candidates)
+  return match ? { title: match.title, label: match.label } : undefined
 }
 
 export interface SweepDuplicate {

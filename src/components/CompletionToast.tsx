@@ -6,6 +6,8 @@ import { celebrate, getCelebrationLevel, originOf } from '../lib/celebrate'
 import { celebrateCompletion, isLastOpenAction } from '../lib/celebrateCompletion'
 import { parseLocalDate, startOfWorkday } from '../lib/date'
 import { useWaitingOnNames } from '../lib/waiting'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
+import { SimilarNotice } from './SimilarNotice'
 import type { Action, ActionStatus } from '../db/types'
 
 const PHRASES = ['Nice.', 'One down.', 'Momentum.', 'Progress counts.', "That's a win.", 'Done and dusted.']
@@ -36,11 +38,15 @@ export function CompletionToast({
   const [expanded, setExpanded] = useState(false)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<FollowUpType>('next')
-  const [contextId, setContextId] = useState('')
+  // undefined = not touched yet, so the follow-up starts on @anywhere; picking "No context" is a real choice ('').
+  const [pickedContextId, setContextId] = useState<string | undefined>(undefined)
   const [waitingOn, setWaitingOn] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
+  const anywhereId = contexts?.find((c) => c.name.toLowerCase() === '@anywhere')?.id
+  const contextId = pickedContextId ?? anywhereId ?? ''
   const waitingOnNames = useWaitingOnNames()
+  const similar = useSimilarExisting(expanded ? title : '', completedAction.id)
   const [phrase] = useState(() => PHRASES[Math.floor(Math.random() * PHRASES.length)])
   const doneToday = useLiveQuery(() =>
     db.actions
@@ -165,6 +171,7 @@ export function CompletionToast({
             placeholder="What's next?"
             className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm outline-none"
           />
+          <SimilarNotice match={similar} />
 
           <div className="flex gap-1">
             {TYPES.map((t) => (

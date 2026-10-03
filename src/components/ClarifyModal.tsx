@@ -23,6 +23,8 @@ import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
 import { useWaitingOnNames } from '../lib/waiting'
 import { useEscapeKey } from '../lib/useEscapeKey'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
+import { SimilarNotice } from './SimilarNotice'
 import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
 
 /** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
@@ -197,6 +199,11 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
     savedNotesRef.current = trimmed
     await updateAction(item.id, { notes: trimmed || undefined })
   }
+
+  // Something already in the system that looks like this: checked on the first question (for the item as worded now)
+  // and while naming a project.
+  const similarItem = useSimilarExisting(step === 'actionable' ? title : '', item.id)
+  const similarProject = useSimilarExisting(step === 'defineProject' ? projectTitle : '', item.id)
 
   // Esc does what the footer's Cancel / "Stop for now" does.
   useEscapeKey(() => void flushNotes().then(onClose))
@@ -468,6 +475,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
           {step === 'actionable' && (
             <div className="flex flex-col gap-3">
+              <SimilarNotice match={similarItem} onSame={() => finish(() => trashItem(item.id))} />
               <div className="flex gap-2">
                 <Btn primary onClick={() => go('singleOrProject')}>
                   Yes
@@ -549,6 +557,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 onChange={(e) => setProjectTitle(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               />
+              <SimilarNotice match={similarProject} />
               <label className="text-xs text-neutral-500">
                 Outcome — what does "done" look like when this is successfully complete?
               </label>

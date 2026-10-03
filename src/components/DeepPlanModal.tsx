@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { createProject } from '../db/operations'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
+import { SimilarNotice } from './SimilarNotice'
 
 type Step = 'purpose' | 'vision' | 'brainstorm' | 'organize' | 'actions'
 
@@ -39,6 +41,7 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
   const [actions, setActions] = useState<{ title: string; contextId?: string }[]>([{ title: '' }])
 
   const stepIndex = STEPS.indexOf(step)
+  const similar = useSimilarExisting(step === 'purpose' ? title : '')
 
   const create = async () => {
     const project = await createProject({
@@ -71,6 +74,7 @@ export function DeepPlanModal({ onClose, onCreated }: { onClose: () => void; onC
                 placeholder="Project title"
                 className="mb-4 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-base font-medium outline-none"
               />
+              <SimilarNotice match={similar} className="-mt-2 mb-4" />
               <p className="mb-2 text-sm text-neutral-400">{STEP_PROMPT.purpose}</p>
               <textarea
                 value={purpose}

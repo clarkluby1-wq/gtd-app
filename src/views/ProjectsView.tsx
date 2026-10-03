@@ -7,7 +7,9 @@ import { db } from '../db/db'
 import { v4 as uuid } from 'uuid'
 import { DeepPlanModal } from '../components/DeepPlanModal'
 import { updateProject } from '../db/operations'
+import { SimilarNotice } from '../components/SimilarNotice'
 import { isProjectStalled, stalledMessage } from '../lib/projectHealth'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Project } from '../db/types'
 
@@ -27,6 +29,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
   const [title, setTitle] = useState('')
   const [outcome, setOutcome] = useState('')
   const [status, setStatus] = useState<'active' | 'someday'>('active')
+  const similar = useSimilarExisting(creating ? title : '')
 
   const { sensors, handleDragEnd } = useDragReorder(projects, (id, order) => {
     void updateProject(id, { order })
@@ -136,6 +139,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
             placeholder="Project title"
             className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
           />
+          <SimilarNotice match={similar} />
           <textarea
             value={outcome}
             onChange={(e) => setOutcome(e.target.value)}

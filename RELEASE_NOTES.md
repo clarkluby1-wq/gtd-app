@@ -9,6 +9,12 @@ What's changed in the GTD app, in plain language — newest first.
 **Add things straight to the Calendar**
 The Calendar screen has a new "+ Add to calendar" button. Type what's happening, pick the day (and a time or context if it matters), and it goes straight onto that day — no stop in the Inbox. The form stays open so you can add several in a row.
 
+**A heads-up when something's already in your system**
+While you clarify an item, or type a title for a new project, a calendar item or a "what's next?" follow-up, the app now checks for something similar you already have — in the Inbox, Next Actions, Waiting For, Calendar, Someday or Projects. If it finds one, a calm note says so ("Looks like you already have “…” in Next Actions"). In Clarify you can remove the new one with a click or tap "It's different" to carry on. It only ever suggests, and it's deliberately cautious, so it catches the same names and subjects but not rewordings. The capture bar is untouched, so capturing stays instant.
+
+**Follow-ups start on @anywhere**
+When you add a follow-up Next Action from the "what's next?" card after finishing something, the context now starts on @anywhere instead of "No context." You can still pick another, or choose "No context."
+
 **Capture right where the thought hits, in Start My Day**
 On the first step, each "As you look, ask yourself" question now has a quiet "Yes, capture it" link. Tap it, type what came to mind (there's an example in the box), and press Enter — it goes straight to your Inbox and shows a "✓ Captured" line. Nothing extra shows until you tap. The old "drop it in the capture bar" note is gone.
 

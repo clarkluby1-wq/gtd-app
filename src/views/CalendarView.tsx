@@ -5,7 +5,9 @@ import { createAction } from '../db/operations'
 import { TaskRow } from '../components/TaskRow'
 import { TimeField } from '../components/TimeField'
 import { parseLocalDateTime, toDateInputValue } from '../lib/date'
+import { SimilarNotice } from '../components/SimilarNotice'
 import { useEscapeKey } from '../lib/useEscapeKey'
+import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { useTodayPinCount } from '../lib/shortList'
 import { followUpPending } from '../lib/waiting'
@@ -40,6 +42,7 @@ function QuickAdd() {
     setDate(toDateInputValue(Date.now()))
   }
   useEscapeKey(close, open)
+  const similar = useSimilarExisting(open ? title : '')
 
   if (!open) {
     return (
@@ -80,6 +83,7 @@ function QuickAdd() {
         placeholder="What's happening?"
         className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
       />
+      <SimilarNotice match={similar} />
       <div className="flex flex-wrap gap-2">
         <input
           type="date"
