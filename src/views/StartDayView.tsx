@@ -24,6 +24,34 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'go', label: 'Go' },
 ]
 
+type PickSort = 'deadlines' | 'oldest' | 'newest'
+
+const PICK_SORT_OPTIONS: { value: PickSort; label: string }[] = [
+  { value: 'deadlines', label: 'Sort: Deadlines first' },
+  { value: 'oldest', label: 'Sort: Oldest first' },
+  { value: 'newest', label: 'Sort: Newest first' },
+]
+
+// Remembered, so a morning routine doesn't start from scratch.
+const PICK_SORT_KEY = 'gtd.startDay.pickSort'
+
+function readPickSort(): PickSort {
+  try {
+    const saved = localStorage.getItem(PICK_SORT_KEY)
+    return PICK_SORT_OPTIONS.some((o) => o.value === saved) ? (saved as PickSort) : 'deadlines'
+  } catch {
+    return 'deadlines'
+  }
+}
+
+function savePickSort(sort: PickSort) {
+  try {
+    localStorage.setItem(PICK_SORT_KEY, sort)
+  } catch {
+    // Not remembering is fine; it just starts on "Deadlines first" next time.
+  }
+}
+
 /** Enough to choose from without turning the pick into a scroll; the rest is one click away. */
 const PICK_PREVIEW = 8
 const NUDGE_PREVIEW = 5
@@ -62,6 +90,7 @@ export function StartDayView({
   const [step, setStep] = useState<Step>('commitments')
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
   const [showAllPicks, setShowAllPicks] = useState(false)
+  const [pickSort, setPickSort] = useState(readPickSort)
 
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const nexts = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
@@ -123,15 +152,21 @@ export function StartDayView({
     () =>
       (nexts ?? [])
         .filter(notParked)
-        // Starring one pops it straight to the top, so the choice is visible right away. Below that: deadlines
-        // first, soonest first, then your own order.
+        // Starring one pops it straight to the top, whatever the sort, so the choice is visible right away. Below
+        // that it follows the chosen sort: deadlines first (soonest, then your own order), or oldest / newest captured.
         .sort(
           (a, b) =>
             Number(b.bigThreeDate === workdayToday) - Number(a.bigThreeDate === workdayToday) ||
-            Number(b.dueDate != null) - Number(a.dueDate != null) || (a.dueDate ?? 0) - (b.dueDate ?? 0) || a.order - b.order,
+            (pickSort === 'oldest'
+              ? a.createdAt - b.createdAt
+              : pickSort === 'newest'
+                ? b.createdAt - a.createdAt
+                : Number(b.dueDate != null) - Number(a.dueDate != null) ||
+                  (a.dueDate ?? 0) - (b.dueDate ?? 0) ||
+                  a.order - b.order),
         ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nexts, somedayProjectIds, workdayToday],
+    [nexts, somedayProjectIds, workdayToday, pickSort],
   )
   const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
   // The preview never hides something already chosen — moot now that starring pops it to the top, but stays
@@ -325,6 +360,22 @@ export function StartDayView({
             <Calm>No Next Actions yet. Sorting your Inbox will fill this in.</Calm>
           ) : (
             <>
+              <select
+                value={pickSort}
+                onChange={(e) => {
+                  const next = e.target.value as PickSort
+                  setPickSort(next)
+                  savePickSort(next)
+                }}
+                aria-label="Sort Next Actions"
+                className="mb-2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-200"
+              >
+                {PICK_SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
               <div className="flex flex-col divide-y divide-neutral-900">
                 {shownPicks.map((a) => (
                   <TaskRow

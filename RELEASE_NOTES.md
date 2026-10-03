@@ -9,6 +9,9 @@ What's changed in the GTD app, in plain language — newest first.
 **Add things straight to the Calendar**
 The Calendar screen has a new "+ Add to calendar" button. Type what's happening, pick the day (and a time or context if it matters), and it goes straight onto that day — no stop in the Inbox. The form stays open so you can add several in a row.
 
+**Sort the Short List picker in Start My Day**
+The Short List step has a new sort menu above your Next Actions: Deadlines first (the usual order), Oldest first, or Newest first. Oldest first brings up things that have been sitting a long time. Anything you've starred always stays at the top, and the app remembers your choice.
+
 **A heads-up when something's already in your system**
 While you clarify an item, or type a title for a new project, a calendar item or a "what's next?" follow-up, the app now checks for something similar you already have — in the Inbox, Next Actions, Waiting For, Calendar, Someday or Projects. If it finds one, a calm note says so ("Looks like you already have “…” in Next Actions"). In Clarify you can remove the new one with a click or tap "It's different" to carry on. It only ever suggests, and it's deliberately cautious, so it catches the same names and subjects but not rewordings. The capture bar is untouched, so capturing stays instant.
 
