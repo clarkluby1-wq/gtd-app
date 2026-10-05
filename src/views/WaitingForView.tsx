@@ -11,7 +11,7 @@ import { TaskRow } from '../components/TaskRow'
 import { useDragReorder } from '../lib/useDragReorder'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { useTodayPinCount } from '../lib/shortList'
-import { lastFollowUpAt, needsNudge, NUDGE_AFTER_DAYS, wasFollowedUpToday, waitingStartedAt } from '../lib/waiting'
+import { isSnoozed, lastFollowUpAt, needsNudge, NUDGE_AFTER_DAYS, wasFollowedUpToday, waitingStartedAt } from '../lib/waiting'
 
 type SortMode = 'mine' | 'longest' | 'newest'
 type GroupMode = 'none' | 'project' | 'person'
@@ -57,11 +57,14 @@ function saveView(view: { sort: SortMode; group: GroupMode }) {
  * Parked items are ordered by when you followed up, so the newest lands at the very bottom.
  */
 function splitParked(items: Action[]) {
+  // Snoozed ("still waiting, not chasing") get their own section at the very bottom, soonest to wake first.
+  const awake = items.filter((a) => !isSnoozed(a))
   return {
-    active: items.filter((a) => !wasFollowedUpToday(a)),
-    parked: items
+    active: awake.filter((a) => !wasFollowedUpToday(a)),
+    parked: awake
       .filter(wasFollowedUpToday)
       .sort((a, b) => (lastFollowUpAt(a) as number) - (lastFollowUpAt(b) as number)),
+    snoozed: items.filter(isSnoozed).sort((a, b) => a.snoozedUntil! - b.snoozedUntil!),
   }
 }
 
@@ -173,6 +176,19 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
       </div>
     )
 
+  const snoozedRows = (snoozed: Action[]) =>
+    snoozed.length > 0 && (
+      <div>
+        <div
+          className="px-3 pb-1 pt-4 text-xs text-neutral-500"
+          title="Still waiting, but you chose not to chase for now. They rejoin the nudges when the time is up, and always show in your Weekly Review."
+        >
+          Snoozed · {snoozed.length}
+        </div>
+        <div className="flex flex-col divide-y divide-neutral-900">{plainRows(snoozed)}</div>
+      </div>
+    )
+
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-xl font-semibold text-neutral-100">Waiting For</h1>
@@ -263,6 +279,7 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
             </SortableContext>
           </DndContext>
           {parkedRows(groups[0]?.parked ?? [])}
+          {snoozedRows(groups[0]?.snoozed ?? [])}
         </>
       ) : (
         groups.map((g) => (
@@ -280,11 +297,12 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
                 ) : (
                   g.title
                 )}
-                <span className="text-neutral-600">{g.active.length + g.parked.length}</span>
+                <span className="text-neutral-600">{g.active.length + g.parked.length + g.snoozed.length}</span>
               </h2>
             )}
             <div className="flex flex-col divide-y divide-neutral-900">{plainRows(g.active)}</div>
             {parkedRows(g.parked)}
+            {snoozedRows(g.snoozed)}
           </section>
         ))
       )}

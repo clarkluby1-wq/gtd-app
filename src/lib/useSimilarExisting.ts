@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { Candidate } from './similar'
-import { findExistingMatch } from './sweepDuplicates'
+import { findExistingMatch, type ExistingMatch } from './sweepDuplicates'
 
 /** What's already in the system that looks like this title, checked a moment after you stop typing. */
-export function useSimilarExisting(title: string, excludeId?: string): Candidate | undefined {
-  const [match, setMatch] = useState<Candidate | undefined>()
+export function useSimilarExisting(title: string, excludeId?: string): ExistingMatch | undefined {
+  const [match, setMatch] = useState<ExistingMatch | undefined>()
 
   useEffect(() => {
     let cancelled = false

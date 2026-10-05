@@ -114,6 +114,11 @@ export interface Action {
    * without contact" nudge until you follow up on or after it. Not a deadline, and never shown as overdue in red.
    */
   followUpDate?: number
+  /**
+   * "Not chasing for now": the moment a Waiting For item wakes back up. Until then it stays on Waiting For (still
+   * waiting, still counted) but is left out of nudges. It isn't a follow-up — nobody was contacted.
+   */
+  snoozedUntil?: number
   dueDate?: number
   scheduledDate?: number
   reminder?: ReminderState

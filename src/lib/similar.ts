@@ -60,11 +60,11 @@ export interface SimilarMatch extends Candidate {
  * The closest existing item, if it is close enough to mention. "Close enough" means at least two meaningful words
  * in common that make up at least half of the shorter title, or an identical set of meaningful words.
  */
-export function findSimilar(title: string, candidates: Candidate[]): SimilarMatch | undefined {
+export function findSimilar<T extends Candidate>(title: string, candidates: T[]): (T & { score: number }) | undefined {
   const mine = meaningfulWords(title)
   if (mine.size === 0) return undefined
 
-  let best: SimilarMatch | undefined
+  let best: (T & { score: number }) | undefined
   for (const candidate of candidates) {
     const theirs = meaningfulWords(candidate.title)
     if (theirs.size === 0) continue

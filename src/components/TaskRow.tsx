@@ -9,7 +9,7 @@ import { useCompletionToast } from '../lib/completionToastContext'
 import { SHORT_LIST_MAX } from '../lib/shortList'
 import { formatShortDate, formatTimeOfDay, hasTimeOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
-import { followUpPending, needsNudge, waitingStartedAt } from '../lib/waiting'
+import { followUpPending, isSnoozed, needsNudge, waitingStartedAt } from '../lib/waiting'
 import type { Action } from '../db/types'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditActionModal } from './EditActionModal'
@@ -28,6 +28,11 @@ function WaitingClock({ action }: { action: Action }) {
       <span className={needsNudge(action) ? 'text-amber-500' : undefined} title={`Waiting since ${formatShortDate(waitingStartedAt(action))}`}>
         waiting {ageLabel(waited)}
       </span>
+      {isSnoozed(action) && (
+        <span title="Still waiting, but you chose not to chase for now">
+          not chasing until {formatShortDate(action.snoozedUntil!)}
+        </span>
+      )}
       {followUpPending(action) && (
         <span className={needsNudge(action) ? 'text-amber-500' : undefined} title="The day you chose to check back">
           check back{' '}

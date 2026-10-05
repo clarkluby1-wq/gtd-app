@@ -10,7 +10,7 @@ import { startOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
-import { needsNudge, waitingStartedAt } from '../lib/waiting'
+import { isSnoozed, needsNudge, waitingStartedAt } from '../lib/waiting'
 import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
 import type { Action } from '../db/types'
 
@@ -149,7 +149,7 @@ export function StartDayView({
     () =>
       (waiting ?? [])
         .filter(notParked)
-        .filter((a) => needsNudge(a) || justFollowedUp.has(a.id))
+        .filter((a) => needsNudge(a) || (justFollowedUp.has(a.id) && !isSnoozed(a)))
         .sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [waiting, somedayProjectIds, justFollowedUp],

@@ -6,6 +6,18 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 5, 2026
 
+**No more "make this its own project" on items already in a project**
+In the Edit window, the "Turn this into a new project" link now only appears for items that aren't in a project yet. If you do want to break an item out of its project, clear the Project box and the link appears.
+
+**A calmer Short List: finished picks fold away**
+On Today's Short List, items you've finished no longer sit there struck through. They fold into one quiet line, "✓ 3 finished today ▸", under what's still to do, so you see the win without re-reading it. Tap the line to see them (or to un-tick one by mistake). When everything's done, the list says "All done — nice."
+
+**Snooze a Waiting For you're not ready to chase**
+Next to "Followed up" there's now a "Snooze…" menu: 1 week, 2 weeks, 1 month, 3 months, or until your next weekly review. A snoozed item stays on Waiting For — still counted, still showing who hasn't got back to you and how long it's been — but it leaves the "Is anyone due a nudge?" step and the amber nudge flags until the time is up. On the Waiting For screen, snoozed items sit at the bottom under "Snoozed" with a "wake up" button, and the Weekly Review's Waiting For step always lists them, so no one is forgotten. Snoozing isn't logged as a follow-up, since you didn't contact anyone, and a brief "Undo" appears for about 8 seconds.
+
+**The "already in your system" note now understands projects**
+In Clarify, if what you captured looks like part of a project you already have, the note says so — "This could be a next step for your project “…”" — with a "Yes, add it to that project" button. If that project has no next action yet, it says "This could be it" and offers "Yes, make it that project's next action." Either way it links the item to the project and carries on to "How will this get done?", so you still choose the context and time. If the match is just another item, you still get "Same thing — discard this new one", and now a brief "Undo" appears for about 8 seconds after you discard, so a wrong tap costs nothing.
+
 **New feature: a smart context suggestion**
 When you clarify a Next Action, the app now quietly guesses its context from the wording and lists it first in the picker, like "@home — suggested". "Tidy kitchen," "clean the cat litter box" and "cut the lawn" point to @home; "apply for a job" and "pay the RBC bill" point to @computer; "call Dan" points to @calls. It also learns from how you've tagged things before, so the more you use it, the better it gets. It never picks for you: your usual "same as your last item" choice stays selected, and when it isn't fairly sure, you see the normal picker. Everything happens on your device, with no AI service involved.
 

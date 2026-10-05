@@ -330,6 +330,14 @@ export async function logFollowUp(actionId: string) {
   })
 }
 
+/**
+ * "Not chasing for now": the item stays in Waiting For but is left out of nudges until `until` (or, with undefined,
+ * wakes straight away). Deliberately isn't a follow-up and doesn't touch `touchedAt` — nobody was contacted.
+ */
+export async function snoozeWaiting(actionId: string, until: number | undefined) {
+  await db.actions.update(actionId, { snoozedUntil: until })
+}
+
 /** Take back the most recent follow-up, e.g. logged by mistake. */
 export async function undoLastFollowUp(actionId: string) {
   await db.transaction('rw', db.actions, async () => {

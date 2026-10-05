@@ -11,6 +11,7 @@ import {
   clarifyAsWaitingFor,
   doItNow,
   sendToSomeday,
+  restoreAction,
   trashItem,
   unpinFromBigThree,
   updateAction,
@@ -23,6 +24,7 @@ import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
 import { useWaitingOnNames } from '../lib/waiting'
 import { suggestContextId } from '../lib/suggestContext'
+import { showUndo } from '../lib/undoSnack'
 import { useEscapeKey } from '../lib/useEscapeKey'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { SimilarNotice } from './SimilarNotice'
@@ -487,7 +489,24 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
           {step === 'actionable' && (
             <div className="flex flex-col gap-3">
-              <SimilarNotice match={similarItem} onSame={() => finish(() => trashItem(item.id))} />
+              <SimilarNotice
+                match={similarItem}
+                onSame={() =>
+                  finish(async () => {
+                    // Keep a copy so a wrong tap can be undone for a few seconds.
+                    const before = await db.actions.get(item.id)
+                    await trashItem(item.id)
+                    if (before) showUndo(`Discarded “${before.title}”`, () => void restoreAction(before))
+                  })
+                }
+                onAddToProject={() => {
+                  // It's one step of that project: link it and carry on to "how will this get done?".
+                  if (!similarItem) return
+                  setKind('single')
+                  setLinkedProjectId(similarItem.id)
+                  go('howDone')
+                }}
+              />
               <div className="flex gap-2">
                 <Btn primary onClick={() => go('singleOrProject')}>
                   Yes

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { SHORT_LIST_MAX_WORD } from '../lib/shortList'
 import { TaskRow } from './TaskRow'
 import type { Action } from '../db/types'
@@ -12,6 +13,21 @@ export function BigThree({
   onViewNextActions: () => void
   onOpenProject: (id: string) => void
 }) {
+  const [showDone, setShowDone] = useState(false)
+  const open = actions.filter((a) => a.status !== 'done')
+  const done = actions.filter((a) => a.status === 'done')
+
+  const row = (a: Action) => (
+    <TaskRow
+      key={a.id}
+      action={a}
+      showProject
+      showBigThreePin
+      pinnedTodayCount={actions.length}
+      onOpenProject={onOpenProject}
+    />
+  )
+
   return (
     <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
       <div className="mb-3 flex items-center gap-1.5">
@@ -32,21 +48,28 @@ export function BigThree({
           </button>
         </p>
       ) : (
-        <div className="flex flex-col divide-y divide-neutral-900">
-          {/* Done items sink to the bottom so today's list still reads as "what's left" at a glance. */}
-          {[...actions]
-            .sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'))
-            .map((a) => (
-              <TaskRow
-                key={a.id}
-                action={a}
-                showProject
-                showBigThreePin
-                pinnedTodayCount={actions.length}
-                onOpenProject={onOpenProject}
-              />
-            ))}
-        </div>
+        <>
+          {open.length === 0 ? (
+            <p className="text-sm text-emerald-400">All done — nice.</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-neutral-900">{open.map(row)}</div>
+          )}
+
+          {/* Finished picks fold into one quiet line, so the list reads as "what's left" and the wins are a glance,
+              not a re-read. Open it to see them (or to un-tick one by mistake). */}
+          {done.length > 0 && (
+            <div className={open.length === 0 ? 'mt-1' : 'mt-3'}>
+              <button
+                onClick={() => setShowDone((v) => !v)}
+                aria-expanded={showDone}
+                className="text-xs text-neutral-500 hover:text-neutral-300"
+              >
+                ✓ {done.length} finished today {showDone ? '▾' : '▸'}
+              </button>
+              {showDone && <div className="mt-1 flex flex-col divide-y divide-neutral-900">{done.map(row)}</div>}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

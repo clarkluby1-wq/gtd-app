@@ -17,7 +17,7 @@ import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
 import { SHORT_LIST_MAX_WORD } from '../../lib/shortList'
 import { staleNextActions } from '../../lib/staleness'
 import { useSomedayProjectIds } from '../../lib/useSomedayProjectIds'
-import { needsNudge, waitingStartedAt } from '../../lib/waiting'
+import { isSnoozed, needsNudge, waitingStartedAt } from '../../lib/waiting'
 import type { Action, Project, WeeklyReviewChecklistItem } from '../../db/types'
 import { ClarifyModal } from '../ClarifyModal'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -496,9 +496,11 @@ export function WaitingStep() {
   if (waiting === undefined) return null
   const active = waiting.filter(notParked)
   const nudges = active
-    .filter((a) => needsNudge(a) || justFollowedUp.has(a.id))
+    .filter((a) => needsNudge(a) || (justFollowedUp.has(a.id) && !isSnoozed(a)))
     .sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b))
-  const quiet = active.length - nudges.length
+  // Snoozed ones are never left out of a review — that's the point of snoozing instead of forgetting.
+  const snoozed = active.filter(isSnoozed).sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b))
+  const quiet = active.length - nudges.length - snoozed.length
 
   return (
     <div>
@@ -524,6 +526,25 @@ export function WaitingStep() {
             ))}
           </List>
         </>
+      )}
+      {snoozed.length > 0 && (
+        <div className="mt-4">
+          <Label tone="text-neutral-400">Snoozed — still waiting, not being chased · {snoozed.length}</Label>
+          <p className="mb-2 text-xs text-neutral-500">
+            Worth a look each review: chase one now, keep waiting, or let it go (open it to change or delete).
+          </p>
+          <List>
+            {snoozed.map((a) => (
+              <TaskRow
+                key={a.id}
+                action={a}
+                showProject
+                showWaitingClock
+                extraAction={<FollowUpControl action={a} onLogged={() => {}} />}
+              />
+            ))}
+          </List>
+        </div>
       )}
       {quiet > 0 && (
         <p className="mt-3 text-xs text-neutral-500">

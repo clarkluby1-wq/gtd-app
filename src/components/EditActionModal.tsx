@@ -184,7 +184,9 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
             <p className="text-xs text-emerald-400">✓ New project “{madeProject}” created. This action is its first step.</p>
           )}
 
-          {!makingProject && !madeProject && (
+          {/* Only offered while it isn't in a project: one that already belongs to one doesn't need the question
+              (clear the Project picker above and the link appears if it has truly grown into its own). */}
+          {!makingProject && !madeProject && !projectId && (
             <button
               type="button"
               onClick={() => {
@@ -193,7 +195,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
               }}
               className="self-start text-xs text-emerald-400 hover:text-emerald-300"
             >
-              {action.projectId ? '＋ Make this its own project' : '＋ Turn this into a new project'}
+              ＋ Turn this into a new project
             </button>
           )}
 

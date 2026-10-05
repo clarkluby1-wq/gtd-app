@@ -1,5 +1,6 @@
 import { db } from '../db/db'
 import type { Action, ActionStatus } from '../db/types'
+import { isProjectStalled } from './projectHealth'
 import { findSimilar, flagSimilar, type Candidate } from './similar'
 
 /** Where an existing item lives, worded to follow "Already have: <title> —". Done and trashed items are never compared. */
@@ -15,20 +16,45 @@ const STATUS_LABEL: Partial<Record<ActionStatus, string>> = {
  * The closest thing already in the system to a title being typed or clarified right now, if it's close enough to
  * mention. Same cautious matching and same pool as the Mind Sweep check; `excludeId` keeps an item from matching itself.
  */
-export async function findExistingMatch(title: string, excludeId?: string): Promise<Candidate | undefined> {
+export async function findExistingMatch(title: string, excludeId?: string): Promise<ExistingMatch | undefined> {
   if (!title.trim()) return undefined
   const [actions, projects] = await Promise.all([
     db.actions.where('status').anyOf(Object.keys(STATUS_LABEL)).toArray(),
     db.projects.where('status').anyOf('active', 'someday').toArray(),
   ])
-  const candidates: Candidate[] = [
+  // Needed to tell a project that's moving from one with no next action — everything done or never started counts.
+  const allActions = await db.actions.toArray()
+  const candidates: ExistingMatch[] = [
     ...actions
       .filter((a) => a.id !== excludeId)
-      .map((a) => ({ title: a.title, label: STATUS_LABEL[a.status] ?? 'in your system' })),
-    ...projects.map((p) => ({ title: p.title, label: p.status === 'someday' ? 'in Someday / Maybe (a project)' : 'in Projects' })),
+      .map((a): ExistingMatch => ({
+        kind: 'action',
+        id: a.id,
+        title: a.title,
+        label: STATUS_LABEL[a.status] ?? 'in your system',
+      })),
+    ...projects.map((p): ExistingMatch => ({
+      kind: 'project',
+      id: p.id,
+      title: p.title,
+      label: p.status === 'someday' ? 'in Someday / Maybe (a project)' : 'in Projects',
+      projectActive: p.status === 'active',
+      projectStalled: isProjectStalled(p, allActions),
+    })),
   ]
   const match = findSimilar(title, candidates)
-  return match ? { title: match.title, label: match.label } : undefined
+  if (!match) return undefined
+  const { score: _score, ...rest } = match
+  return rest
+}
+
+/** What a similar item turned out to be: another item, or a project (and whether that project has anything next). */
+export interface ExistingMatch extends Candidate {
+  kind: 'action' | 'project'
+  id: string
+  projectActive?: boolean
+  /** A project with nothing next or pending — this item could be the step it's missing. */
+  projectStalled?: boolean
 }
 
 export interface SweepDuplicate {

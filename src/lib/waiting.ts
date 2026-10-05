@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { db } from '../db/db'
 import type { Action } from '../db/types'
-import { startOfToday, startOfWorkday } from './date'
+import { startOfDay, startOfToday, startOfWorkday } from './date'
+import { getReviewSchedule, nextMoment } from './reviewSchedule'
 import { ageInDays } from './staleness'
 
 /** After this many days without contact, a Waiting For item is due a nudge. */
@@ -28,8 +29,39 @@ export function followUpPending(action: Action): boolean {
  * usual week without contact.
  */
 export function needsNudge(action: Action): boolean {
+  if (isSnoozed(action)) return false
   if (followUpPending(action)) return action.followUpDate! <= startOfToday()
   return ageInDays(lastContactAt(action)) > NUDGE_AFTER_DAYS
+}
+
+/** Waiting, but deliberately not being chased until a later moment. */
+export function isSnoozed(action: Action): boolean {
+  return action.status === 'waiting' && action.snoozedUntil !== undefined && action.snoozedUntil > Date.now()
+}
+
+export type SnoozeChoice = '1w' | '2w' | '1m' | '3m' | 'review'
+
+export const SNOOZE_CHOICES: { key: SnoozeChoice; label: string }[] = [
+  { key: '1w', label: '1 week' },
+  { key: '2w', label: '2 weeks' },
+  { key: '1m', label: '1 month' },
+  { key: '3m', label: '3 months' },
+  { key: 'review', label: 'Until my weekly review' },
+]
+
+/** When a snooze ends. Date choices wake at the start of that day; "weekly review" wakes at your next review slot. */
+export function snoozeWakeTime(choice: SnoozeChoice, now: Date = new Date()): number {
+  const d = new Date(startOfDay(now.getTime()))
+  if (choice === 'review') {
+    const schedule = getReviewSchedule()
+    // With no review time set, a week is the usual rhythm.
+    if (schedule) return nextMoment(schedule, now)
+    d.setDate(d.getDate() + 7)
+  } else if (choice === '1w') d.setDate(d.getDate() + 7)
+  else if (choice === '2w') d.setDate(d.getDate() + 14)
+  else if (choice === '1m') d.setMonth(d.getMonth() + 1)
+  else d.setMonth(d.getMonth() + 3)
+  return d.getTime()
 }
 
 /** The most recent time you followed up, if ever. */
