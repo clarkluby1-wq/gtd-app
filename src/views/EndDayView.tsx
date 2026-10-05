@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { clearFlowStep, readFlowStep, saveFlowStep } from '../lib/flowResume'
 import { db } from '../db/db'
 import { TaskRow } from '../components/TaskRow'
 import { captureToInbox, pinToBigThree } from '../db/operations'
@@ -43,7 +44,13 @@ export function EndDayView({
   onViewNextActions: () => void
   onViewCalendar: () => void
 }) {
-  const [step, setStep] = useState<Step>('inbox')
+  // Picks up where you left off if you stepped out to the Inbox or Calendar and came back (today only).
+  const [startedAt] = useState<Step>(() => {
+    const saved = readFlowStep('endday')
+    return STEPS.some((s) => s.key === saved) ? (saved as Step) : 'inbox'
+  })
+  const [step, setStep] = useState<Step>(startedAt)
+  useEffect(() => saveFlowStep('endday', step), [step])
   const [showAllPicks, setShowAllPicks] = useState(false)
   const [captureValue, setCaptureValue] = useState('')
   const [captured, setCaptured] = useState<string[]>([])
@@ -138,6 +145,15 @@ export function EndDayView({
       <p className="mb-4 text-sm text-neutral-500">
         {heading}. Close out today and decide tomorrow's approach tonight — skip anything, and come back whenever.
       </p>
+
+      {startedAt !== 'inbox' && step === startedAt && (
+        <p className="-mt-2 mb-3 text-xs text-neutral-500">
+          Picked up where you left off.{' '}
+          <button onClick={() => setStep('inbox')} className="text-emerald-400 hover:text-emerald-300">
+            Start over
+          </button>
+        </p>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-x-1 gap-y-1 text-xs">
         {STEPS.map((s, i) => (
@@ -337,7 +353,10 @@ export function EndDayView({
             )}
           </div>
           <button
-            onClick={onViewToday}
+            onClick={() => {
+              clearFlowStep('endday')
+              onViewToday()
+            }}
             className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
           >
             Done for today →

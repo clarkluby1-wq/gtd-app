@@ -25,7 +25,7 @@ const STOP = new Set(
 )
 
 /** Just enough to treat "jobs"/"job" and "painting"/"paint" alike. Only needs to be consistent on both sides. */
-function stem(word: string): string {
+export function stem(word: string): string {
   let w = word
   if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y'
   if (w.length > 5 && w.endsWith('ing')) w = w.slice(0, -3)

@@ -14,6 +14,11 @@ Local-first: all data lives in the browser's IndexedDB (via Dexie). No server, n
   (outcome plus its very next action)? Then the next action — the item itself, or the
   project's first — gets one choice: do it now (under 2 minutes), someone else does it
   (Waiting For), a specific day (Calendar), or next time you get to it (Next Actions).
+- **Smart context suggestion** — while clarifying a Next Action, the app quietly guesses
+  the context from the wording and from how you've tagged similar items before ("tidy
+  kitchen" → @home, "pay the bill" → @computer, "call Dan" → @calls). The guess is listed
+  first in the picker and never chosen for you, it stays silent when it isn't fairly sure,
+  and it runs entirely on-device with no AI service.
 - **Organize** — Next Actions (by context/energy/time), Projects (with a defined outcome
   and linked actions), Waiting For, Someday/Maybe, Calendar, Reference.
 - **Engage** — filter Next Actions by context, energy, and time available.

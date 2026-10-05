@@ -350,13 +350,15 @@ export async function restoreAction(action: Action) {
 }
 
 /** Add an action to a day's Short List — today by default, or a chosen date (e.g. tomorrow, from End My Day).
- *  Caller is responsible for enforcing the cap (SHORT_LIST_MAX in lib/shortList). */
+ *  Caller is responsible for enforcing the cap (SHORT_LIST_MAX in lib/shortList).
+ *  Deliberately doesn't touch `touchedAt`: starring something isn't doing or deciding anything about it, so it
+ *  mustn't make a long-neglected action look fresh. */
 export async function pinToBigThree(actionId: string, date: number = startOfWorkday()) {
-  await db.actions.update(actionId, { bigThreeDate: date, touchedAt: Date.now() })
+  await db.actions.update(actionId, { bigThreeDate: date })
 }
 
 export async function unpinFromBigThree(actionId: string) {
-  await db.actions.update(actionId, { bigThreeDate: undefined, touchedAt: Date.now() })
+  await db.actions.update(actionId, { bigThreeDate: undefined })
 }
 
 /** Create an action, optionally tied to a project — the general form behind addActionToProject and follow-up capture. */

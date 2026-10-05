@@ -8,6 +8,7 @@ import { SortableTaskRow } from '../components/SortableTaskRow'
 import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
 import { startOfWorkday } from '../lib/date'
+import { daysUntouched, STALE_AFTER_DAYS } from '../lib/staleness'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { SHORT_LIST_MAX_WORD, useTodayPinCount } from '../lib/shortList'
 import type { EnergyLevel } from '../db/types'
@@ -16,11 +17,14 @@ export function NextActionsView({
   onOpenProject,
   onFocus,
   onAskWhatNow,
+  startStaleOnly = false,
 }: {
   onOpenProject: (projectId: string) => void
   /** Start Focus mode, staying within whatever filters are set here. */
   onFocus: (filters: NextFilters) => void
   onAskWhatNow: () => void
+  /** Open already narrowed to what's been sitting untouched — where Today's "untouched" line leads. */
+  startStaleOnly?: boolean
 }) {
   const actions = useLiveQuery(() => db.actions.where('status').equals('next').sortBy('order'))
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
@@ -32,6 +36,7 @@ export function NextActionsView({
   const [contextId, setContextId] = useState<string>('all')
   const [energy, setEnergy] = useState<EnergyLevel | 'all'>('all')
   const [maxTime, setMaxTime] = useState<number | 'all'>('all')
+  const [staleOnly, setStaleOnly] = useState(startStaleOnly)
 
   // Today's Short List items float to the top of whatever's left after filtering — Array.sort is
   // stable, so everything else keeps its existing (drag-reorderable) order underneath them.
@@ -40,8 +45,9 @@ export function NextActionsView({
     return actions
       .filter((a) => !(a.projectId && somedayProjectIds.has(a.projectId)))
       .filter((a) => matchesNextFilters(a, { contextId, energy, maxTime }))
+      .filter((a) => !staleOnly || daysUntouched(a) > STALE_AFTER_DAYS)
       .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
-  }, [actions, contextId, energy, maxTime, somedayProjectIds, today])
+  }, [actions, contextId, energy, maxTime, staleOnly, somedayProjectIds, today])
 
   const { sensors, handleDragEnd } = useDragReorder(filtered, (id, order) => {
     void updateAction(id, { order })
@@ -104,6 +110,19 @@ export function NextActionsView({
           <option value="30">≤ 30 min</option>
           <option value="60">≤ 1 hour</option>
         </select>
+
+        <button
+          onClick={() => setStaleOnly((v) => !v)}
+          aria-pressed={staleOnly}
+          title={`Only Next Actions you haven't touched in more than ${STALE_AFTER_DAYS} days`}
+          className={`rounded-md border px-3 py-1.5 text-xs font-medium ${
+            staleOnly
+              ? 'border-amber-500/50 bg-amber-500/20 text-amber-300'
+              : 'border-neutral-700 text-neutral-300 hover:bg-neutral-800'
+          }`}
+        >
+          Untouched {STALE_AFTER_DAYS}+ days
+        </button>
       </div>
       {(energy !== 'all' || maxTime !== 'all') && (
         <p className="-mt-2 mb-4 text-xs text-neutral-600">

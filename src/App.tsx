@@ -4,6 +4,7 @@ import { Sidebar, type ViewKey } from './components/Sidebar'
 import { CaptureBar } from './components/CaptureBar'
 import { MobileMoreSheet } from './components/MobileMoreSheet'
 import { MobileTabBar } from './components/MobileTabBar'
+import { ReturnBar } from './components/ReturnBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
@@ -55,6 +56,11 @@ function App() {
   const [processInboxOnOpen, setProcessInboxOnOpen] = useState(false)
   // Bumped on every request so the Inbox restarts even when you're already looking at it.
   const [inboxRun, setInboxRun] = useState(0)
+  // Set when Today's "untouched for over a week" line sends you to Next Actions already narrowed to those.
+  const [nextStaleOnly, setNextStaleOnly] = useState(false)
+  // The guided flow you stepped out of by following one of its links (to the Inbox, Calendar…), so a slim bar can
+  // take you straight back to the same place. Cleared when you return, dismiss it, or finish the flow.
+  const [returnTo, setReturnTo] = useState<'startday' | 'endday' | null>(null)
   // Set when the Weekly Review pop-up or Start My Day sends you straight into the guided review.
   const [reviewAutoStart, setReviewAutoStart] = useState(false)
   const [reviewRun, setReviewRun] = useState(0)
@@ -113,7 +119,20 @@ function App() {
     setGoalReturnProjectId(null)
     setProcessInboxOnOpen(false)
     setReviewAutoStart(false)
+    setNextStaleOnly(false)
+    setReturnTo((cur) => (cur === v ? null : cur))
     setView(v)
+  }
+
+  /** Follow a link out of a guided flow, remembering which one so the way back stays one tap away. */
+  const fromFlow = (flow: 'startday' | 'endday', go: () => void) => () => {
+    setReturnTo(flow)
+    go()
+  }
+
+  const RETURN_LABEL = { startday: 'Start My Day', endday: 'End My Day' } as const
+  const goBackToFlow = () => {
+    if (returnTo) selectView(returnTo)
   }
 
   const startFocus = (filters: NextFilters = NO_FILTERS) => {
@@ -168,6 +187,10 @@ function App() {
             onStartDay={() => selectView('startday')}
             onEndDay={() => selectView('endday')}
             onViewNextActions={() => selectView('next')}
+            onViewStale={() => {
+              selectView('next')
+              setNextStaleOnly(true)
+            }}
             onViewCalendar={() => selectView('calendar')}
             onViewWeeklyReview={startReview}
           />
@@ -176,28 +199,28 @@ function App() {
       case 'startday':
         content = (
           <StartDayView
-            onOpenProject={openProject}
-            onProcessInbox={startInboxProcessing}
-            onViewInbox={() => selectView('inbox')}
+            onOpenProject={(id) => fromFlow('startday', () => openProject(id))()}
+            onProcessInbox={fromFlow('startday', startInboxProcessing)}
+            onViewInbox={fromFlow('startday', () => selectView('inbox'))}
             onFocus={() => startFocus()}
             onViewToday={() => selectView('today')}
-            onViewNextActions={() => selectView('next')}
-            onViewWaitingFor={() => selectView('waiting')}
-            onViewWhatNow={() => selectView('whatnow')}
-            onViewCalendar={() => selectView('calendar')}
-            onViewWeeklyReview={startReview}
+            onViewNextActions={fromFlow('startday', () => selectView('next'))}
+            onViewWaitingFor={fromFlow('startday', () => selectView('waiting'))}
+            onViewWhatNow={fromFlow('startday', () => selectView('whatnow'))}
+            onViewCalendar={fromFlow('startday', () => selectView('calendar'))}
+            onViewWeeklyReview={fromFlow('startday', startReview)}
           />
         )
         break
       case 'endday':
         content = (
           <EndDayView
-            onOpenProject={openProject}
-            onProcessInbox={startInboxProcessing}
-            onViewInbox={() => selectView('inbox')}
+            onOpenProject={(id) => fromFlow('endday', () => openProject(id))()}
+            onProcessInbox={fromFlow('endday', startInboxProcessing)}
+            onViewInbox={fromFlow('endday', () => selectView('inbox'))}
             onViewToday={() => selectView('today')}
-            onViewNextActions={() => selectView('next')}
-            onViewCalendar={() => selectView('calendar')}
+            onViewNextActions={fromFlow('endday', () => selectView('next'))}
+            onViewCalendar={fromFlow('endday', () => selectView('calendar'))}
           />
         )
         break
@@ -218,11 +241,19 @@ function App() {
         content = <RecentlyCompletedView onOpenProject={openProject} />
         break
       case 'inbox':
-        content = <InboxView key={inboxRun} autoStart={processInboxOnOpen} />
+        content = (
+          <InboxView
+            key={inboxRun}
+            autoStart={processInboxOnOpen}
+            returnTo={returnTo ? { label: RETURN_LABEL[returnTo], go: goBackToFlow } : undefined}
+          />
+        )
         break
       case 'next':
         content = (
           <NextActionsView
+            key={nextStaleOnly ? 'stale' : 'all'}
+            startStaleOnly={nextStaleOnly}
             onOpenProject={openProject}
             onFocus={startFocus}
             onAskWhatNow={() => selectView('whatnow')}
@@ -316,6 +347,9 @@ function App() {
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           <CaptureBar />
+          {returnTo && view !== 'focus' && (
+            <ReturnBar label={RETURN_LABEL[returnTo]} onReturn={goBackToFlow} onDismiss={() => setReturnTo(null)} />
+          )}
           <ContentArea>{content}</ContentArea>
           <MobileTabBar
             current={effectiveView}

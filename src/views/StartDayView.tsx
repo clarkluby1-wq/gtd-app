@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { clearFlowStep, readFlowStep, saveFlowStep } from '../lib/flowResume'
 import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
@@ -87,7 +88,13 @@ export function StartDayView({
   onViewCalendar: () => void
   onViewWeeklyReview: () => void
 }) {
-  const [step, setStep] = useState<Step>('commitments')
+  // Picks up where you left off if you stepped out to the Inbox or Calendar and came back (today only).
+  const [startedAt] = useState<Step>(() => {
+    const saved = readFlowStep('startday')
+    return STEPS.some((s) => s.key === saved) ? (saved as Step) : 'commitments'
+  })
+  const [step, setStep] = useState<Step>(startedAt)
+  useEffect(() => saveFlowStep('startday', step), [step])
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
   const [showAllPicks, setShowAllPicks] = useState(false)
   const [pickSort, setPickSort] = useState(readPickSort)
@@ -185,6 +192,15 @@ export function StartDayView({
       <p className="mb-4 text-sm text-neutral-500">
         {heading}. A quick look before you dive in — skip anything, and come back whenever.
       </p>
+
+      {startedAt !== 'commitments' && step === startedAt && (
+        <p className="-mt-2 mb-3 text-xs text-neutral-500">
+          Picked up where you left off.{' '}
+          <button onClick={() => setStep('commitments')} className="text-emerald-400 hover:text-emerald-300">
+            Start over
+          </button>
+        </p>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-x-1 gap-y-1 text-xs">
         {STEPS.map((s, i) => (
@@ -420,7 +436,10 @@ export function StartDayView({
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={onViewToday}
+              onClick={() => {
+                clearFlowStep('startday')
+                onViewToday()
+              }}
               className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
             >
               Go to Today →

@@ -15,7 +15,14 @@ import { useDragReorder } from '../lib/useDragReorder'
 import type { Action } from '../db/types'
 
 /** `autoStart` opens straight into "Process inbox" (used when arriving from Start My Day). */
-export function InboxView({ autoStart = false }: { autoStart?: boolean }) {
+export function InboxView({
+  autoStart = false,
+  returnTo,
+}: {
+  autoStart?: boolean
+  /** Set when you came here from a guided flow: once the Inbox is sorted, a button leads straight back to it. */
+  returnTo?: { label: string; go: () => void }
+}) {
   const items = useLiveQuery(() => db.actions.where('status').equals('inbox').sortBy('order'))
   const [clarifying, setClarifying] = useState<Action | null>(null)
 
@@ -60,6 +67,15 @@ export function InboxView({ autoStart = false }: { autoStart?: boolean }) {
         <div className="rounded-lg border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
           Inbox zero. Nice.
         </div>
+      )}
+
+      {returnTo && !clarifying && (items?.length === 0 || (summary !== null && !processing)) && (
+        <button
+          onClick={returnTo.go}
+          className="mt-6 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          ← Back to {returnTo.label}
+        </button>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

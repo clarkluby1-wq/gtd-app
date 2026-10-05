@@ -4,16 +4,29 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 5, 2026
+
+**New feature: a smart context suggestion**
+When you clarify a Next Action, the app now quietly guesses its context from the wording and lists it first in the picker, like "@home — suggested". "Tidy kitchen," "clean the cat litter box" and "cut the lawn" point to @home; "apply for a job" and "pay the RBC bill" point to @computer; "call Dan" points to @calls. It also learns from how you've tagged things before, so the more you use it, the better it gets. It never picks for you: your usual "same as your last item" choice stays selected, and when it isn't fairly sure, you see the normal picker. Everything happens on your device, with no AI service involved.
+
+---
+
 ## October 3, 2026
 
 **Add things straight to the Calendar**
 The Calendar screen has a new "+ Add to calendar" button. Type what's happening, pick the day (and a time or context if it matters), and it goes straight onto that day — no stop in the Inbox. The form stays open so you can add several in a row.
 
+**Step out of Start My Day or End My Day and come straight back**
+Following a link from Start My Day or End My Day (the Calendar, Inbox, Next Actions, Waiting For, a project…) now leaves a slim "← Back to Start My Day" bar under the capture bar. One tap returns you to the same step, not step 1. The menu entry also picks up where you left off (with a small "Start over" link), your place is remembered for the rest of the day, and finishing ("Go to Today" or "Done for today") or the next 4:30am starts you fresh. After sorting your Inbox from either flow, a "Back to…" button waits right on the Inbox screen. Tap ✕ on the bar if you'd rather stay where you are.
+
+**Stale Next Actions now show up on Today**
+When Next Actions have gone untouched for over a week, Today shows an amber line like "6 Next Actions untouched for over a week →". Tap it and Next Actions opens narrowed to just those, using a new "Untouched 7+ days" button you can switch on or off yourself. Also, starring or un-starring something no longer counts as touching it, so a neglected action can't look fresh just because it was starred.
+
 **Sort the Short List picker in Start My Day**
 The Short List step has a new sort menu above your Next Actions: Deadlines first (the usual order), Oldest first, or Newest first. Oldest first brings up things that have been sitting a long time. Anything you've starred always stays at the top, and the app remembers your choice.
 
 **A heads-up when something's already in your system**
-While you clarify an item, or type a title for a new project, a calendar item or a "what's next?" follow-up, the app now checks for something similar you already have — in the Inbox, Next Actions, Waiting For, Calendar, Someday or Projects. If it finds one, a calm note says so ("Looks like you already have “…” in Next Actions"). In Clarify you can remove the new one with a click or tap "It's different" to carry on. It only ever suggests, and it's deliberately cautious, so it catches the same names and subjects but not rewordings. The capture bar is untouched, so capturing stays instant.
+While you clarify an item, or type a title for a new project, a calendar item or a "what's next?" follow-up, the app now checks for something similar you already have — in the Inbox, Next Actions, Waiting For, Calendar, Someday or Projects. If it finds one, a calm note says so ("Looks like you already have “…” in Next Actions"). In Clarify you can discard the new one ("Same thing — discard this new one") or tap "It's different" to carry on. It only ever suggests, and it's deliberately cautious, so it catches the same names and subjects but not rewordings. The capture bar is untouched, so capturing stays instant.
 
 **Follow-ups start on @anywhere**
 When you add a follow-up Next Action from the "what's next?" card after finishing something, the context now starts on @anywhere instead of "No context." You can still pick another, or choose "No context."

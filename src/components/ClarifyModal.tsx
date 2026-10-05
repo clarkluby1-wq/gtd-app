@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { ProjectPicker } from './ProjectPicker'
 import { TimeField } from './TimeField'
@@ -22,6 +22,7 @@ import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
 import { formatTimeOfDay, parseLocalDate, parseLocalDateTime, startOfWorkday } from '../lib/date'
 import { useWaitingOnNames } from '../lib/waiting'
+import { suggestContextId } from '../lib/suggestContext'
 import { useEscapeKey } from '../lib/useEscapeKey'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { SimilarNotice } from './SimilarNotice'
@@ -211,6 +212,17 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   // A remembered context may have been deleted since; never save (or show) one that no longer exists.
   const activeContextId = contextId && contexts?.some((c) => c.id === contextId) ? contextId : undefined
   const contextIsRemembered = !contextTouched && activeContextId !== undefined
+  // A quiet guess from the wording and from how past items were tagged — listed first in the picker, never chosen for you.
+  const contextHistory = useLiveQuery(() => db.actions.filter((a) => !!a.contextId && a.status !== 'trash').toArray())
+  const suggestedContext = useMemo(() => {
+    if (step !== 'assignNextAction') return undefined
+    const id = suggestContextId(
+      actionTitle,
+      contexts ?? [],
+      (contextHistory ?? []).filter((h) => h.id !== item.id),
+    )
+    return contexts?.find((c) => c.id === id)
+  }, [step, actionTitle, contexts, contextHistory, item.id])
   const pickContext = (id: string) => {
     setContextId(id || undefined)
     setContextTouched(true)
@@ -767,12 +779,17 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 onChange={(e) => pickContext(e.target.value)}
                 className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm outline-none"
               >
+                {suggestedContext && (
+                  <option value={suggestedContext.id}>{suggestedContext.name} — suggested</option>
+                )}
                 <option value="">No context</option>
-                {contexts?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {contexts
+                  ?.filter((c) => c.id !== suggestedContext?.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
               </select>
               {contextIsRemembered && (
                 <p className="-mt-2 text-xs text-neutral-600">

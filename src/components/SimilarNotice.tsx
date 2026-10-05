@@ -8,7 +8,7 @@ import type { Candidate } from '../lib/similar'
 export function SimilarNotice({
   match,
   onSame,
-  sameLabel = 'Same thing — remove this one',
+  sameLabel = 'Same thing — discard this new one',
   className = '',
 }: {
   match: Candidate | undefined
@@ -24,7 +24,11 @@ export function SimilarNotice({
       Looks like you already have <span className="font-medium text-neutral-100">“{match.title}”</span> {match.label}.
       {onSame && (
         <div className="mt-1.5 flex items-center gap-4">
-          <button onClick={onSame} className="font-medium text-amber-300 hover:text-amber-200">
+          <button
+            onClick={onSame}
+            title={`Moves what you just captured to the trash. “${match.title}” stays as it is.`}
+            className="font-medium text-amber-300 hover:text-amber-200"
+          >
             {sameLabel}
           </button>
           <button onClick={() => setDismissed(match.title)} className="text-neutral-400 hover:text-neutral-200">

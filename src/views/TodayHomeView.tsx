@@ -4,6 +4,7 @@ import { BigThree } from '../components/BigThree'
 import { useTodayPinCount, useTodayShortList } from '../lib/shortList'
 import { TaskRow } from '../components/TaskRow'
 import { startOfDay, startOfToday } from '../lib/date'
+import { staleNextActions } from '../lib/staleness'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
@@ -19,6 +20,7 @@ export function TodayHomeView({
   onStartDay,
   onEndDay,
   onViewNextActions,
+  onViewStale,
   onViewCalendar,
   onViewWeeklyReview,
 }: {
@@ -26,6 +28,8 @@ export function TodayHomeView({
   onStartDay: () => void
   onEndDay: () => void
   onViewNextActions: () => void
+  /** Opens Next Actions narrowed to what's been sitting untouched. */
+  onViewStale: () => void
   onViewCalendar: () => void
   onViewWeeklyReview: () => void
 }) {
@@ -40,6 +44,8 @@ export function TodayHomeView({
   const shortList = (shortListRaw ?? []).filter((a) => notParked(a))
   const scheduled = useLiveQuery(() => db.actions.where('status').equals('scheduled').toArray())
   const withDue = useLiveQuery(() => db.actions.filter((a) => a.status === 'next' && a.dueDate != null).toArray())
+  const nexts = useLiveQuery(() => db.actions.where('status').equals('next').toArray())
+  const staleCount = staleNextActions(nexts ?? [], somedayProjectIds).length
 
   const tomorrow = startOfDay(today + 24 * 60 * 60 * 1000)
   const onCalendarToday = [...(scheduled ?? []), ...(withDue ?? [])]
@@ -80,6 +86,12 @@ export function TodayHomeView({
       <button onClick={onEndDay} className="mb-6 block text-sm text-neutral-500 hover:text-neutral-300">
         🌆 End your day — plan for tomorrow →
       </button>
+
+      {staleCount > 0 && (
+        <button onClick={onViewStale} className="-mt-3 mb-6 block text-sm text-amber-400 hover:text-amber-300">
+          {staleCount} Next {staleCount === 1 ? 'Action' : 'Actions'} untouched for over a week →
+        </button>
+      )}
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <h2 className="mb-2 text-sm font-medium text-neutral-300">On your calendar today</h2>

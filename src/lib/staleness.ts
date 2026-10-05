@@ -10,11 +10,19 @@ export function ageLabel(days: number) {
   return `${days} days`
 }
 
+/** Days since this was last created, edited, or reclarified. */
+export function daysUntouched(a: Action) {
+  return ageInDays(a.touchedAt ?? a.clarifiedAt ?? a.createdAt)
+}
+
+/** Untouched for more than this many days counts as stale. */
+export const STALE_AFTER_DAYS = 7
+
 /** Next Actions untouched (created, edited, or reclarified) for more than 7 days. */
 export function staleNextActions(actions: Action[], somedayProjectIds: Set<string>) {
   return actions
     .filter((a) => a.status === 'next')
     .filter((a) => !a.projectId || !somedayProjectIds.has(a.projectId))
-    .map((a) => ({ action: a, days: ageInDays(a.touchedAt ?? a.clarifiedAt ?? a.createdAt) }))
-    .filter((x) => x.days > 7)
+    .map((a) => ({ action: a, days: daysUntouched(a) }))
+    .filter((x) => x.days > STALE_AFTER_DAYS)
 }
