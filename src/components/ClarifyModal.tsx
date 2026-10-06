@@ -310,7 +310,8 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
   const markDoneNow = (from: Element) => {
     if (!isProject) {
-      void celebrateCompletion({ ...item, title }, from)
+      // Same as ticking it anywhere else: ask "what's next?", and hold the confetti until that's answered.
+      notify({ ...item, title }, { celebrateOnDismiss: true })
       void finish(() => doItNow(item.id))
       return
     }

@@ -6,6 +6,9 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 5, 2026
 
+**"Done" in Clarify now asks what's next**
+Marking something done from inside Clarify (the ✓ Done button, or "Mark Done" after the 2-minute timer) now shows the same "what's next?" card as everywhere else, with "No Further Action" or "+ Add follow-up". When you're working through the Inbox, the next item waits until you've answered it, and the confetti comes after.
+
 **No more "make this its own project" on items already in a project**
 In the Edit window, the "Turn this into a new project" link now only appears for items that aren't in a project yet. If you do want to break an item out of its project, clear the Project box and the link appears.
 
