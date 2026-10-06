@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { clearFlowStep, readFlowStep, saveFlowStep } from '../lib/flowResume'
 import { db } from '../db/db'
+import { OpenPickRow } from '../components/OpenPickRow'
+import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { captureToInbox, pinToBigThree } from '../db/operations'
 import { nextWorkdayStart, startOfDay, startOfToday, startOfWorkday } from '../lib/date'
@@ -155,7 +157,7 @@ export function EndDayView({
         </p>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-x-1 gap-y-1 text-xs">
+      <div className="mb-3 flex flex-wrap gap-x-1 gap-y-1 text-xs">
         {STEPS.map((s, i) => (
           <span key={s.key} className="flex items-center">
             <button
@@ -170,6 +172,29 @@ export function EndDayView({
           </span>
         ))}
       </div>
+
+      <StickyNav>
+        {stepIndex > 0 ? (
+          <button onClick={goBack} className="text-sm text-neutral-400 hover:text-neutral-200">
+            ← Back
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="text-xs text-neutral-500">
+          {STEPS[stepIndex].label} · {stepIndex + 1} of {STEPS.length}
+        </span>
+        {step !== 'done' ? (
+          <button
+            onClick={goNext}
+            className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Next →
+          </button>
+        ) : (
+          <span />
+        )}
+      </StickyNav>
 
       {step === 'inbox' && (
         <Screen question="Anything still waiting to be sorted?">
@@ -244,17 +269,14 @@ export function EndDayView({
               </h3>
               <div className="flex flex-col divide-y divide-neutral-900">
                 {todaysOpenPicks.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 py-2">
-                    <div className="min-w-0 flex-1 truncate text-sm text-neutral-300">{a.title}</div>
-                    <button
-                      onClick={() => pinToBigThree(a.id, tomorrowWorkday)}
-                      disabled={atCapTomorrow}
-                      title={atCapTomorrow ? "Tomorrow's Short List is full — remove one first" : 'Carry into tomorrow'}
-                      className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      Carry into tomorrow
-                    </button>
-                  </div>
+                  <OpenPickRow
+                    key={a.id}
+                    action={a}
+                    actionLabel="Carry into tomorrow"
+                    onAction={() => pinToBigThree(a.id, tomorrowWorkday)}
+                    disabled={atCapTomorrow}
+                    actionTitle={atCapTomorrow ? "Tomorrow's Short List is full — remove one first" : 'Carry into tomorrow'}
+                  />
                 ))}
               </div>
               <p className="mt-2 text-xs text-neutral-600">
@@ -364,23 +386,6 @@ export function EndDayView({
         </Screen>
       )}
 
-      <div className="mt-6 flex items-center justify-between">
-        {stepIndex > 0 ? (
-          <button onClick={goBack} className="text-xs text-neutral-500 hover:text-neutral-300">
-            ← Back
-          </button>
-        ) : (
-          <span />
-        )}
-        {step !== 'done' && (
-          <button
-            onClick={goNext}
-            className="rounded-md bg-neutral-800 px-4 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
-          >
-            Next →
-          </button>
-        )}
-      </div>
     </div>
   )
 }

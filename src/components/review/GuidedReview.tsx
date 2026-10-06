@@ -8,6 +8,7 @@ import { formatShortDate } from '../../lib/date'
 import { describeStatus, getReviewSchedule } from '../../lib/reviewSchedule'
 import { isItemDone, normalizeChecklist, type ReviewPhase } from '../../lib/weeklyReviewTemplate'
 import type { ViewKey } from '../Sidebar'
+import { StickyNav } from '../StickyNav'
 import type { WeeklyReview } from '../../db/types'
 import {
   AreasStep,
@@ -316,6 +317,42 @@ export function GuidedReview({
 
   return (
     <Frame stripIndex={index} onPause={onExit} onJump={go}>
+      {/* Stuck to the top so you never scroll a long list just to move on. */}
+      <StickyNav>
+        <button
+          onClick={() => go(index - 1)}
+          disabled={index <= 1}
+          className="text-sm text-neutral-400 hover:text-neutral-200 disabled:opacity-30"
+        >
+          ← Back
+        </button>
+        <div className="flex items-center gap-4">
+          {canSkip && (
+            <button onClick={forward} className="text-sm text-neutral-500 hover:text-neutral-300">
+              Skip for now
+            </button>
+          )}
+          {isRecap ? (
+            <FinishButton
+              onFinish={async (el) => {
+                await finishReview(weekStart)
+                celebrate(originOf(el), 'big')
+                setFinished(true)
+              }}
+            />
+          ) : (
+            <button
+              onClick={() => void next()}
+              className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+            >
+              {step.key === 'collect' || step.key === 'creative' || step.key === 'wins' || step.key === 'inbox-zero'
+                ? 'Next →'
+                : 'Looks good — next →'}
+            </button>
+          )}
+        </div>
+      </StickyNav>
+
       <div className="mb-1 text-xs uppercase tracking-wide text-neutral-500">
         {sectionName(step.section)}
         {inSection.length > 1 && !isRecap ? ` · ${positionInSection} of ${inSection.length}` : ''}
@@ -336,41 +373,6 @@ export function GuidedReview({
           onStartMindSweep={onStartMindSweep}
           onJumpToItem={jumpToItem}
         />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 border-t border-neutral-900 pt-4">
-        <button
-          onClick={() => go(index - 1)}
-          disabled={index <= 1}
-          className="text-xs text-neutral-500 hover:text-neutral-300 disabled:opacity-30"
-        >
-          ← Back
-        </button>
-        <div className="flex items-center gap-4">
-          {canSkip && (
-            <button onClick={forward} className="text-xs text-neutral-500 hover:text-neutral-300">
-              Skip for now
-            </button>
-          )}
-          {isRecap ? (
-            <FinishButton
-              onFinish={async (el) => {
-                await finishReview(weekStart)
-                celebrate(originOf(el), 'big')
-                setFinished(true)
-              }}
-            />
-          ) : (
-            <button
-              onClick={() => void next()}
-              className="rounded-md bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-            >
-              {step.key === 'collect' || step.key === 'creative' || step.key === 'wins' || step.key === 'inbox-zero'
-                ? 'Next →'
-                : 'Looks good — next →'}
-            </button>
-          )}
-        </div>
       </div>
     </Frame>
   )

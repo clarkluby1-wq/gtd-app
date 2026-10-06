@@ -210,6 +210,7 @@ function App() {
             onViewWhatNow={fromFlow('startday', () => selectView('whatnow'))}
             onViewCalendar={fromFlow('startday', () => selectView('calendar'))}
             onViewWeeklyReview={fromFlow('startday', startReview)}
+            onViewSomeday={fromFlow('startday', () => selectView('someday'))}
           />
         )
         break

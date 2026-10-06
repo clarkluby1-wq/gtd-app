@@ -4,6 +4,8 @@ import { clearFlowStep, readFlowStep, saveFlowStep } from '../lib/flowResume'
 import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
+import { OpenPickRow } from '../components/OpenPickRow'
+import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree } from '../db/operations'
 import { startOfDay, startOfToday, startOfWorkday } from '../lib/date'
@@ -73,6 +75,7 @@ export function StartDayView({
   onViewWhatNow,
   onViewCalendar,
   onViewWeeklyReview,
+  onViewSomeday,
 }: {
   onOpenProject: (projectId: string) => void
   /** Jumps straight into the guided "process one at a time" flow — the Inbox step's own button. */
@@ -87,6 +90,8 @@ export function StartDayView({
   onViewWhatNow: () => void
   onViewCalendar: () => void
   onViewWeeklyReview: () => void
+  /** Just opens Someday / Maybe to look through — nothing forced. */
+  onViewSomeday: () => void
 }) {
   // Picks up where you left off if you stepped out to the Inbox or Calendar and came back (today only).
   const [startedAt] = useState<Step>(() => {
@@ -202,7 +207,7 @@ export function StartDayView({
         </p>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-x-1 gap-y-1 text-xs">
+      <div className="mb-3 flex flex-wrap gap-x-1 gap-y-1 text-xs">
         {STEPS.map((s, i) => (
           <span key={s.key} className="flex items-center">
             <button
@@ -217,6 +222,29 @@ export function StartDayView({
           </span>
         ))}
       </div>
+
+      <StickyNav>
+        {stepIndex > 0 ? (
+          <button onClick={goBack} className="text-sm text-neutral-400 hover:text-neutral-200">
+            ← Back
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="text-xs text-neutral-500">
+          {STEPS[stepIndex].label} · {stepIndex + 1} of {STEPS.length}
+        </span>
+        {step !== 'go' ? (
+          <button
+            onClick={goNext}
+            className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Next →
+          </button>
+        ) : (
+          <span />
+        )}
+      </StickyNav>
 
       {step === 'commitments' && (
         <Screen question="What have you committed to today?">
@@ -338,6 +366,12 @@ export function StartDayView({
               )}
             </>
           )}
+          <button
+            onClick={onViewSomeday}
+            className="mt-5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
+          >
+            🌙 Browse Someday / Maybe →
+          </button>
         </Screen>
       )}
 
@@ -355,17 +389,14 @@ export function StartDayView({
               </h3>
               <div className="flex flex-col divide-y divide-neutral-900">
                 {yesterdaysPicks.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 py-2">
-                    <div className="min-w-0 flex-1 truncate text-sm text-neutral-300">{a.title}</div>
-                    <button
-                      onClick={() => pinToBigThree(a.id)}
-                      disabled={atCap}
-                      title={atCap ? "Today's Short List is full — remove one first" : 'Pull into today'}
-                      className="shrink-0 text-xs text-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      Pull into today
-                    </button>
-                  </div>
+                  <OpenPickRow
+                    key={a.id}
+                    action={a}
+                    actionLabel="Pull into today"
+                    onAction={() => pinToBigThree(a.id)}
+                    disabled={atCap}
+                    actionTitle={atCap ? "Today's Short List is full — remove one first" : 'Pull into today'}
+                  />
                 ))}
               </div>
               <p className="mt-2 text-xs text-neutral-600">Nothing to do here — leave them be and they'll quietly stop showing.</p>
@@ -461,23 +492,6 @@ export function StartDayView({
         </Screen>
       )}
 
-      <div className="mt-6 flex items-center justify-between">
-        {stepIndex > 0 ? (
-          <button onClick={goBack} className="text-xs text-neutral-500 hover:text-neutral-300">
-            ← Back
-          </button>
-        ) : (
-          <span />
-        )}
-        {step !== 'go' && (
-          <button
-            onClick={goNext}
-            className="rounded-md bg-neutral-800 px-4 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
-          >
-            Next →
-          </button>
-        )}
-      </div>
     </div>
   )
 }

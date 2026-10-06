@@ -6,6 +6,15 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 5, 2026
 
+**Back and Next now stay at the top of the screen**
+In Start My Day, End My Day and the Weekly Review walkthrough, "← Back" and "Next →" now sit in a bar pinned to the top of the screen, with a small "Short List · 5 of 6" in the middle, so you never scroll a long list just to move on. "Next" is a green button so it's easy to find. The Weekly Review's "Skip for now" and "Finish my review" moved up there too.
+
+**Finish or edit leftover picks right where you see them**
+In Start My Day's "Yesterday's picks, still open" (and End My Day's "Today's picks, still open"), each row now has a "✓ Done" button next to "Pull into today" / "Carry into tomorrow", for the ones you've already finished. The title is clickable too, so you can open an item and edit it without leaving the step.
+
+**A link to Someday / Maybe in Start My Day**
+The "Is anyone due a nudge?" step now has a clear "🌙 Browse Someday / Maybe →" button (not just a faint link). It opens Someday / Maybe, and the "← Back to Start My Day" bar brings you straight back to the same step.
+
 **"Done" in Clarify now asks what's next**
 Marking something done from inside Clarify (the ✓ Done button, or "Mark Done" after the 2-minute timer) now shows the same "what's next?" card as everywhere else, with "No Further Action" or "+ Add follow-up". When you're working through the Inbox, the next item waits until you've answered it, and the confetti comes after.
 
