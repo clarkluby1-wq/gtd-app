@@ -118,6 +118,8 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       notes: notes.trim() || undefined,
       // Someday items aren't committed to yet, so they can't hold a Short List slot; leaving Someday (or unticking) releases it.
       bigThreeDate: type !== 'someday' && bigThree ? startOfWorkday() : undefined,
+      // Starring it here puts it at the bottom of the Short List; one already on it keeps its place.
+      ...(type !== 'someday' && bigThree && action.bigThreeDate !== startOfWorkday() ? { shortListOrder: Date.now() } : {}),
     })
     onClose()
   }

@@ -10,8 +10,8 @@ import { useDragReorder } from '../lib/useDragReorder'
 import { startOfWorkday } from '../lib/date'
 import { daysUntouched, STALE_AFTER_DAYS } from '../lib/staleness'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { SHORT_LIST_MAX_WORD, useTodayPinCount } from '../lib/shortList'
-import type { EnergyLevel } from '../db/types'
+import { SHORT_LIST_MAX_WORD, sortShortList, useShortListDrag, useTodayPinCount } from '../lib/shortList'
+import type { Action, EnergyLevel } from '../db/types'
 
 export function NextActionsView({
   onOpenProject,
@@ -38,18 +38,34 @@ export function NextActionsView({
   const [maxTime, setMaxTime] = useState<number | 'all'>('all')
   const [staleOnly, setStaleOnly] = useState(startStaleOnly)
 
-  // Today's Short List items float to the top of whatever's left after filtering — Array.sort is
-  // stable, so everything else keeps its existing (drag-reorderable) order underneath them.
-  const filtered = useMemo(() => {
-    if (!actions) return []
-    return actions
+  // Today's Short List items float to the top of whatever's left after filtering, in your Short List order. Everything
+  // else keeps its own (drag-reorderable) order underneath. The two groups reorder separately: dragging a starred
+  // item reorders the Short List, dragging any other reorders Next Actions.
+  const { starred, others } = useMemo(() => {
+    const visible = (actions ?? [])
       .filter((a) => !(a.projectId && somedayProjectIds.has(a.projectId)))
       .filter((a) => matchesNextFilters(a, { contextId, energy, maxTime }))
       .filter((a) => !staleOnly || daysUntouched(a) > STALE_AFTER_DAYS)
-      .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
+    return {
+      starred: sortShortList(visible.filter((a) => a.bigThreeDate === today)),
+      others: visible.filter((a) => a.bigThreeDate !== today),
+    }
   }, [actions, contextId, energy, maxTime, staleOnly, somedayProjectIds, today])
+  const filtered = [...starred, ...others]
 
-  const { sensors, handleDragEnd } = useDragReorder(filtered, (id, order) => {
+  const renderRow = (a: Action) => (
+    <SortableTaskRow
+      key={a.id}
+      action={a}
+      showProject
+      showBigThreePin
+      pinnedTodayCount={pinnedTodayCount}
+      onOpenProject={onOpenProject}
+    />
+  )
+
+  const starredDrag = useShortListDrag(starred)
+  const othersDrag = useDragReorder(others, (id, order) => {
     void updateAction(id, { order })
   })
 
@@ -136,22 +152,18 @@ export function NextActionsView({
         </div>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={filtered.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col divide-y divide-neutral-900">
-            {filtered.map((a) => (
-              <SortableTaskRow
-                key={a.id}
-                action={a}
-                showProject
-                showBigThreePin
-                pinnedTodayCount={pinnedTodayCount}
-                onOpenProject={onOpenProject}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="flex flex-col divide-y divide-neutral-900">
+        <DndContext sensors={starredDrag.sensors} collisionDetection={closestCenter} onDragEnd={starredDrag.handleDragEnd}>
+          <SortableContext items={starred.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            {starred.map(renderRow)}
+          </SortableContext>
+        </DndContext>
+        <DndContext sensors={othersDrag.sensors} collisionDetection={closestCenter} onDragEnd={othersDrag.handleDragEnd}>
+          <SortableContext items={others.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            {others.map(renderRow)}
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   )
 }

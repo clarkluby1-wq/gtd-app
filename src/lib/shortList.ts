@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
+import { setShortListOrder } from '../db/operations'
 import { previousWorkdayStart, startOfWorkday } from './date'
+import { useDragReorder } from './useDragReorder'
 import type { Action } from '../db/types'
 
 /**
@@ -16,10 +18,27 @@ const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'sev
 /** The limit spelled out for copy ("Pick up to five"), derived so it can never disagree with SHORT_LIST_MAX. */
 export const SHORT_LIST_MAX_WORD = NUMBER_WORDS[SHORT_LIST_MAX] ?? String(SHORT_LIST_MAX)
 
-/** Everything pinned for a day, whatever it is now — including something already finished. Defaults to today;
- *  pass a different workday start (e.g. nextWorkdayStart()) to read tomorrow's picks instead, as End My Day does. */
+/** A pick's place in the list: its own Short List position, or (for older picks) when it was captured. */
+export const shortListKey = (a: Action): number => a.shortListOrder ?? a.order
+
+/** Picks in the order you put them — the one order every screen shows. */
+export const sortShortList = (actions: Action[]): Action[] => [...actions].sort((a, b) => shortListKey(a) - shortListKey(b))
+
+/** Everything pinned for a day, in your order, whatever it is now — including something already finished. Defaults to
+ *  today; pass a different workday start (e.g. nextWorkdayStart()) to read tomorrow's picks instead, as End My Day does. */
 export function useTodayShortList(date: number = startOfWorkday()): Action[] | undefined {
-  return useLiveQuery(() => db.actions.filter((a) => a.bigThreeDate === date).toArray(), [date])
+  return useLiveQuery(
+    () => db.actions.filter((a) => a.bigThreeDate === date).toArray().then(sortShortList),
+    [date],
+  )
+}
+
+/** Drag-to-reorder for a list of Short List picks (already in order): writes only the dragged pick's position. */
+export function useShortListDrag(items: Action[]) {
+  return useDragReorder(
+    items.map((a) => ({ id: a.id, order: shortListKey(a) })),
+    (id, order) => void setShortListOrder(id, order),
+  )
 }
 
 /** The pins that still count against the cap. Finishing one frees its slot back up for the rest of the day. */

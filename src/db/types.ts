@@ -131,6 +131,8 @@ export interface Action {
   touchedAt?: number
   /** Start-of-day timestamp if on today's Short List. Stops applying once the day changes — no explicit reset needed. */
   bigThreeDate?: number
+  /** Where this sits among the day's Short List picks, lowest first. Set when starred (so it lands at the bottom) and changed by dragging. Falls back to `order` for picks made before it existed. */
+  shortListOrder?: number
   order: number
   /** Set when this instance was generated from a RecurringTemplate. */
   recurringTemplateId?: string

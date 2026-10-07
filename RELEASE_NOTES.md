@@ -9,6 +9,9 @@ What's changed in the GTD app, in plain language — newest first.
 **Back and Next now stay at the top of the screen**
 In Start My Day, End My Day and the Weekly Review walkthrough, "← Back" and "Next →" now sit in a bar pinned to the top of the screen, with a small "Short List · 5 of 6" in the middle, so you never scroll a long list just to move on. "Next" is a green button so it's easy to find. The Weekly Review's "Skip for now" and "Finish my review" moved up there too.
 
+**Put your Short List in the order you'll do it**
+Drag the ⠿ handle on any open item in Today's Short List to reorder it. That order shows everywhere the list appears: Today, the Dashboard, What Now?, Start My Day's final step and End My Day's recap. On Next Actions, starred items stay together at the top in the same order, and dragging one of them there reorders the Short List too (the rest of Next Actions reorders as before). Newly starred items land at the bottom.
+
 **Finish or edit leftover picks right where you see them**
 In Start My Day's "Yesterday's picks, still open" (and End My Day's "Today's picks, still open"), each row now has a "✓ Done" button next to "Pull into today" / "Carry into tomorrow", for the ones you've already finished. The title is clickable too, so you can open an item and edit it without leaving the step.
 

@@ -1,5 +1,8 @@
+import { closestCenter, DndContext } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState } from 'react'
-import { SHORT_LIST_MAX_WORD } from '../lib/shortList'
+import { SHORT_LIST_MAX_WORD, sortShortList, useShortListDrag } from '../lib/shortList'
+import { SortableTaskRow } from './SortableTaskRow'
 import { TaskRow } from './TaskRow'
 import type { Action } from '../db/types'
 
@@ -14,8 +17,9 @@ export function BigThree({
   onOpenProject: (id: string) => void
 }) {
   const [showDone, setShowDone] = useState(false)
-  const open = actions.filter((a) => a.status !== 'done')
-  const done = actions.filter((a) => a.status === 'done')
+  const open = sortShortList(actions.filter((a) => a.status !== 'done'))
+  const done = sortShortList(actions.filter((a) => a.status === 'done'))
+  const { sensors, handleDragEnd } = useShortListDrag(open)
 
   const row = (a: Action) => (
     <TaskRow
@@ -52,7 +56,23 @@ export function BigThree({
           {open.length === 0 ? (
             <p className="text-sm text-emerald-400">All done — nice.</p>
           ) : (
-            <div className="flex flex-col divide-y divide-neutral-900">{open.map(row)}</div>
+            // Drag the ⠿ handle to put them in the order you'll tackle them; every screen shows that order.
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={open.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col divide-y divide-neutral-900">
+                  {open.map((a) => (
+                    <SortableTaskRow
+                      key={a.id}
+                      action={a}
+                      showProject
+                      showBigThreePin
+                      pinnedTodayCount={actions.length}
+                      onOpenProject={onOpenProject}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
 
           {/* Finished picks fold into one quiet line, so the list reads as "what's left" and the wins are a glance,

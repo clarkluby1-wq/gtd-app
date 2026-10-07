@@ -84,6 +84,7 @@ export async function clarifyAsNextAction(
     touchedAt: now,
     order: await nextOrder(),
     ...opts,
+    ...(opts.bigThreeDate ? { shortListOrder: now } : {}),
   })
 }
 
@@ -182,6 +183,7 @@ export async function clarifyAsProject(
       followUpDate: spec.followUpDate,
       scheduledDate: spec.scheduledDate,
       bigThreeDate: spec.bigThreeDate,
+      ...(spec.bigThreeDate ? { shortListOrder: now } : {}),
       createdAt: now,
       clarifiedAt: now,
       touchedAt: now,
@@ -362,11 +364,17 @@ export async function restoreAction(action: Action) {
  *  Deliberately doesn't touch `touchedAt`: starring something isn't doing or deciding anything about it, so it
  *  mustn't make a long-neglected action look fresh. */
 export async function pinToBigThree(actionId: string, date: number = startOfWorkday()) {
-  await db.actions.update(actionId, { bigThreeDate: date })
+  // New picks land at the bottom of the list; dragging changes that.
+  await db.actions.update(actionId, { bigThreeDate: date, shortListOrder: Date.now() })
 }
 
 export async function unpinFromBigThree(actionId: string) {
-  await db.actions.update(actionId, { bigThreeDate: undefined })
+  await db.actions.update(actionId, { bigThreeDate: undefined, shortListOrder: undefined })
+}
+
+/** Move a Short List pick within the list. Like starring, this isn't "touching" the action itself. */
+export async function setShortListOrder(actionId: string, order: number) {
+  await db.actions.update(actionId, { shortListOrder: order })
 }
 
 /** Create an action, optionally tied to a project — the general form behind addActionToProject and follow-up capture. */
