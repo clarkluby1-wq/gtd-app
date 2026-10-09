@@ -4,6 +4,19 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 7, 2026
+
+**Star things straight from Search**
+Search results now have the same ☆ as everywhere else, so you can add something to today's Short List the moment you find it. It shows on Next Actions, Waiting For and Calendar items (not Inbox, Someday or finished ones, which can't go on the list).
+
+**Sync now tells you the real reason when it stops**
+The sync service reports an expired or deactivated sync account as plain "Offline", which made a licence problem look like a bad connection. Settings now says "Sync is paused: this sync account's trial or license has expired" (or deactivated) in that case, and shows a "Sync account" line with its type, status and any trial days left, plus a small "Technical detail" line when something's wrong.
+
+**Inbox is back in the phone's "More" menu**
+On your phone, the "More" menu slides up over the bottom bar, and it used to leave out Inbox, Today, Next Actions and Projects because they live on that bar, so Inbox looked like it had disappeared. More now lists every screen, with the counts next to Inbox, Next Actions and Waiting For.
+
+---
+
 ## October 5, 2026
 
 **Back and Next now stay at the top of the screen**

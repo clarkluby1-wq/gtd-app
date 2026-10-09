@@ -5,6 +5,7 @@ import { captureToInbox } from '../db/operations'
 import { TaskRow } from '../components/TaskRow'
 import type { ViewKey } from '../components/Sidebar'
 import { escapeRegExp, matchSnippet, matchesAll, tokenize } from '../lib/search'
+import { useTodayPinCount } from '../lib/shortList'
 import type { Action, ActionStatus, Project, ReferenceItem } from '../db/types'
 
 const MIN_CHARS = 2
@@ -85,6 +86,7 @@ export function SearchView({
 }) {
   const actions = useLiveQuery(() => db.actions.toArray())
   const projects = useLiveQuery(() => db.projects.toArray())
+  const pinnedTodayCount = useTodayPinCount()
   const references = useLiveQuery(() => db.references.toArray())
   const inputRef = useRef<HTMLInputElement>(null)
   const [captured, setCaptured] = useState<string | null>(null)
@@ -219,6 +221,7 @@ export function SearchView({
                     key={item.id}
                     item={item}
                     tokens={tokens}
+                    pinnedTodayCount={pinnedTodayCount}
                     onOpenProject={onOpenProject}
                     onNavigate={onNavigate}
                   />
@@ -239,18 +242,29 @@ export function SearchView({
 function ResultRow({
   item,
   tokens,
+  pinnedTodayCount,
   onOpenProject,
   onNavigate,
 }: {
   item: ResultItem
   tokens: string[]
+  pinnedTodayCount: number | undefined
   onOpenProject: (id: string) => void
   onNavigate: (v: ViewKey) => void
 }) {
   if (item.kind === 'action') {
+    // Anything that can sit on today's Short List can be starred right from here. Inbox items aren't decided yet,
+    // Someday items aren't committed to, and finished ones are done — those get no star.
+    const starrable = ['next', 'waiting', 'scheduled'].includes(item.action.status)
     return (
       <div>
-        <TaskRow action={item.action} showProject onOpenProject={onOpenProject} />
+        <TaskRow
+          action={item.action}
+          showProject
+          showBigThreePin={starrable}
+          pinnedTodayCount={pinnedTodayCount}
+          onOpenProject={onOpenProject}
+        />
         {item.snippet && (
           <div className="truncate pb-2 pl-11 pr-3 text-xs text-neutral-500">
             in notes: <Highlight text={item.snippet} tokens={tokens} />

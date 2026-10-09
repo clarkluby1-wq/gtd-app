@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useNavBadges } from '../lib/useNavBadges'
 import { useSync } from '../lib/useSync'
 import {
   DO_NAV,
@@ -12,12 +13,9 @@ import {
   type ViewKey,
 } from './Sidebar'
 
-/** Screens already one tap away on the tab bar — left out of this list so nothing is offered twice. */
-const TAB_BAR_KEYS: ViewKey[] = ['today', 'inbox', 'next', 'projects']
-
 /**
- * Everything not on the tab bar, one slide-up sheet away. Same groups and order as the desktop sidebar, just flat
- * (it's already tucked behind "More", so there's no need to fold it further).
+ * Every screen, one slide-up sheet away. Same groups and order as the desktop sidebar, just flat (it's already
+ * tucked behind "More", so there's no need to fold it further).
  */
 export function MobileMoreSheet({
   current,
@@ -42,31 +40,41 @@ export function MobileMoreSheet({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const rest = (items: NavItem[]) => items.filter((i) => !TAB_BAR_KEYS.includes(i.key))
+  const badges = useNavBadges()
+  const countFor = (key: ViewKey): number | undefined =>
+    key === 'inbox' ? badges.inbox : key === 'next' ? badges.next : key === 'waiting' ? badges.waiting : undefined
 
+  // Everything is listed, even what's also on the tab bar: this sheet slides up over that bar, so leaving Inbox out
+  // made it look like it had vanished.
   const groups: { label?: string; items: NavItem[] }[] = [
     { items: [SEARCH_ITEM] },
-    { items: rest(DO_NAV) },
-    { label: 'Track', items: rest(TRACK_NAV) },
+    { items: DO_NAV },
+    { label: 'Track', items: TRACK_NAV },
     { label: 'Review', items: REVIEW_NAV },
     { label: 'Set up & more', items: MORE_NAV },
   ]
 
-  const row = (item: NavItem) => (
-    <button
-      key={item.key}
-      onClick={() => {
-        onSelect(item.key)
-        onClose()
-      }}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
-        current === item.key ? 'bg-emerald-600/20 text-emerald-300' : 'text-neutral-200 hover:bg-neutral-800'
-      }`}
-    >
-      <span aria-hidden>{item.icon}</span>
-      {item.label}
-    </button>
-  )
+  const row = (item: NavItem) => {
+    const count = countFor(item.key)
+    return (
+      <button
+        key={item.key}
+        onClick={() => {
+          onSelect(item.key)
+          onClose()
+        }}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
+          current === item.key ? 'bg-emerald-600/20 text-emerald-300' : 'text-neutral-200 hover:bg-neutral-800'
+        }`}
+      >
+        <span aria-hidden>{item.icon}</span>
+        {item.label}
+        {!!count && (
+          <span className="ml-auto rounded-full bg-neutral-700 px-2 py-0.5 text-xs text-neutral-200">{count}</span>
+        )}
+      </button>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/60 md:hidden" onClick={onClose}>

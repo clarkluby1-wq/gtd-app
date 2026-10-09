@@ -56,10 +56,21 @@ export function SyncCard() {
           <p className="mb-1 text-sm text-neutral-300">
             Signed in{sync.email ? ` as ${sync.email}` : ''}. Your data is the same on every device you sign in on.
           </p>
-          <p className="mb-3 flex items-center gap-2 text-sm text-neutral-400">
+          <p className="mb-1 flex items-center gap-2 text-sm text-neutral-400">
             <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
             {sync.label}
           </p>
+          {sync.account && (
+            <p className="mb-3 text-xs text-neutral-500">
+              Sync account: {sync.account.type ?? 'unknown type'}, {sync.account.status ?? 'unknown status'}
+              {sync.account.evalDaysLeft != null ? ` · ${sync.account.evalDaysLeft} trial days left` : ''}
+              {sync.account.validUntil ? ` · valid until ${new Date(sync.account.validUntil).toLocaleDateString()}` : ''}
+            </p>
+          )}
+          {sync.kind !== 'synced' && sync.detail && (
+            <p className="mb-3 break-words text-xs text-neutral-600">Technical detail: {sync.detail}</p>
+          )}
+          {!sync.account && !(sync.kind !== 'synced' && sync.detail) && <div className="mb-2" />}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => void syncNow()}
