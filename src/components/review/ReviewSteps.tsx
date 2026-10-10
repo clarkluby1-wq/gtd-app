@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { db } from '../../db/db'
 import {
-  addActionToProject,
   captureToInbox,
   completeProject,
   deleteAction,
@@ -21,8 +20,11 @@ import { isSnoozed, needsNudge, waitingStartedAt } from '../../lib/waiting'
 import type { Action, Project, WeeklyReviewChecklistItem } from '../../db/types'
 import { ClarifyModal } from '../ClarifyModal'
 import { ConfirmDialog } from '../ConfirmDialog'
+import { EditProjectModal } from '../EditProjectModal'
+import { ExistingActionPicker } from '../ExistingActionPicker'
 import { FollowUpControl } from '../FollowUpControl'
 import { InboxProcessor } from '../InboxProcessor'
+import { NextStepForm } from '../NextStepForm'
 import { TaskRow } from '../TaskRow'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -558,7 +560,8 @@ export function WaitingStep() {
 export function ProjectsStep() {
   const projects = useLiveQuery(() => db.projects.where('status').equals('active').toArray())
   const actions = useLiveQuery(() => db.actions.toArray())
-  const [fixed, setFixed] = useState<Record<string, string>>({})
+  // Projects fixed during this visit stay on screen with a ✓, whether a next step was typed in or an existing one linked.
+  const [fixed, setFixed] = useState<Record<string, { title: string; linked: boolean }>>({})
 
   if (projects === undefined || actions === undefined) return null
   const stalled = projects.filter((p) => isProjectStalled(p, actions))
@@ -583,8 +586,9 @@ export function ProjectsStep() {
               const mine = actions.filter((a) => a.projectId === p.id)
               return mine.length > 0 && mine.every((a) => a.status === 'done')
             })()}
-            addedTitle={fixed[p.id]}
-            onAdded={(title) => setFixed((prev) => ({ ...prev, [p.id]: title }))}
+            addedTitle={fixed[p.id]?.title}
+            linkedExisting={fixed[p.id]?.linked}
+            onAdded={(title, linked = false) => setFixed((prev) => ({ ...prev, [p.id]: { title, linked } }))}
           />
         ))}
       </div>
@@ -601,56 +605,62 @@ function StalledProject({
   project,
   allDone,
   addedTitle,
+  linkedExisting,
   onAdded,
 }: {
   project: Project
   allDone: boolean
   addedTitle?: string
-  onAdded: (title: string) => void
+  linkedExisting?: boolean
+  onAdded: (title: string, linkedExisting?: boolean) => void
 }) {
-  const [text, setText] = useState('')
-
-  const add = async () => {
-    const title = text.trim()
-    if (!title) return
-    setText('')
-    await addActionToProject(project.id, title)
-    onAdded(title)
-  }
+  const [editing, setEditing] = useState(false)
+  const [choosing, setChoosing] = useState(false)
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
-      <div className="text-sm font-medium text-neutral-100">{project.title}</div>
+      <div className="flex items-start justify-between gap-3">
+        <button
+          onClick={() => setEditing(true)}
+          title="Open to edit this project"
+          className="min-w-0 text-left text-sm font-medium text-neutral-100 hover:underline"
+        >
+          {project.title}
+        </button>
+        <button
+          onClick={() => setEditing(true)}
+          className="shrink-0 rounded-md border border-neutral-700 px-2 py-0.5 text-xs text-neutral-300 hover:bg-neutral-800"
+        >
+          Edit
+        </button>
+      </div>
+      {editing && <EditProjectModal project={project} onClose={() => setEditing(false)} />}
       {addedTitle ? (
-        <p className="mt-1 text-xs text-emerald-400">✓ Next action added: {addedTitle}</p>
+        <p className="mt-1 text-xs text-emerald-400">
+          {linkedExisting ? '✓ Linked existing next action' : '✓ Next action added'}: {addedTitle}
+        </p>
       ) : (
         <>
           <p className="mb-2 mt-0.5 text-xs text-amber-400/90">{stalledMessage(allDone)}</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              void add()
-            }}
-            className="flex gap-2"
-          >
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="What's the very next step?"
-              className="flex-1 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm outline-none"
+          <NextStepForm project={project} onAdded={(title) => onAdded(title)} />
+          {choosing ? (
+            <ExistingActionPicker
+              project={project}
+              onLinked={(title) => onAdded(title, true)}
+              onClose={() => setChoosing(false)}
             />
+          ) : (
             <button
-              type="submit"
-              disabled={!text.trim()}
-              className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white disabled:opacity-40"
+              onClick={() => setChoosing(true)}
+              className="mt-2 block text-xs text-neutral-400 hover:text-neutral-200"
             >
-              Add
+              Or use an existing Next Action →
             </button>
-          </form>
+          )}
           {allDone && (
             <button
               onClick={() => void completeProject(project.id)}
-              className="mt-2 text-xs text-emerald-400 hover:text-emerald-300"
+              className="mt-2 block text-xs text-emerald-400 hover:text-emerald-300"
             >
               Or mark the project complete →
             </button>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { clearFlowStep, readFlowStep, saveFlowStep } from '../lib/flowResume'
 import { db } from '../db/db'
 import { OpenPickRow } from '../components/OpenPickRow'
+import { ShortListLine } from '../components/ShortListLine'
 import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { captureToInbox, pinToBigThree } from '../db/operations'
@@ -366,10 +367,7 @@ export function EndDayView({
             ) : (
               <ul className="flex flex-col gap-1">
                 {(tomorrowActivePins ?? []).map((a) => (
-                  <li key={a.id} className="flex items-center gap-2 text-sm text-neutral-100">
-                    <span className="text-amber-400">★</span>
-                    <span className="truncate">{a.title}</span>
-                  </li>
+                  <ShortListLine key={a.id} action={a} />
                 ))}
               </ul>
             )}

@@ -4,6 +4,22 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 9, 2026
+
+**Add details when you add a project's next step**
+On the Weekly Review's project screen, the "What's the very next step?" box now has an "▸ Add details" link. Open it to make the step a Next Action, a Waiting For (with who it's waiting on) or a Scheduled item (with a day and a typed time like "2pm"), and to pick a context, with a suggested one listed first. Leave it closed and adding works exactly as before.
+
+**Attach an existing Next Action to a project that's stalled**
+On the Weekly Review's "Does every project have a next step?" screen, each stalled project now has an "Or use an existing Next Action →" link. It lists the Next Actions and Waiting For items that don't belong to any project yet, with the ones that look related to the project's name first, plus a search for the rest. Tap one and it becomes that project's next step. Items already in another project, and unprocessed Inbox items, are never offered.
+
+**Edit a project right from the Weekly Review**
+On the review's "Does every project have a next step?" screen, each project now has an "Edit" button (the project name is clickable too). It opens a small window where you can change the name, what "done" looks like, its Area of Focus, the Goal it serves, and its notes, without leaving the review.
+
+**Open your Short List items from the last step**
+In Start My Day's final step ("That's the setup. Ready?") and End My Day's recap, each starred item is now clickable. Tap one to open it and change the wording, notes or dates, so you can fix anything that's changed since you added it before you head off.
+
+---
+
 ## October 7, 2026
 
 **Star things straight from Search**

@@ -5,6 +5,7 @@ import { db } from '../db/db'
 import { CommitmentsStep } from '../components/CommitmentsStep'
 import { FollowUpControl } from '../components/FollowUpControl'
 import { OpenPickRow } from '../components/OpenPickRow'
+import { ShortListLine } from '../components/ShortListLine'
 import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree } from '../db/operations'
@@ -457,10 +458,7 @@ export function StartDayView({
             ) : (
               <ul className="flex flex-col gap-1">
                 {(activeShortList ?? []).map((a) => (
-                  <li key={a.id} className="flex items-center gap-2 text-sm text-neutral-100">
-                    <span className="text-amber-400">★</span>
-                    <span className="truncate">{a.title}</span>
-                  </li>
+                  <ShortListLine key={a.id} action={a} />
                 ))}
               </ul>
             )}
