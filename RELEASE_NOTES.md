@@ -4,6 +4,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 12, 2026
+
+**Waiting For rows fit properly on a phone held upright**
+On a phone in portrait, rows with extra buttons, like "Followed up" and "Snooze…" on Waiting For items, squeezed the task's name into a thin column of broken words. Now the buttons drop onto their own line under the name, so the name gets the full width. Wider screens, and a phone turned sideways, look exactly as before.
+
+---
+
 ## October 9, 2026
 
 **Add details when you add a project's next step**

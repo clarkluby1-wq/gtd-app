@@ -97,7 +97,7 @@ export function TaskRow({
   const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
 
   return (
-    <div className="group flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-neutral-900">
+    <div className="group flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-3 py-2 hover:bg-neutral-900 md:flex-nowrap">
       {dragHandle && (
         <button
           {...dragHandle.attributes}
@@ -206,7 +206,8 @@ export function TaskRow({
         )}
       </div>
 
-      {extraAction}
+      {/* On a phone the extra controls wrap onto their own line under the text, so they never squeeze the title. */}
+      {extraAction && <div className="order-last basis-full pl-8 md:order-none md:basis-auto md:pl-0">{extraAction}</div>}
 
       <button
         onClick={() => setConfirmingDelete(true)}
