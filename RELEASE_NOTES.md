@@ -6,6 +6,9 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 12, 2026
 
+**The app tells you when a newer version is ready**
+A Home Screen app on an iPhone can keep showing an old copy for a long time after an update goes out. Now, whenever you open the app or come back to it, it checks whether a newer version has been published. If one has, a small bar at the top says "A new version is ready" with an "Update now" button. It never reloads by itself, so nothing you're typing is lost. This only starts working once you've got this version, so the first update after it still needs the usual close-and-reopen.
+
 **Waiting For rows fit properly on a phone held upright**
 On a phone in portrait, rows with extra buttons, like "Followed up" and "Snooze…" on Waiting For items, squeezed the task's name into a thin column of broken words. Now the buttons drop onto their own line under the name, so the name gets the full width. Wider screens, and a phone turned sideways, look exactly as before.
 

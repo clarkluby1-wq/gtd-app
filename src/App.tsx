@@ -6,6 +6,7 @@ import { MobileMoreSheet } from './components/MobileMoreSheet'
 import { MobileTabBar } from './components/MobileTabBar'
 import { ReturnBar } from './components/ReturnBar'
 import { UndoSnackbar } from './components/UndoSnackbar'
+import { UpdateBar } from './components/UpdateBar'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
@@ -327,6 +328,7 @@ function App() {
       <SearchHotkey onTrigger={openSearch} />
       <ReminderPrompt />
       <UndoSnackbar />
+      <UpdateBar />
       <WeeklyReviewPrompt onStart={startReview} />
       {captureConfirmation && (
         <div
