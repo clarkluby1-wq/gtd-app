@@ -6,6 +6,17 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 14, 2026
 
+**Choose how much GTD you see: Lite, Standard or Full**
+A brand-new install now asks "How much GTD do you want?" the first time it opens. You can change your answer any time in Settings → "How much GTD". Choosing a lower level only *hides* things. Everything you've saved stays safe and reappears when you switch back up. Anyone who already has data in the app is simply set to Full, so nothing changes for them.
+
+- **Lite:** Capture, Inbox, Today, Next Actions, the Short List, Waiting For, Someday/Maybe, Reference and simple Projects.
+- **Standard:** Lite plus the Calendar, Start & End My Day, the Dashboard, What I've Done / Recently Completed, and Mind Sweep.
+- **Full GTD:** everything, including the Weekly Review (and its reminder), Deep Plan, and all of Horizons of Focus, with linking projects to Areas and Goals.
+
+Under "Choose feature by feature" you can switch any single feature on or off, which makes a Custom mix. Settings also tells you what's saved but hidden (for example "3 Scheduled items, 2 Goals"). Anything due or scheduled for today always still shows on Today, whatever level you're on. If you're looking at a screen when you switch to a level without it, you're simply taken back to Today.
+
+The level is stored on each device, like the Celebrations setting, so your phone and computer can differ.
+
 **A scheduled step now counts as a project's next step**
 A project whose only open item was a dated action, like "Roofer visiting Thursday 8–10am", was being flagged with an amber "!" and "Nothing next or pending. Add a next action." Now a Scheduled item counts as forward motion, just like a Next Action or a Waiting For. The "!" shows only when a project has none of the three, and its message now says "Nothing next, waiting or scheduled." This applies on the Projects screen, the Dashboard and the Weekly Review.
 

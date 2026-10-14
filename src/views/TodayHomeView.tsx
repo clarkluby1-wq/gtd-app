@@ -6,6 +6,7 @@ import { TaskRow } from '../components/TaskRow'
 import { startOfDay, startOfToday } from '../lib/date'
 import { staleNextActions } from '../lib/staleness'
 import { describeStatus } from '../lib/reviewSchedule'
+import { useFeatures } from '../lib/levels'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { Action } from '../db/types'
@@ -35,6 +36,7 @@ export function TodayHomeView({
 }) {
   const today = startOfToday()
   const review = useReviewStatus()
+  const features = useFeatures()
   const somedayProjectIds = useSomedayProjectIds()
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
 
@@ -64,7 +66,7 @@ export function TodayHomeView({
         <span className="text-sm text-neutral-500">{heading}</span>
       </div>
 
-      {(review.phase === 'today' || review.phase === 'open') && review.schedule && (
+      {features.has('weeklyReview') && (review.phase === 'today' || review.phase === 'open') && review.schedule && (
         <button
           onClick={onViewWeeklyReview}
           className="mb-4 flex w-full items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left hover:border-amber-500/50"
@@ -80,12 +82,16 @@ export function TodayHomeView({
       <BigThree actions={shortList} onViewNextActions={onViewNextActions} onOpenProject={onOpenProject} />
 
       {/* A quiet door, never a prompt: always the same on every device, so it can't read as "didn't I just do this?" */}
-      <button onClick={onStartDay} className="-mt-2 block text-sm text-neutral-500 hover:text-neutral-300">
-        ☀️ Start your day — a quick guided look →
-      </button>
-      <button onClick={onEndDay} className="mb-6 block text-sm text-neutral-500 hover:text-neutral-300">
-        🌆 End your day — plan for tomorrow →
-      </button>
+      {features.has('dayFlows') && (
+        <>
+          <button onClick={onStartDay} className="-mt-2 block text-sm text-neutral-500 hover:text-neutral-300">
+            ☀️ Start your day — a quick guided look →
+          </button>
+          <button onClick={onEndDay} className="mb-6 block text-sm text-neutral-500 hover:text-neutral-300">
+            🌆 End your day — plan for tomorrow →
+          </button>
+        </>
+      )}
 
       {staleCount > 0 && (
         <button onClick={onViewStale} className="-mt-3 mb-6 block text-sm text-amber-400 hover:text-amber-300">
@@ -94,7 +100,9 @@ export function TodayHomeView({
       )}
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-        <h2 className="mb-2 text-sm font-medium text-neutral-300">On your calendar today</h2>
+        <h2 className="mb-2 text-sm font-medium text-neutral-300">
+          {features.has('calendar') ? 'On your calendar today' : 'Due or scheduled today'}
+        </h2>
         {onCalendarToday.length === 0 ? (
           <p className="text-sm text-neutral-500">Nothing tied to today.</p>
         ) : (
@@ -111,9 +119,11 @@ export function TodayHomeView({
             ))}
           </div>
         )}
-        <button onClick={onViewCalendar} className="mt-3 text-xs text-neutral-500 hover:text-neutral-300">
-          See the whole Calendar →
-        </button>
+        {features.has('calendar') && (
+          <button onClick={onViewCalendar} className="mt-3 text-xs text-neutral-500 hover:text-neutral-300">
+            See the whole Calendar →
+          </button>
+        )}
       </div>
     </div>
   )

@@ -26,6 +26,7 @@ import { useWaitingOnNames } from '../lib/waiting'
 import { suggestContextId } from '../lib/suggestContext'
 import { showUndo } from '../lib/undoSnack'
 import { useEscapeKey } from '../lib/useEscapeKey'
+import { useFeatures } from '../lib/levels'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { SimilarNotice } from './SimilarNotice'
 import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
@@ -118,6 +119,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
   const [history, setHistory] = useState<Step[]>([])
   const [kind, setKind] = useState<'single' | 'project'>('single')
   const { notify } = useCompletionToast()
+  const features = useFeatures()
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   const goals = useLiveQuery(() => db.goals.where('status').equals('active').toArray())
@@ -610,6 +612,8 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 </Btn>
               </div>
 
+              {features.has('horizons') && (
+                <>
               <label className="text-xs text-neutral-500">Area of Focus (optional)</label>
               <select
                 value={areaOfFocusId ?? ''}
@@ -643,6 +647,8 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                         </option>
                       ))}
                   </select>
+                </>
+              )}
                 </>
               )}
 
@@ -681,7 +687,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
             <div className="flex flex-col gap-2">
               <Btn onClick={startTimer}>⏱ Do it now — under 2 minutes</Btn>
               <Btn onClick={() => go('delegate')}>👤 Someone else does it</Btn>
-              <Btn onClick={() => go('schedule')}>📅 On a specific day and/or time</Btn>
+              {features.has('calendar') && <Btn onClick={() => go('schedule')}>📅 On a specific day and/or time</Btn>}
               <Btn primary onClick={() => go('assignNextAction')}>
                 ✅ Next time I get to it
               </Btn>

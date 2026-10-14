@@ -9,6 +9,7 @@ import { SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
 import { TimeField } from './TimeField'
+import { useFeatures } from '../lib/levels'
 import { useEscapeKey } from '../lib/useEscapeKey'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { SimilarNotice } from './SimilarNotice'
@@ -50,6 +51,7 @@ function toDateInputValue(ts?: number) {
 }
 
 export function EditActionModal({ action, onClose }: { action: Action; onClose: () => void }) {
+  const features = useFeatures()
   const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const areas = useLiveQuery(() => db.areasOfFocus.orderBy('order').toArray())
   // Same count every star uses, minus this action, so the cap can never disagree with it — whatever kind of item is pinned.
@@ -161,7 +163,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
         <div className="mb-3 text-xs text-neutral-500">{historyLine(action)}</div>
 
         <div className="mb-3 flex gap-1">
-          {TYPES.map((t) => (
+          {TYPES.filter((t) => t.key !== 'scheduled' || features.has('calendar') || type === 'scheduled').map((t) => (
             <button
               key={t.key}
               onClick={() => setType(t.key)}

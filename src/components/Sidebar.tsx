@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCompletionToast } from '../lib/completionToastContext'
+import { useFeatures } from '../lib/levels'
 import { useNavBadges } from '../lib/useNavBadges'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { useSync } from '../lib/useSync'
@@ -116,8 +117,12 @@ export function Sidebar({
   const [stored, setStored] = useState(readOpen)
   const reviewStatus = useReviewStatus()
   const sync = useSync()
-  const reviewNeedsAttention = reviewStatus.phase === 'today' || reviewStatus.phase === 'open'
+  const features = useFeatures()
+  const reviewNeedsAttention = features.has('weeklyReview') && (reviewStatus.phase === 'today' || reviewStatus.phase === 'open')
   const badges = useNavBadges()
+  const visible = (items: NavItem[]) => items.filter((n) => features.showsView(n.key))
+  const reviewItems = visible(REVIEW_NAV)
+  const horizonsItems = features.has('horizons') ? HORIZONS_NAV : []
 
   const badge = (key: ViewKey): number | undefined => {
     if (key === 'inbox') return badges.inbox
@@ -189,33 +194,39 @@ export function Sidebar({
       {item(SEARCH_ITEM)}
 
       {label('Do')}
-      {DO_NAV.map(item)}
+      {visible(DO_NAV).map(item)}
 
       {label('Track')}
-      {TRACK_NAV.map(item)}
+      {visible(TRACK_NAV).map(item)}
 
-      {foldedHeader('Review', 'review', reviewOpen, reviewNeedsAttention)}
-      {reviewOpen && REVIEW_NAV.map(item)}
+      {reviewItems.length > 0 && foldedHeader('Review', 'review', reviewOpen, reviewNeedsAttention)}
+      {reviewItems.length > 0 && reviewOpen && reviewItems.map(item)}
 
       {foldedHeader('Set up & more', 'more', moreOpen)}
       {moreOpen && (
         <>
           {MORE_NAV.map(item)}
-          <button
-            onClick={onStartMindSweep}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
-          >
-            <span>🧹</span>
-            <span>Mind Sweep</span>
-          </button>
-
-          <div className="mt-3 flex items-center justify-between px-3 py-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-600">Horizons of Focus</span>
-            <button onClick={onStartIntake} className="text-[10px] text-emerald-500 hover:text-emerald-400">
-              Guided setup
+          {features.has('mindSweep') && (
+            <button
+              onClick={onStartMindSweep}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+            >
+              <span>🧹</span>
+              <span>Mind Sweep</span>
             </button>
-          </div>
-          {HORIZONS_NAV.map((n) => item({ ...n, extra: n.altitude }))}
+          )}
+
+          {horizonsItems.length > 0 && (
+            <>
+              <div className="mt-3 flex items-center justify-between px-3 py-1">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-600">Horizons of Focus</span>
+                <button onClick={onStartIntake} className="text-[10px] text-emerald-500 hover:text-emerald-400">
+                  Guided setup
+                </button>
+              </div>
+              {horizonsItems.map((n) => item({ ...n, extra: n.altitude }))}
+            </>
+          )}
 
           <div className="mt-2">{item(SETTINGS_ITEM)}</div>
         </>

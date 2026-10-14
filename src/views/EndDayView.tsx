@@ -8,6 +8,7 @@ import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { captureToInbox, pinToBigThree } from '../db/operations'
 import { nextWorkdayStart, startOfDay, startOfToday, startOfWorkday } from '../lib/date'
+import { useFeatures } from '../lib/levels'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount } from '../lib/shortList'
 import type { Action } from '../db/types'
@@ -47,6 +48,7 @@ export function EndDayView({
   onViewNextActions: () => void
   onViewCalendar: () => void
 }) {
+  const features = useFeatures()
   // Picks up where you left off if you stepped out to the Inbox or Calendar and came back (today only).
   const [startedAt] = useState<Step>(() => {
     const saved = readFlowStep('endday')
@@ -250,9 +252,11 @@ export function EndDayView({
             </button>
             ? Give it a date and it'll show up here.
           </p>
-          <button onClick={onViewCalendar} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
-            See the whole Calendar →
-          </button>
+          {features.has('calendar') && (
+            <button onClick={onViewCalendar} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
+              See the whole Calendar →
+            </button>
+          )}
         </Screen>
       )}
 

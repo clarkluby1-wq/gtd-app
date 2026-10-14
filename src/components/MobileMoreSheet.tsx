@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useFeatures } from '../lib/levels'
 import { useNavBadges } from '../lib/useNavBadges'
 import { useSync } from '../lib/useSync'
 import {
@@ -41,6 +42,8 @@ export function MobileMoreSheet({
   }, [onClose])
 
   const badges = useNavBadges()
+  const features = useFeatures()
+  const visible = (items: NavItem[]) => items.filter((n) => features.showsView(n.key))
   const countFor = (key: ViewKey): number | undefined =>
     key === 'inbox' ? badges.inbox : key === 'next' ? badges.next : key === 'waiting' ? badges.waiting : undefined
 
@@ -48,11 +51,11 @@ export function MobileMoreSheet({
   // made it look like it had vanished.
   const groups: { label?: string; items: NavItem[] }[] = [
     { items: [SEARCH_ITEM] },
-    { items: DO_NAV },
-    { label: 'Track', items: TRACK_NAV },
-    { label: 'Review', items: REVIEW_NAV },
+    { items: visible(DO_NAV) },
+    { label: 'Track', items: visible(TRACK_NAV) },
+    { label: 'Review', items: visible(REVIEW_NAV) },
     { label: 'Set up & more', items: MORE_NAV },
-  ]
+  ].filter((g) => g.items.length > 0)
 
   const row = (item: NavItem) => {
     const count = countFor(item.key)
@@ -100,30 +103,36 @@ export function MobileMoreSheet({
             </div>
           ))}
 
-          <button
-            onClick={() => {
-              onStartMindSweep()
-              onClose()
-            }}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-neutral-200 hover:bg-neutral-800"
-          >
-            <span aria-hidden>🧹</span>
-            Mind Sweep
-          </button>
-
-          <div className="mt-3 flex items-center justify-between px-3 py-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-600">Horizons of Focus</span>
+          {features.has('mindSweep') && (
             <button
               onClick={() => {
-                onStartIntake()
+                onStartMindSweep()
                 onClose()
               }}
-              className="text-[10px] text-emerald-500 hover:text-emerald-400"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-neutral-200 hover:bg-neutral-800"
             >
-              Guided setup
+              <span aria-hidden>🧹</span>
+              Mind Sweep
             </button>
-          </div>
-          {HORIZONS_NAV.map((n) => row(n))}
+          )}
+
+          {features.has('horizons') && (
+            <>
+              <div className="mt-3 flex items-center justify-between px-3 py-1">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-600">Horizons of Focus</span>
+                <button
+                  onClick={() => {
+                    onStartIntake()
+                    onClose()
+                  }}
+                  className="text-[10px] text-emerald-500 hover:text-emerald-400"
+                >
+                  Guided setup
+                </button>
+              </div>
+              {HORIZONS_NAV.map((n) => row(n))}
+            </>
+          )}
 
           <div className="mt-2">{row(SETTINGS_ITEM)}</div>
 

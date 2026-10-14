@@ -10,6 +10,7 @@ import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
 import { pinToBigThree } from '../db/operations'
 import { startOfDay, startOfToday, startOfWorkday } from '../lib/date'
+import { useFeatures } from '../lib/levels'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
@@ -111,6 +112,7 @@ export function StartDayView({
   const inboxCount = useLiveQuery(() => db.actions.where('status').equals('inbox').count())
   const somedayProjectIds = useSomedayProjectIds()
   const review = useReviewStatus()
+  const features = useFeatures()
   const yesterdaysPicksRaw = useYesterdaysOpenPicks()
   // The real Short List, across every status it can come from — not just what's picked below, which is Next
   // Actions only. Keeps the count and cap honest with what Next Actions / Waiting For / Calendar already show.
@@ -255,7 +257,7 @@ export function StartDayView({
 
       {step === 'today' && (
         <Screen question="What's already tied to today in here?">
-          {(review.phase === 'today' || review.phase === 'open') && review.schedule && (
+          {features.has('weeklyReview') && (review.phase === 'today' || review.phase === 'open') && review.schedule && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-neutral-100">Weekly Review</div>
@@ -306,9 +308,11 @@ export function StartDayView({
             </button>
             ? Give it a date and it'll show up here.
           </p>
-          <button onClick={onViewCalendar} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
-            See the whole Calendar →
-          </button>
+          {features.has('calendar') && (
+            <button onClick={onViewCalendar} className="mt-4 text-xs text-neutral-500 hover:text-neutral-300">
+              See the whole Calendar →
+            </button>
+          )}
         </Screen>
       )}
 

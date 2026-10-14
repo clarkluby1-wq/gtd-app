@@ -9,6 +9,7 @@ import { DeepPlanModal } from '../components/DeepPlanModal'
 import { updateProject } from '../db/operations'
 import { SimilarNotice } from '../components/SimilarNotice'
 import { isProjectStalled, stalledMessage } from '../lib/projectHealth'
+import { useFeatures } from '../lib/levels'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { useDragReorder } from '../lib/useDragReorder'
 import type { Project } from '../db/types'
@@ -25,6 +26,7 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
   )
   const allActions = useLiveQuery(() => db.actions.toArray())
   const [creating, setCreating] = useState(false)
+  const features = useFeatures()
   const [deepPlanning, setDeepPlanning] = useState(false)
   const [title, setTitle] = useState('')
   const [outcome, setOutcome] = useState('')
@@ -99,13 +101,15 @@ export function ProjectsView({ onOpen }: { onOpen: (projectId: string) => void }
           </span>
         </h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => setDeepPlanning(true)}
-            className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
-            title="Walk through Purpose, Vision, Brainstorm, Organize, and Next Actions"
-          >
-            🧭 Deep Plan
-          </button>
+          {features.has('planning') && (
+            <button
+              onClick={() => setDeepPlanning(true)}
+              className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700"
+              title="Walk through Purpose, Vision, Brainstorm, Organize, and Next Actions"
+            >
+              🧭 Deep Plan
+            </button>
+          )}
           <button
             onClick={() => setCreating((v) => !v)}
             className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"

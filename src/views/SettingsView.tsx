@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { backupAgeLabel, createBackup, getLastBackup, importBackup, isBackupDue } from '../db/backup'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { LevelSettings } from '../components/LevelSettings'
 import { SyncCard } from '../components/SyncCard'
 import { useSync } from '../lib/useSync'
 import {
@@ -61,6 +62,8 @@ export function SettingsView() {
       </p>
 
       <SyncCard />
+
+      <LevelSettings />
 
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
         <div className="mb-2 font-medium text-neutral-100">Celebrations</div>

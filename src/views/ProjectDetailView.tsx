@@ -5,6 +5,7 @@ import { addActionToProject, completeProject, deleteProject, updateProject } fro
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TaskRow } from '../components/TaskRow'
 import { celebrate, originOf } from '../lib/celebrate'
+import { useFeatures } from '../lib/levels'
 import type { Project } from '../db/types'
 
 export function ProjectDetailView({
@@ -16,6 +17,7 @@ export function ProjectDetailView({
   onBack: () => void
   onOpenGoal: (goalId: string) => void
 }) {
+  const features = useFeatures()
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId])
   const actions = useLiveQuery(() => db.actions.where('projectId').equals(projectId).sortBy('createdAt'), [
     projectId,
@@ -235,6 +237,8 @@ export function ProjectDetailView({
         </button>
       )}
 
+      {features.has('horizons') && (
+      <>
       <div className="mb-2 flex flex-wrap gap-2">
         <select
           value={project.areaOfFocusId ?? ''}
@@ -288,6 +292,9 @@ export function ProjectDetailView({
           )}
           {linkedVision && <span className="text-neutral-400">→ 🔭 {linkedVision.statement.slice(0, 40)}…</span>}
         </div>
+      )}
+
+      </>
       )}
 
       {project.planning && (project.planning.purpose || project.planning.brainstorm || project.planning.organized) && (

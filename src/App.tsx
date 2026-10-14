@@ -7,6 +7,8 @@ import { MobileTabBar } from './components/MobileTabBar'
 import { ReturnBar } from './components/ReturnBar'
 import { UndoSnackbar } from './components/UndoSnackbar'
 import { UpdateBar } from './components/UpdateBar'
+import { LevelGate } from './components/LevelGate'
+import { useFeatures } from './lib/levels'
 import { HorizonsIntakeWizard } from './components/HorizonsIntakeWizard'
 import { MindSweepWizard } from './components/MindSweepWizard'
 import { CompletionToastProvider } from './components/CompletionToastProvider'
@@ -45,7 +47,10 @@ import { SettingsView } from './views/SettingsView'
 function App() {
   // Opens on Today — the calm home base. Sorting the Inbox is something you choose to do, not the first thing the
   // app asks of you (the Inbox count still shows in the menu; capturing is always available in the bar above).
-  const [view, setView] = useState<ViewKey>('today')
+  const [requestedView, setView] = useState<ViewKey>('today')
+  // A screen your level doesn't include (you just switched down while on it) falls back to Today — nothing is lost.
+  const features = useFeatures()
+  const view: ViewKey = features.showsView(requestedView) ? requestedView : 'today'
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [showMindSweep, setShowMindSweep] = useState(false)
@@ -329,7 +334,8 @@ function App() {
       <ReminderPrompt />
       <UndoSnackbar />
       <UpdateBar />
-      <WeeklyReviewPrompt onStart={startReview} />
+      <LevelGate />
+      {features.has('weeklyReview') && <WeeklyReviewPrompt onStart={startReview} />}
       {captureConfirmation && (
         <div
           role="status"
