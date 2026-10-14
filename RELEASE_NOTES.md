@@ -4,6 +4,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 14, 2026
+
+**A scheduled step now counts as a project's next step**
+A project whose only open item was a dated action, like "Roofer visiting Thursday 8–10am", was being flagged with an amber "!" and "Nothing next or pending. Add a next action." Now a Scheduled item counts as forward motion, just like a Next Action or a Waiting For. The "!" shows only when a project has none of the three, and its message now says "Nothing next, waiting or scheduled." This applies on the Projects screen, the Dashboard and the Weekly Review.
+
+---
+
 ## October 12, 2026
 
 **The app tells you when a newer version is ready**
