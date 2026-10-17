@@ -354,6 +354,8 @@ export function StartDayView({
                     action={a}
                     showProject
                     showWaitingClock
+                    showBigThreePin
+                    pinnedTodayCount={pinnedTodayCount}
                     onOpenProject={onOpenProject}
                     extraAction={
                       <FollowUpControl

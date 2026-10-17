@@ -384,6 +384,7 @@ export async function createAction(opts: {
   contextId?: string
   status?: ActionStatus
   waitingOn?: string
+  followUpDate?: number
   scheduledDate?: number
 }) {
   const now = Date.now()
@@ -394,6 +395,7 @@ export async function createAction(opts: {
     projectId: opts.projectId,
     contextId: opts.contextId,
     waitingOn: opts.waitingOn,
+    followUpDate: opts.followUpDate,
     scheduledDate: opts.scheduledDate,
     createdAt: now,
     clarifiedAt: now,

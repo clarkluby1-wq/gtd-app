@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { db } from '../db/db'
 import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { ExistingActionPicker } from '../components/ExistingActionPicker'
 import { TaskRow } from '../components/TaskRow'
 import { celebrate, originOf } from '../lib/celebrate'
 import { useFeatures } from '../lib/levels'
+import { useTodayPinCount } from '../lib/shortList'
 import type { Project } from '../db/types'
 
 export function ProjectDetailView({
@@ -18,6 +20,7 @@ export function ProjectDetailView({
   onOpenGoal: (goalId: string) => void
 }) {
   const features = useFeatures()
+  const pinnedTodayCount = useTodayPinCount()
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId])
   const actions = useLiveQuery(() => db.actions.where('projectId').equals(projectId).sortBy('createdAt'), [
     projectId,
@@ -37,6 +40,8 @@ export function ProjectDetailView({
 
   const [newAction, setNewAction] = useState('')
   const [newActionContextId, setNewActionContextId] = useState('')
+  const [choosingExisting, setChoosingExisting] = useState(false)
+  const [linkedTitle, setLinkedTitle] = useState<string | null>(null)
   const [editingOutcome, setEditingOutcome] = useState(false)
   const [outcomeDraft, setOutcomeDraft] = useState('')
   const [editingNotes, setEditingNotes] = useState(false)
@@ -375,9 +380,27 @@ export function ProjectDetailView({
         </button>
       </form>
 
+      <div className="mb-4 -mt-2">
+        {choosingExisting ? (
+          <ExistingActionPicker
+            project={project}
+            onLinked={(title) => setLinkedTitle(title)}
+            onClose={() => {
+              setChoosingExisting(false)
+              setLinkedTitle(null)
+            }}
+          />
+        ) : (
+          <button onClick={() => setChoosingExisting(true)} className="text-xs text-neutral-400 hover:text-neutral-200">
+            Or use an existing action →
+          </button>
+        )}
+        {linkedTitle && <p className="mt-1.5 text-xs text-emerald-400">✓ Added to this project: {linkedTitle}</p>}
+      </div>
+
       <div className="flex flex-col divide-y divide-neutral-900">
         {open.map((a) => (
-          <TaskRow key={a.id} action={a} />
+          <TaskRow key={a.id} action={a} showBigThreePin pinnedTodayCount={pinnedTodayCount} />
         ))}
       </div>
 

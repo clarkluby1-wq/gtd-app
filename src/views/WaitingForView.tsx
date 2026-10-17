@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
 import type { Action } from '../db/types'
+import { AddWaitingFor } from '../components/AddWaitingFor'
 import { FollowUpControl } from '../components/FollowUpControl'
 import { SortableTaskRow } from '../components/SortableTaskRow'
 import { TaskRow } from '../components/TaskRow'
@@ -195,6 +196,8 @@ export function WaitingForView({ onOpenProject }: { onOpenProject: (projectId: s
       <p className="mb-4 text-sm text-neutral-500">
         Things delegated to someone else, or blocked on an external event. Review these regularly and follow up.
       </p>
+
+      <AddWaitingFor />
 
       {all.length > 0 && (
         <>

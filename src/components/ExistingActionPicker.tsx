@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
+import { formatShortDate } from '../lib/date'
+import { useFeatures } from '../lib/levels'
 import { meaningfulWords } from '../lib/similar'
 import type { Action, Project } from '../db/types'
 
@@ -9,7 +11,7 @@ const SUGGESTED = 3
 const SEARCH_RESULTS = 8
 
 /**
- * Pick an existing, unattached Next Action (or Waiting For) to become this project's next step — for when the step
+ * Pick an existing, unattached Next Action (or Waiting For, or Scheduled item when the Calendar is on) to become this project's next step — for when the step
  * was already captured but never linked. Only unassigned ones are offered, so nothing is pulled out of another
  * project by accident. The likeliest few (sharing a word with the project's name) come first; the rest are searchable.
  */
@@ -22,8 +24,14 @@ export function ExistingActionPicker({
   onLinked: (title: string) => void
   onClose: () => void
 }) {
-  const orphans = useLiveQuery(() =>
-    db.actions.filter((a) => (a.status === 'next' || a.status === 'waiting') && !a.projectId).toArray(),
+  const { has } = useFeatures()
+  const withScheduled = has('calendar')
+  const orphans = useLiveQuery(
+    () =>
+      db.actions
+        .filter((a) => (a.status === 'next' || a.status === 'waiting' || (withScheduled && a.status === 'scheduled')) && !a.projectId)
+        .toArray(),
+    [withScheduled],
   )
   const [query, setQuery] = useState('')
 
@@ -55,6 +63,9 @@ export function ExistingActionPicker({
     >
       <span className="min-w-0 truncate">{a.title}</span>
       {a.status === 'waiting' && <span className="shrink-0 text-xs text-neutral-500">waiting on {a.waitingOn ?? 'someone'}</span>}
+      {a.status === 'scheduled' && a.scheduledDate != null && (
+        <span className="shrink-0 text-xs text-sky-400">{formatShortDate(a.scheduledDate)}</span>
+      )}
     </button>
   )
 
@@ -71,8 +82,8 @@ export function ExistingActionPicker({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={
           orphans.length > 0
-            ? `Search all ${orphans.length} unassigned Next Action${orphans.length === 1 ? '' : 's'}…`
-            : 'No unassigned Next Actions'
+            ? `Search all ${orphans.length} unassigned action${orphans.length === 1 ? '' : 's'}…`
+            : 'No unassigned actions'
         }
         disabled={orphans.length === 0}
         className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm outline-none disabled:opacity-50"

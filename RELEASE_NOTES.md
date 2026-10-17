@@ -4,7 +4,20 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 17, 2026
+
+**Bring an existing action into a project without leaving its page**
+On any project's page, under the "Add a next action for this project…" box, there's now an "Or use an existing action →" link. It lists the Next Actions, Waiting For items and Scheduled items that don't belong to any project yet, with the ones that look related to the project's name first, and a search for the rest. Tap one and it joins the project right away. You can link several in a row. Items already in another project, and Inbox items you haven't sorted yet, are never offered. (If you're on the Lite level, which has no Calendar, Scheduled items aren't offered.)
+
+**Star a Waiting For from a project page and from the nudge step**
+A Waiting For can be starred onto today's Short List when chasing it is a top priority. That was already possible from the Waiting For screen. Now the ☆ also appears on a project's own page (on every open step) and on Start My Day's "Is anyone due a nudge?" step, so you can star the person you most need an answer from right where you notice them.
+
+---
+
 ## October 14, 2026
+
+**Add a Waiting For right from the Waiting For page**
+The Waiting For screen now has a green "+ Add Waiting For" button, like the Calendar's. It opens a small form with what you're waiting for, who it's from (it suggests names you've used before), and an optional "Check back on" date, with a "More options" link for attaching it to a project. It goes straight onto the list without stopping in the Inbox. If it looks like something you already have, the usual "you already have this" notice appears, and Esc or Cancel closes the form.
 
 **Choose how much GTD you see: Lite, Standard or Full**
 A brand-new install now asks "How much GTD do you want?" the first time it opens. You can change your answer any time in Settings → "How much GTD". Choosing a lower level only *hides* things. Everything you've saved stays safe and reappears when you switch back up. Anyone who already has data in the app is simply set to Full, so nothing changes for them.
