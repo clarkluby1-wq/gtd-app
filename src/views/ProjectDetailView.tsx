@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { db } from '../db/db'
-import { addActionToProject, completeProject, deleteProject, updateProject } from '../db/operations'
+import { completeProject, deleteProject, updateProject } from '../db/operations'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ExistingActionPicker } from '../components/ExistingActionPicker'
+import { AddAndClarify } from '../components/AddAndClarify'
 import { TaskRow } from '../components/TaskRow'
 import { celebrate, originOf } from '../lib/celebrate'
 import { useFeatures } from '../lib/levels'
@@ -35,11 +36,8 @@ export function ProjectDetailView({
     () => (linkedGoal?.visionId ? db.visions.get(linkedGoal.visionId) : undefined),
     [linkedGoal?.visionId],
   )
-  const contexts = useLiveQuery(() => db.contexts.orderBy('order').toArray())
   const [showPlanning, setShowPlanning] = useState(false)
 
-  const [newAction, setNewAction] = useState('')
-  const [newActionContextId, setNewActionContextId] = useState('')
   const [choosingExisting, setChoosingExisting] = useState(false)
   const [linkedTitle, setLinkedTitle] = useState<string | null>(null)
   const [editingOutcome, setEditingOutcome] = useState(false)
@@ -341,44 +339,9 @@ export function ProjectDetailView({
         </p>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!newAction.trim()) return
-          addActionToProject(projectId, newAction.trim(), {
-            status: 'next',
-            contextId: newActionContextId || undefined,
-          })
-          setNewAction('')
-          setNewActionContextId('')
-        }}
-        className="mb-4 flex gap-2"
-      >
-        <input
-          value={newAction}
-          onChange={(e) => setNewAction(e.target.value)}
-          placeholder="Add a next action for this project…"
-          className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none"
-        />
-        <select
-          value={newActionContextId}
-          onChange={(e) => setNewActionContextId(e.target.value)}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs text-neutral-300"
-        >
-          <option value="">No context</option>
-          {contexts?.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="rounded-md bg-neutral-800 px-3 py-2 text-xs text-neutral-200 hover:bg-emerald-600 hover:text-white"
-        >
-          Add
-        </button>
-      </form>
+      <div className="mb-3">
+        <AddAndClarify placeholder="Add a next action for this project…" projectId={projectId} />
+      </div>
 
       <div className="mb-4 -mt-2">
         {choosingExisting ? (

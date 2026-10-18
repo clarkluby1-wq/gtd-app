@@ -56,7 +56,14 @@ export function NextStepForm({ project, onAdded }: { project: Project; onAdded: 
       waitingOn: more && kind === 'waiting' ? waitingOn.trim() : undefined,
       scheduledDate: more && kind === 'scheduled' ? parseLocalDateTime(date, time || undefined) : undefined,
     })
+    // Back to the quick form, so the next step is a plain Next Action unless you open the details again.
     setText('')
+    setMore(false)
+    setType('next')
+    setContextId('')
+    setWaitingOn('')
+    setDate('')
+    setTime('')
     onAdded(title)
   }
 

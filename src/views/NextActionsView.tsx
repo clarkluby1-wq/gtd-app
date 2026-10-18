@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { updateAction } from '../db/operations'
+import { AddAndClarify } from '../components/AddAndClarify'
 import { SortableTaskRow } from '../components/SortableTaskRow'
 import { matchesNextFilters, type NextFilters } from '../lib/nextFilters'
 import { useDragReorder } from '../lib/useDragReorder'
@@ -89,6 +90,10 @@ export function NextActionsView({
           Not sure what fits? Ask What Now? →
         </button>
       </p>
+
+      <div className="mb-4">
+        <AddAndClarify placeholder="Add a next action…" />
+      </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <select

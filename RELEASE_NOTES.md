@@ -6,6 +6,13 @@ What's changed in the GTD app, in plain language — newest first.
 
 ## October 17, 2026
 
+**Adding an action now walks you through Clarify, on a project's page and on Next Actions**
+On a project's own page, the "next action" box used to add a plain Next Action (with a context at most), so a Waiting For or dated step had to be opened and changed afterwards. Now when you type a step and press Add, you get the same step-by-step as sorting an Inbox item: is it actionable, do it now, someone else does it (Waiting For, with a check-back date), a specific day and time, or next time you get to it (with context, energy, time and the Short List). Inside a project it skips the "one step or a project?" question, and whatever you finish joins that project.
+
+The Next Actions screen has the same "Add a next action…" box at the top, which takes you straight into Clarify the same way. What you type is captured first, so if you close Clarify without finishing, the item simply waits in your Inbox and nothing is lost.
+
+Also fixed: the "add the next step" form in the Weekly Review kept its Waiting For choices after an add, so the next plain step could be saved as a Waiting For by mistake. It now resets after each add.
+
 **Bring an existing action into a project without leaving its page**
 On any project's page, under the "Add a next action for this project…" box, there's now an "Or use an existing action →" link. It lists the Next Actions, Waiting For items and Scheduled items that don't belong to any project yet, with the ones that look related to the project's name first, and a search for the rest. Tap one and it joins the project right away. You can link several in a row. Items already in another project, and Inbox items you haven't sorted yet, are never offered. (If you're on the Lite level, which has no Calendar, Scheduled items aren't offered.)
 

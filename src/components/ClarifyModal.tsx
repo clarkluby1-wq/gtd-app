@@ -114,7 +114,18 @@ export type ClarifyQueue = {
   onFinished: () => void
 }
 
-export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: () => void; queue?: ClarifyQueue }) {
+export function ClarifyModal({
+  item,
+  onClose,
+  queue,
+  projectId,
+}: {
+  item: Action
+  onClose: () => void
+  queue?: ClarifyQueue
+  /** Set when this is being added from inside a project: it's one step of that project, so it skips the 'one step or a project?' question. */
+  projectId?: string
+}) {
   const [step, setStep] = useState<Step>('actionable')
   const [history, setHistory] = useState<Step[]>([])
   const [kind, setKind] = useState<'single' | 'project'>('single')
@@ -128,7 +139,7 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
 
   const [contextId, setContextId] = useState<string | undefined>(readLastContextId)
   const [contextTouched, setContextTouched] = useState(false)
-  const [linkedProjectId, setLinkedProjectId] = useState<string | undefined>()
+  const [linkedProjectId, setLinkedProjectId] = useState<string | undefined>(projectId)
   const [energy, setEnergy] = useState<EnergyLevel | undefined>()
   const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
   const [dueDate, setDueDate] = useState('')
@@ -511,7 +522,15 @@ export function ClarifyModal({ item, onClose, queue }: { item: Action; onClose: 
                 }}
               />
               <div className="flex gap-2">
-                <Btn primary onClick={() => go('singleOrProject')}>
+                <Btn
+                  primary
+                  onClick={() => {
+                    if (projectId) {
+                      setKind('single')
+                      go('howDone')
+                    } else go('singleOrProject')
+                  }}
+                >
                   Yes
                 </Btn>
                 <Btn onClick={() => go('notActionable')}>No</Btn>
