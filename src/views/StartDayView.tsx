@@ -153,6 +153,9 @@ export function StartDayView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduled, nexts, somedayProjectIds, today, tomorrow, dayAfter])
 
+  // Everything you're waiting on, not only what's overdue for a nudge — so the whole list is one tap away from here.
+  const waitingTotal = (waiting ?? []).filter(notParked).length
+
   const nudges = useMemo(
     () =>
       (waiting ?? [])
@@ -373,12 +376,22 @@ export function StartDayView({
               )}
             </>
           )}
-          <button
-            onClick={onViewSomeday}
-            className="mt-5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
-          >
-            🌙 Browse Someday / Maybe →
-          </button>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {waitingTotal > 0 && (
+              <button
+                onClick={onViewWaitingFor}
+                className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
+              >
+                ⏳ Browse all Waiting For ({waitingTotal}) →
+              </button>
+            )}
+            <button
+              onClick={onViewSomeday}
+              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
+            >
+              🌙 Browse Someday / Maybe →
+            </button>
+          </div>
         </Screen>
       )}
 

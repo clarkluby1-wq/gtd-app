@@ -4,6 +4,16 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 18, 2026
+
+**See every Waiting For from the Weekly Review's Waiting For step**
+On the review's Waiting For step, the line "19 others are waiting, but not due yet" is now a button. Tap it to open the full list of those items, each with the usual Followed up and Snooze buttons, and tap it again to fold the list away. Following up on one leaves it where it is, with an undo.
+
+**Browse all your Waiting For items from Start My Day**
+The "Is anyone due a nudge?" step now always has a "⏳ Browse all Waiting For (N) →" button, with the total count, even when nobody is overdue. It opens the Waiting For screen, and the "Back to Start My Day" bar brings you straight back. The Someday / Maybe button is still beside it.
+
+---
+
 ## October 17, 2026
 
 **Adding an action now walks you through Clarify, on a project's page and on Next Actions**

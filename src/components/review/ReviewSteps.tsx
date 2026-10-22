@@ -494,6 +494,7 @@ export function WaitingStep() {
   const waiting = useLiveQuery(() => db.actions.where('status').equals('waiting').toArray())
   const notParked = useNotParked()
   const [justFollowedUp, setJustFollowedUp] = useState<Set<string>>(new Set())
+  const [showQuiet, setShowQuiet] = useState(false)
 
   if (waiting === undefined) return null
   const active = waiting.filter(notParked)
@@ -502,7 +503,11 @@ export function WaitingStep() {
     .sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b))
   // Snoozed ones are never left out of a review — that's the point of snoozing instead of forgetting.
   const snoozed = active.filter(isSnoozed).sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b))
-  const quiet = active.length - nudges.length - snoozed.length
+  const nudgeIds = new Set(nudges.map((a) => a.id))
+  const quietItems = active
+    .filter((a) => !nudgeIds.has(a.id) && !isSnoozed(a))
+    .sort((a, b) => waitingStartedAt(a) - waitingStartedAt(b))
+  const quiet = quietItems.length
 
   return (
     <div>
@@ -549,9 +554,30 @@ export function WaitingStep() {
         </div>
       )}
       {quiet > 0 && (
-        <p className="mt-3 text-xs text-neutral-500">
-          {quiet} other{quiet === 1 ? ' is' : 's are'} waiting, but not due yet.
-        </p>
+        <div className="mt-3">
+          <button
+            onClick={() => setShowQuiet((v) => !v)}
+            aria-expanded={showQuiet}
+            className="text-xs text-neutral-500 hover:text-neutral-300"
+          >
+            {showQuiet ? '▾' : '▸'} {quiet} other{quiet === 1 ? ' is' : 's are'} waiting, but not due yet
+          </button>
+          {showQuiet && (
+            <div className="mt-2">
+              <List>
+                {quietItems.map((a) => (
+                  <TaskRow
+                    key={a.id}
+                    action={a}
+                    showProject
+                    showWaitingClock
+                    extraAction={<FollowUpControl action={a} onLogged={() => {}} />}
+                  />
+                ))}
+              </List>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
