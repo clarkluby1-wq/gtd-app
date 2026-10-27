@@ -8,14 +8,14 @@ import { OpenPickRow } from '../components/OpenPickRow'
 import { ShortListLine } from '../components/ShortListLine'
 import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
-import { pinToBigThree } from '../db/operations'
+import { unpinFromBigThree } from '../db/operations'
 import { startOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { useFeatures } from '../lib/levels'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import { describeStatus } from '../lib/reviewSchedule'
 import { useReviewStatus } from '../lib/useReviewStatus'
 import { isSnoozed, needsNudge, waitingStartedAt } from '../lib/waiting'
-import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount, useYesterdaysOpenPicks } from '../lib/shortList'
+import { isOnShortList, SHORT_LIST_MAX, useActiveTodayPins, useCarriedOverPicks, useTodayPinCount } from '../lib/shortList'
 import type { Action } from '../db/types'
 
 type Step = 'commitments' | 'today' | 'inbox' | 'waiting' | 'shortlist' | 'go'
@@ -113,7 +113,7 @@ export function StartDayView({
   const somedayProjectIds = useSomedayProjectIds()
   const review = useReviewStatus()
   const features = useFeatures()
-  const yesterdaysPicksRaw = useYesterdaysOpenPicks()
+  const carriedPicksRaw = useCarriedOverPicks()
   // The real Short List, across every status it can come from — not just what's picked below, which is Next
   // Actions only. Keeps the count and cap honest with what Next Actions / Waiting For / Calendar already show.
   const pinnedTodayCount = useTodayPinCount()
@@ -135,7 +135,7 @@ export function StartDayView({
   const workdayToday = startOfWorkday()
 
   const notParked = (a: Action) => !a.projectId || !somedayProjectIds.has(a.projectId)
-  const yesterdaysPicks = (yesterdaysPicksRaw ?? []).filter(notParked)
+  const carriedPicks = (carriedPicksRaw ?? []).filter(notParked)
 
   // The day a scheduled or deadline item is tied to. A Next Action only counts when it has a real due date.
   const dayOf = (a: Action) => (a.status === 'scheduled' ? a.scheduledDate : a.dueDate)
@@ -174,7 +174,7 @@ export function StartDayView({
         // that it follows the chosen sort: deadlines first (soonest, then your own order), or oldest / newest captured.
         .sort(
           (a, b) =>
-            Number(b.bigThreeDate === workdayToday) - Number(a.bigThreeDate === workdayToday) ||
+            Number(isOnShortList(b, workdayToday)) - Number(isOnShortList(a, workdayToday)) ||
             (pickSort === 'oldest'
               ? a.createdAt - b.createdAt
               : pickSort === 'newest'
@@ -186,10 +186,9 @@ export function StartDayView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nexts, somedayProjectIds, workdayToday, pickSort],
   )
-  const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
   // The preview never hides something already chosen — moot now that starring pops it to the top, but stays
   // as a safety net if the preview count were ever smaller than the Short List cap.
-  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === workdayToday)
+  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || isOnShortList(a, workdayToday))
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
   const goNext = () => setStep(STEPS[Math.min(stepIndex + 1, STEPS.length - 1)].key)
@@ -402,24 +401,25 @@ export function StartDayView({
             decide later from Next Actions.
           </p>
 
-          {yesterdaysPicks.length > 0 && (
+          {carriedPicks.length > 0 && (
             <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
               <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                Yesterday's picks, still open
+                Still on your Short List from before
               </h3>
               <div className="flex flex-col divide-y divide-neutral-900">
-                {yesterdaysPicks.map((a) => (
+                {carriedPicks.map((a) => (
                   <OpenPickRow
                     key={a.id}
                     action={a}
-                    actionLabel="Pull into today"
-                    onAction={() => pinToBigThree(a.id)}
-                    disabled={atCap}
-                    actionTitle={atCap ? "Today's Short List is full — remove one first" : 'Pull into today'}
+                    actionLabel="Let go"
+                    onAction={() => unpinFromBigThree(a.id)}
+                    actionTitle="Take the star off — it goes back to your lists, nothing is deleted"
                   />
                 ))}
               </div>
-              <p className="mt-2 text-xs text-neutral-600">Nothing to do here — leave them be and they'll quietly stop showing.</p>
+              <p className="mt-2 text-xs text-neutral-600">
+                These stay starred until you finish them or let them go. Nothing to do here if they still matter.
+              </p>
             </div>
           )}
 

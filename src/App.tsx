@@ -17,7 +17,7 @@ import { WeeklyReviewPrompt } from './components/WeeklyReviewPrompt'
 import { cloudEnabled } from './db/cloudConfig'
 import { db, seedDefaultsIfEmpty } from './db/db'
 import { mergeDuplicateDefaults } from './db/dedupe'
-import { captureToInbox } from './db/operations'
+import { captureToInbox, releaseExpiredStars } from './db/operations'
 import { takeCaptureParam } from './lib/urlCapture'
 import { DashboardView } from './views/DashboardView'
 import { RecentlyCompletedView } from './views/RecentlyCompletedView'
@@ -78,7 +78,9 @@ function App() {
   const [captureConfirmation, setCaptureConfirmation] = useState<string | null>(null)
 
   useEffect(() => {
-    void seedDefaultsIfEmpty().then(() => mergeDuplicateDefaults())
+    void seedDefaultsIfEmpty()
+      .then(() => mergeDuplicateDefaults())
+      .then(() => releaseExpiredStars())
   }, [])
 
   // Lets something outside the app — a Siri Shortcut, a bookmarklet — capture straight to the Inbox by

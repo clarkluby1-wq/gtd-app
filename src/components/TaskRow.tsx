@@ -6,7 +6,7 @@ import { db } from '../db/db'
 import { completeAction, deleteAction, pinToBigThree, reopenAction, unpinFromBigThree } from '../db/operations'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
-import { SHORT_LIST_MAX } from '../lib/shortList'
+import { isOnShortList, SHORT_LIST_MAX } from '../lib/shortList'
 import { formatShortDate, formatTimeOfDay, hasTimeOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { ageInDays, ageLabel } from '../lib/staleness'
 import { followUpPending, isSnoozed, needsNudge, waitingStartedAt } from '../lib/waiting'
@@ -93,7 +93,7 @@ export function TaskRow({
 
   const done = action.status === 'done'
   const targetDate = pinDate ?? startOfWorkday()
-  const pinnedToday = action.bigThreeDate === targetDate
+  const pinnedToday = isOnShortList(action, targetDate)
   const atCap = (pinnedTodayCount ?? 0) >= SHORT_LIST_MAX
 
   return (

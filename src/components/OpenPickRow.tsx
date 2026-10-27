@@ -6,9 +6,8 @@ import type { Action } from '../db/types'
 import { EditActionModal } from './EditActionModal'
 
 /**
- * A leftover Short List pick, shown when you're deciding what carries forward. You can tick it done right here (you
- * may already have finished it), open it to edit by clicking the title, or take the row's main action ("Pull into
- * today", "Carry into tomorrow").
+ * A Short List pick that's still open, shown with the choice to keep it or let it go. You can tick it done right here
+ * (you may already have finished it), open it to edit by clicking the title, or take the row's main action ("Let go").
  */
 export function OpenPickRow({
   action,

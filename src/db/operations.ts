@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid'
 import { db } from './db'
-import { startOfWorkday } from '../lib/date'
+import { previousWorkdayStart, startOfWorkday } from '../lib/date'
 import type { DueReminder } from '../lib/reminders'
 import type { Action, ActionStatus, EnergyLevel, Project, ProjectStatus, ReminderState } from './types'
 
@@ -366,6 +366,30 @@ export async function restoreAction(action: Action) {
 export async function pinToBigThree(actionId: string, date: number = startOfWorkday()) {
   // New picks land at the bottom of the list; dragging changes that.
   await db.actions.update(actionId, { bigThreeDate: date, shortListOrder: Date.now() })
+}
+
+const STAR_CARRY_KEY = 'gtd-app:star-carry-v1'
+
+/**
+ * Stars used to expire at the end of each workday. They now stay until you take them off, so a star left on an open
+ * item from before yesterday (already expired under the old rule, so invisible) must not suddenly reappear and
+ * flood the list. Runs once per device: yesterday's open stars carry on, anything older is quietly released.
+ */
+export async function releaseExpiredStars() {
+  try {
+    if (localStorage.getItem(STAR_CARRY_KEY)) return
+  } catch {
+    // Can't tell; running again is harmless.
+  }
+  const cutoff = previousWorkdayStart()
+  await db.actions
+    .filter((a) => a.bigThreeDate !== undefined && a.bigThreeDate < cutoff && a.status !== 'done')
+    .modify({ bigThreeDate: undefined, shortListOrder: undefined })
+  try {
+    localStorage.setItem(STAR_CARRY_KEY, '1')
+  } catch {
+    // Not remembering just means it checks again next time.
+  }
 }
 
 export async function unpinFromBigThree(actionId: string) {

@@ -6,11 +6,11 @@ import { OpenPickRow } from '../components/OpenPickRow'
 import { ShortListLine } from '../components/ShortListLine'
 import { StickyNav } from '../components/StickyNav'
 import { TaskRow } from '../components/TaskRow'
-import { captureToInbox, pinToBigThree } from '../db/operations'
+import { captureToInbox, unpinFromBigThree } from '../db/operations'
 import { nextWorkdayStart, startOfDay, startOfToday, startOfWorkday } from '../lib/date'
 import { useFeatures } from '../lib/levels'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount } from '../lib/shortList'
+import { isOnShortList, SHORT_LIST_MAX, useActiveTodayPins, useTodayPinCount } from '../lib/shortList'
 import type { Action } from '../db/types'
 
 type Step = 'inbox' | 'tomorrow' | 'shortlist' | 'capture' | 'done'
@@ -122,14 +122,13 @@ export function EndDayView({
         // Already chosen for tomorrow pops to the top, same as Start My Day does for today.
         .sort(
           (a, b) =>
-            Number(b.bigThreeDate === tomorrowWorkday) - Number(a.bigThreeDate === tomorrowWorkday) ||
+            Number(isOnShortList(b, tomorrowWorkday)) - Number(isOnShortList(a, tomorrowWorkday)) ||
             Number(b.dueDate != null) - Number(a.dueDate != null) || (a.dueDate ?? 0) - (b.dueDate ?? 0) || a.order - b.order,
         ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nexts, somedayProjectIds, tomorrowWorkday],
   )
-  const atCapTomorrow = (tomorrowPinnedCount ?? 0) >= SHORT_LIST_MAX
-  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || a.bigThreeDate === tomorrowWorkday)
+  const shownPicks = showAllPicks ? picks : picks.filter((a, i) => i < PICK_PREVIEW || isOnShortList(a, tomorrowWorkday))
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
   const goNext = () => setStep(STEPS[Math.min(stepIndex + 1, STEPS.length - 1)].key)
@@ -270,22 +269,21 @@ export function EndDayView({
           {todaysOpenPicks.length > 0 && (
             <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
               <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
-                Today's picks, still open
+                Today's picks, still open — they carry into tomorrow
               </h3>
               <div className="flex flex-col divide-y divide-neutral-900">
                 {todaysOpenPicks.map((a) => (
                   <OpenPickRow
                     key={a.id}
                     action={a}
-                    actionLabel="Carry into tomorrow"
-                    onAction={() => pinToBigThree(a.id, tomorrowWorkday)}
-                    disabled={atCapTomorrow}
-                    actionTitle={atCapTomorrow ? "Tomorrow's Short List is full — remove one first" : 'Carry into tomorrow'}
+                    actionLabel="Let go"
+                    onAction={() => unpinFromBigThree(a.id)}
+                    actionTitle="Take the star off — it goes back to your lists, nothing is deleted"
                   />
                 ))}
               </div>
               <p className="mt-2 text-xs text-neutral-600">
-                Leave it be and it'll just stay on today's list until it rolls off tomorrow.
+                They stay starred until you finish them or let them go. Nothing to do here if they still matter.
               </p>
             </div>
           )}

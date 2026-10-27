@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { setShortListOrder } from '../db/operations'
-import { previousWorkdayStart, startOfWorkday } from './date'
+import { startOfWorkday } from './date'
 import { useDragReorder } from './useDragReorder'
 import type { Action } from '../db/types'
 
@@ -24,11 +24,11 @@ export const shortListKey = (a: Action): number => a.shortListOrder ?? a.order
 /** Picks in the order you put them — the one order every screen shows. */
 export const sortShortList = (actions: Action[]): Action[] => [...actions].sort((a, b) => shortListKey(a) - shortListKey(b))
 
-/** Everything pinned for a day, in your order, whatever it is now — including something already finished. Defaults to
+/** Everything on the Short List for a day, in your order — including a pick finished that day. Defaults to
  *  today; pass a different workday start (e.g. nextWorkdayStart()) to read tomorrow's picks instead, as End My Day does. */
 export function useTodayShortList(date: number = startOfWorkday()): Action[] | undefined {
   return useLiveQuery(
-    () => db.actions.filter((a) => a.bigThreeDate === date).toArray().then(sortShortList),
+    () => db.actions.filter((a) => isOnShortList(a, date)).toArray().then(sortShortList),
     [date],
   )
 }
@@ -53,17 +53,23 @@ export function useTodayPinCount(excludeId?: string, date?: number): number | un
 }
 
 /**
- * Yesterday's picks that are still open — the list clears every workday so nothing lingers making you feel
- * behind, but this surfaces what didn't get finished as an informed *option*, not a carried-over obligation.
- * Pull one back in, or ignore it entirely; either way it quietly stops showing once the next workday starts.
+ * Starred means starred until you un-star it: a pick stays on the Short List day after day, so you never have to
+ * remember what you chose yesterday. bigThreeDate is the day it was starred. A pick dated for a later day (chosen
+ * in End My Day for tomorrow) waits for that day. Someday, trashed and unsorted items never count, and a finished
+ * pick only counts on the day it was finished.
  */
-export function useYesterdaysOpenPicks(): Action[] | undefined {
-  const yesterday = previousWorkdayStart()
+export function isOnShortList(a: Action, date: number = startOfWorkday()): boolean {
+  if (a.bigThreeDate === undefined || a.bigThreeDate > date) return false
+  if (a.status === 'trash' || a.status === 'someday' || a.status === 'inbox') return false
+  if (a.status === 'done') return (a.completedAt ?? 0) >= date
+  return true
+}
+
+/** Open picks that were starred on an earlier day and are still waiting — what Start My Day shows as carried over. */
+export function useCarriedOverPicks(): Action[] | undefined {
+  const today = startOfWorkday()
   return useLiveQuery(
-    () =>
-      db.actions
-        .filter((a) => a.bigThreeDate === yesterday && a.status !== 'done' && a.status !== 'trash')
-        .toArray(),
-    [yesterday],
+    () => db.actions.filter((a) => a.status !== 'done' && isOnShortList(a, today) && a.bigThreeDate! < today).toArray(),
+    [today],
   )
 }

@@ -11,7 +11,7 @@ import { useDragReorder } from '../lib/useDragReorder'
 import { startOfWorkday } from '../lib/date'
 import { daysUntouched, STALE_AFTER_DAYS } from '../lib/staleness'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
-import { SHORT_LIST_MAX_WORD, sortShortList, useShortListDrag, useTodayPinCount } from '../lib/shortList'
+import { isOnShortList, SHORT_LIST_MAX_WORD, sortShortList, useShortListDrag, useTodayPinCount } from '../lib/shortList'
 import type { Action, EnergyLevel } from '../db/types'
 
 export function NextActionsView({
@@ -48,8 +48,8 @@ export function NextActionsView({
       .filter((a) => matchesNextFilters(a, { contextId, energy, maxTime }))
       .filter((a) => !staleOnly || daysUntouched(a) > STALE_AFTER_DAYS)
     return {
-      starred: sortShortList(visible.filter((a) => a.bigThreeDate === today)),
-      others: visible.filter((a) => a.bigThreeDate !== today),
+      starred: sortShortList(visible.filter((a) => isOnShortList(a, today))),
+      others: visible.filter((a) => !isOnShortList(a, today)),
     }
   }, [actions, contextId, energy, maxTime, staleOnly, somedayProjectIds, today])
   const filtered = [...starred, ...others]

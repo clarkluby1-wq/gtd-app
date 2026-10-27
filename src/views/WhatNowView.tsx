@@ -4,7 +4,7 @@ import { db } from '../db/db'
 import { BigThree } from '../components/BigThree'
 import { TaskRow } from '../components/TaskRow'
 import { startOfWorkday } from '../lib/date'
-import { useTodayShortList, useTodayPinCount } from '../lib/shortList'
+import { isOnShortList, useTodayShortList, useTodayPinCount } from '../lib/shortList'
 import { useSomedayProjectIds } from '../lib/useSomedayProjectIds'
 import type { EnergyLevel } from '../db/types'
 
@@ -71,7 +71,7 @@ export function WhatNowView({
         if (maxTime !== 'any' && a.timeEstimateMin != null && a.timeEstimateMin > maxTime) return false
         return true
       })
-      .sort((a, b) => Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today))
+      .sort((a, b) => Number(isOnShortList(b, today)) - Number(isOnShortList(a, today)))
   }, [actions, contextId, energy, maxTime, somedayProjectIds, today])
 
   const contextLabel = contextId === 'any' ? 'Anywhere' : (contexts?.find((c) => c.id === contextId)?.name ?? '…')

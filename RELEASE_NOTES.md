@@ -4,6 +4,19 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 27, 2026
+
+**Starred items now stay starred until you un-star them**
+The Short List no longer empties itself every morning. A starred item (a Next Action, Waiting For or Scheduled item) stays on your Short List day after day until you finish it or take the star off, so you never have to remember what you picked yesterday. The five-item limit still applies, and carried-over items use up slots, which is the nudge to keep the list honest.
+
+- **Start My Day:** the "Yesterday's picks, still open" box is now "Still on your Short List from before". Each item has a "Let go" button, which removes the star and sends it back to your normal lists. Nothing is deleted.
+- **End My Day:** the box is now "Today's picks, still open — they carry into tomorrow", with the same "Let go" button. Whatever you leave starred is simply there tomorrow, and counts toward tomorrow's five.
+- **Picks for tomorrow** that you star in End My Day still wait for tomorrow to show up on the list.
+- **Finished items** only appear (under "finished today") on the day you finish them.
+- **One-time tidy-up:** stars left on open items from before yesterday had already expired under the old rule, so they're quietly cleared the first time you open the app, instead of flooding your list. Yesterday's unfinished stars carry on as normal.
+
+---
+
 ## October 18, 2026
 
 **See every Waiting For from the Weekly Review's Waiting For step**

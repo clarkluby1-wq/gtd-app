@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { isOnShortList } from '../lib/shortList'
 import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { completeAction } from '../db/operations'
@@ -39,7 +40,7 @@ export function FocusView({
         .filter((a) => matchesNextFilters(a, filters))
         .sort(
           (a, b) =>
-            Number(b.bigThreeDate === today) - Number(a.bigThreeDate === today) ||
+            Number(isOnShortList(b, today)) - Number(isOnShortList(a, today)) ||
             Number(b.dueDate != null) - Number(a.dueDate != null) ||
             (a.dueDate ?? 0) - (b.dueDate ?? 0) ||
             a.order - b.order,
@@ -127,7 +128,7 @@ export function FocusView({
   return shell(
     <>
       <div className="mb-6 text-xs uppercase tracking-wide text-neutral-500">Focus</div>
-      {current.bigThreeDate === today && <div className="mb-2 text-xs text-amber-400">★ On today's Short List</div>}
+      {isOnShortList(current, today) && <div className="mb-2 text-xs text-amber-400">★ On today's Short List</div>}
       <h1 className="mb-3 text-2xl font-semibold leading-snug text-neutral-100">{current.title}</h1>
       {detail && <p className="mb-8 text-sm text-neutral-500">{detail}</p>}
       {!detail && <div className="mb-8" />}

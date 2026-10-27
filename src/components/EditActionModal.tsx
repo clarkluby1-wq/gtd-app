@@ -5,7 +5,7 @@ import { createProjectFromAction, updateAction } from '../db/operations'
 import type { Action, ActionStatus, EnergyLevel } from '../db/types'
 import { formatShortDate, parseLocalDate, parseLocalDateTime, startOfWorkday, toTimeInputValue } from '../lib/date'
 import { followUpPending, useWaitingOnNames, waitingStartedAt } from '../lib/waiting'
-import { SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
+import { isOnShortList, SHORT_LIST_MAX, useTodayPinCount } from '../lib/shortList'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { ProjectPicker } from './ProjectPicker'
 import { TimeField } from './TimeField'
@@ -78,7 +78,7 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
   const [newProjectArea, setNewProjectArea] = useState('')
   const [madeProject, setMadeProject] = useState<string | null>(null)
   const [notes, setNotes] = useState(action.notes ?? '')
-  const [bigThree, setBigThree] = useState(action.bigThreeDate === startOfWorkday())
+  const [bigThree, setBigThree] = useState(isOnShortList(action))
   const bigThreeFull = (otherPinnedCount ?? 0) >= SHORT_LIST_MAX
   // An item can't be saved as Waiting For without a name, or as Scheduled without a day — it would be unplaceable.
   const saveBlocker =
@@ -119,9 +119,9 @@ export function EditActionModal({ action, onClose }: { action: Action; onClose: 
       scheduledDate: scheduledDate ? parseLocalDateTime(scheduledDate, scheduledTime || undefined) : undefined,
       notes: notes.trim() || undefined,
       // Someday items aren't committed to yet, so they can't hold a Short List slot; leaving Someday (or unticking) releases it.
-      bigThreeDate: type !== 'someday' && bigThree ? startOfWorkday() : undefined,
+      bigThreeDate: type !== 'someday' && bigThree ? (isOnShortList(action) ? action.bigThreeDate : startOfWorkday()) : undefined,
       // Starring it here puts it at the bottom of the Short List; one already on it keeps its place.
-      ...(type !== 'someday' && bigThree && action.bigThreeDate !== startOfWorkday() ? { shortListOrder: Date.now() } : {}),
+      ...(type !== 'someday' && bigThree && !isOnShortList(action) ? { shortListOrder: Date.now() } : {}),
     })
     onClose()
   }

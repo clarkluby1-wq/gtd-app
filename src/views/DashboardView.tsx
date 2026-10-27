@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { isOnShortList } from '../lib/shortList'
 import { useMemo, useState } from 'react'
 import { db } from '../db/db'
 import { BigThree } from '../components/BigThree'
@@ -83,7 +84,7 @@ export function DashboardView({
 
   const bigThreeActions = useMemo(() => {
     const today = startOfWorkday()
-    return (allActions ?? []).filter((a) => a.bigThreeDate === today)
+    return (allActions ?? []).filter((a) => isOnShortList(a, today))
   }, [allActions])
 
   const stalledProjectIds = useMemo(() => {
