@@ -4,7 +4,17 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## October 30, 2026
+
+**Fewer decisions when you add something to Next Actions**
+The last step of Clarify ("Anything that will help you pick this up later?") no longer asks for "Energy needed" or "Time needed". They were extra decisions on every item. What's left is just the context, the Short List star if you want it, and "More options". Items you've already given an energy or time, and the ability to set them later by opening an item, are unchanged.
+
+---
+
 ## October 27, 2026
+
+**Add an Inbox item to an existing project, right from Clarify**
+When you sort an Inbox item and answer "Yes, it's actionable", the "one step or more than one?" question now has a third choice: "📁 It's one step of a project I already have". Pick the project (likely ones are suggested first from the wording) and Clarify carries on with how it gets done, keeping that project attached and showing "One step of …" so you can see where it's going. It was possible before, but only through a folded-away "More options" a few steps later.
 
 **Starred items now stay starred until you un-star them**
 The Short List no longer empties itself every morning. A starred item (a Next Action, Waiting For or Scheduled item) stays on your Short List day after day until you finish it or take the star off, so you never have to remember what you picked yesterday. The five-item limit still applies, and carried-over items use up slots, which is the nudge to keep the list honest.

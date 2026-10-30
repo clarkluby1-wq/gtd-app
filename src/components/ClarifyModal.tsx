@@ -17,7 +17,7 @@ import {
   updateAction,
   type FirstActionSpec,
 } from '../db/operations'
-import type { Action, EnergyLevel, ProjectStatus } from '../db/types'
+import type { Action, ProjectStatus } from '../db/types'
 import { FollowUpDatePicker } from './FollowUpDatePicker'
 import { celebrateCompletion } from '../lib/celebrateCompletion'
 import { useCompletionToast } from '../lib/completionToastContext'
@@ -30,14 +30,6 @@ import { useFeatures } from '../lib/levels'
 import { useSimilarExisting } from '../lib/useSimilarExisting'
 import { SimilarNotice } from './SimilarNotice'
 import { SHORT_LIST_MAX, SHORT_LIST_MAX_WORD, useActiveTodayPins } from '../lib/shortList'
-
-/** One-tap picks that line up with the "≤ 15 / 30 / 1 hour" filters, so nobody has to type a number. */
-const TIME_CHIPS: { minutes: number; label: string }[] = [
-  { minutes: 5, label: '5 min' },
-  { minutes: 15, label: '15 min' },
-  { minutes: 30, label: '30 min' },
-  { minutes: 60, label: '1 hr' },
-]
 
 // Inbox processing usually comes in batches ("ten @computer items in a row"), so the last context is preselected.
 const LAST_CONTEXT_KEY = 'gtd.lastContextId'
@@ -63,6 +55,7 @@ type Step =
   | 'actionable'
   | 'notActionable'
   | 'singleOrProject'
+  | 'chooseProject'
   | 'defineProject'
   | 'howDone'
   | 'doingItNow'
@@ -81,6 +74,8 @@ function stepQuestion(step: Step, isProject: boolean): string {
       return "It's not actionable. What should happen to it?"
     case 'singleOrProject':
       return 'Can it be done in one step, or does it need more than one action?'
+    case 'chooseProject':
+      return 'Which project is this one step of?'
     case 'defineProject':
       return 'Define the project and its very next action.'
     case 'howDone':
@@ -140,8 +135,6 @@ export function ClarifyModal({
   const [contextId, setContextId] = useState<string | undefined>(readLastContextId)
   const [contextTouched, setContextTouched] = useState(false)
   const [linkedProjectId, setLinkedProjectId] = useState<string | undefined>(projectId)
-  const [energy, setEnergy] = useState<EnergyLevel | undefined>()
-  const [timeEstimateMin, setTimeEstimateMin] = useState<number | undefined>()
   const [dueDate, setDueDate] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
@@ -383,8 +376,6 @@ export function ClarifyModal({
     rememberContextId(activeContextId)
     const details = {
       contextId: activeContextId,
-      energy,
-      timeEstimateMin,
       dueDate: dueDate ? parseLocalDate(dueDate) : undefined,
       bigThreeDate: wantsShortList ? startOfWorkday() : undefined,
     }
@@ -581,24 +572,49 @@ export function ClarifyModal({
           )}
 
           {step === 'singleOrProject' && (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Btn
+                  primary
+                  onClick={() => {
+                    setKind('single')
+                    go('howDone')
+                  }}
+                >
+                  One step
+                </Btn>
+                <Btn
+                  onClick={() => {
+                    setKind('project')
+                    go('defineProject')
+                  }}
+                >
+                  Multiple steps (project)
+                </Btn>
+              </div>
               <Btn
-                primary
                 onClick={() => {
                   setKind('single')
+                  go('chooseProject')
+                }}
+              >
+                📁 It's one step of a project I already have
+              </Btn>
+            </div>
+          )}
+
+          {step === 'chooseProject' && (
+            <div className="flex flex-col gap-3">
+              <ProjectPicker
+                value={linkedProjectId}
+                onChange={(id) => {
+                  if (!id) return
+                  setLinkedProjectId(id)
                   go('howDone')
                 }}
-              >
-                One step
-              </Btn>
-              <Btn
-                onClick={() => {
-                  setKind('project')
-                  go('defineProject')
-                }}
-              >
-                Multiple steps (project)
-              </Btn>
+                title={title}
+              />
+              <p className="text-xs text-neutral-600">Pick one and we'll carry on with how it gets done.</p>
             </div>
           )}
 
@@ -704,6 +720,9 @@ export function ClarifyModal({
 
           {step === 'howDone' && (
             <div className="flex flex-col gap-2">
+              {!isProject && linkedProjectId && projectTitleOf(linkedProjectId) && (
+                <p className="text-xs text-emerald-500">📁 One step of “{projectTitleOf(linkedProjectId)}”</p>
+              )}
               <Btn onClick={startTimer}>⏱ Do it now — under 2 minutes</Btn>
               <Btn onClick={() => go('delegate')}>👤 Someone else does it</Btn>
               {features.has('calendar') && <Btn onClick={() => go('schedule')}>📅 On a specific day and/or time</Btn>}
@@ -841,28 +860,6 @@ export function ClarifyModal({
                   Same as your last item — change it if this one's different.
                 </p>
               )}
-
-              <label className="text-xs text-neutral-500">Energy needed</label>
-              <div className="flex gap-2">
-                {(['low', 'medium', 'high'] as EnergyLevel[]).map((e) => (
-                  <Btn key={e} primary={energy === e} onClick={() => setEnergy(energy === e ? undefined : e)}>
-                    {e}
-                  </Btn>
-                ))}
-              </div>
-
-              <label className="text-xs text-neutral-500">Time needed</label>
-              <div className="flex gap-2">
-                {TIME_CHIPS.map((t) => (
-                  <Btn
-                    key={t.minutes}
-                    primary={timeEstimateMin === t.minutes}
-                    onClick={() => setTimeEstimateMin(timeEstimateMin === t.minutes ? undefined : t.minutes)}
-                  >
-                    {t.label}
-                  </Btn>
-                ))}
-              </div>
 
               {choosingSwap ? (
                 <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
