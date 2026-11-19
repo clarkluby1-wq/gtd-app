@@ -448,8 +448,18 @@ export async function updateProject(projectId: string, changes: Partial<Project>
   await db.projects.update(projectId, changes)
 }
 
+/** Put a project in (or take it out of) the handful you are focusing on. Staying in focus has no expiry. */
+export async function setProjectFocus(projectId: string, on: boolean) {
+  await db.projects.update(projectId, { focusedAt: on ? Date.now() : undefined })
+}
+
 export async function completeProject(projectId: string) {
   await db.projects.update(projectId, { status: 'completed' as ProjectStatus, completedAt: Date.now() })
+}
+
+/** Undo for completing a project: it goes back to Active exactly as it was. */
+export async function reopenProject(projectId: string) {
+  await db.projects.update(projectId, { status: 'active' as ProjectStatus, completedAt: undefined })
 }
 
 export async function deleteProject(projectId: string) {

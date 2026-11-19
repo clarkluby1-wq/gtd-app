@@ -12,7 +12,7 @@ import type { Action } from '../db/types'
  */
 
 /** How many things can be on today's Short List at once. Every cap check and every line of wording comes from here. */
-export const SHORT_LIST_MAX = 5
+export const SHORT_LIST_MAX = 8
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
 /** The limit spelled out for copy ("Pick up to five"), derived so it can never disagree with SHORT_LIST_MAX. */

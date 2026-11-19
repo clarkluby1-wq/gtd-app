@@ -78,6 +78,8 @@ export interface Project {
   completedAt?: number
   /** Manual sort position. Falls back to createdAt for projects created before this existed. */
   order?: number
+  /** Set when the project is one of the few you are focusing on; it stays until you take it off. */
+  focusedAt?: number
 }
 
 /** Bookkeeping for the calendar pop-up reminders on one scheduled item. */

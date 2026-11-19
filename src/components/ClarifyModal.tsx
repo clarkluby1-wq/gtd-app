@@ -272,6 +272,14 @@ export function ClarifyModal({
     }
   }
 
+  /** Throw this item away. A copy is kept so a wrong tap can be undone for a few seconds. */
+  const discardItem = () =>
+    finish(async () => {
+      const before = await db.actions.get(item.id)
+      await trashItem(item.id)
+      if (before) showUndo(`Deleted “${before.title}”`, () => void restoreAction(before))
+    })
+
   const saveProject = (status: ProjectStatus, firstAction?: FirstActionSpec) =>
     clarifyAsProject(item.id, {
       title: projectTitle.trim(),
@@ -496,14 +504,7 @@ export function ClarifyModal({
             <div className="flex flex-col gap-3">
               <SimilarNotice
                 match={similarItem}
-                onSame={() =>
-                  finish(async () => {
-                    // Keep a copy so a wrong tap can be undone for a few seconds.
-                    const before = await db.actions.get(item.id)
-                    await trashItem(item.id)
-                    if (before) showUndo(`Discarded “${before.title}”`, () => void restoreAction(before))
-                  })
-                }
+                onSame={discardItem}
                 onAddToProject={() => {
                   // It's one step of that project: link it and carry on to "how will this get done?".
                   if (!similarItem) return
@@ -541,13 +542,20 @@ export function ClarifyModal({
                 >
                   🌙 Someday
                 </button>
+                <button
+                  onClick={discardItem}
+                  title="Not needed — delete it (you can undo for a few seconds)"
+                  className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-400 hover:border-red-800 hover:bg-red-950/30 hover:text-red-300"
+                >
+                  🗑 Delete
+                </button>
               </div>
             </div>
           )}
 
           {step === 'notActionable' && (
             <div className="flex flex-col gap-2">
-              <Btn onClick={() => finish(() => trashItem(item.id))}>🗑 Trash it</Btn>
+              <Btn onClick={discardItem}>🗑 Trash it</Btn>
               <Btn onClick={() => finish(() => sendToSomeday(item.id))}>🌙 Someday / Maybe</Btn>
               <Btn onClick={() => finish(() => clarifyAsReference(item.id, { title, content: notes.trim() || undefined }))}>
                 📎 File as Reference

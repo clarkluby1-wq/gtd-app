@@ -4,7 +4,31 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## November 19, 2026
+
+**Your Short List can now hold up to eight**
+You can star up to eight things (it was five). Everything that mentions the limit follows automatically: "up to eight" in the help text, the "Short List is full" message and the swap prompt, and the counts in Start My Day and End My Day. The tooltip on Today's Short List also no longer says unfinished items "quietly stop being pinned", since stars now stay until you finish them or take the star off.
+
+---
+
+## November 10, 2026
+
+**A calmer Projects screen: focus on up to five, the rest tucked away**
+The Projects screen no longer opens on one long pile. The idea is to show only what you're actually pushing on, and let everything else wait behind one tap.
+
+- **In focus (up to five).** Tap the 📌 on any project to focus on it. Focused projects sit at the top as larger tiles that always show the very next step (the first Next Action, otherwise who you're waiting on, otherwise the next dated step). They stay in focus until you take the pin off. The other projects collapse into one line, "▸ 9 more projects". Tap it to open them, and it stays open while you pin several in a row. Until you've focused anything, the whole list simply shows.
+- **A softer prompt for projects with nothing in motion.** The "Needs a next step · 7 ↓" counter is gone. Now a single quiet line says "Some projects need a first step" with a "Fix one →" button. It shows one project at a time and asks for its very next step (through the usual Clarify walkthrough, or by picking an existing action). A project that's fully done offers "✓ Finish this project", and "Not now — next one →" moves on without changing anything. Amber "!" marks still show on the projects themselves.
+- **A calmer header.** The explanation text now lives behind the ⓘ. A "View ▾" menu holds the List / Tiles choice (for the projects that aren't in focus), "Expand all details" and Deep Plan, leaving just "+ New Project" showing.
+- **Finish a project without opening it.** Every project tile and row has a ✓ button (it appears when you point at it on a computer, and is always showing on a phone). One tap marks the project complete, with a small celebration and an Undo for a few seconds instead of an "are you sure?" box. A project whose steps are all done shows a visible "✓ Finish" right on it.
+- **A softer look.** Rounded corners are rounder, buttons are pill-shaped, and the thin outlines around tiles and rows are gone, with a slightly lighter fill instead. The amber "!" is now a small amber dot, and a project that needs a first step gets a gentle warm tint rather than an amber border. Section labels are in plain sentence case. This is only on the Projects screen for now.
+- **Tiles.** Tiles lay out two or three across on a computer and one at a time on a phone. Each starts as just the project's name; the small arrow opens its details (what "done" looks like, steps done, and the next step). Drag-to-reorder stays in List view.
+
+---
+
 ## October 30, 2026
+
+**Delete an item right from the first Clarify question**
+The first Clarify screen ("Is it actionable?") now has a "🗑 Delete" button beside "✓ Done" and "🌙 Someday", for things you capture and then realise you don't need. Deleting shows "Deleted '…'" with an Undo for a few seconds, and Clarify moves on to the next item if you're working through the Inbox. "Trash it" on the "not actionable" screen now offers the same Undo.
 
 **Fewer decisions when you add something to Next Actions**
 The last step of Clarify ("Anything that will help you pick this up later?") no longer asks for "Energy needed" or "Time needed". They were extra decisions on every item. What's left is just the context, the Short List star if you want it, and "More options". Items you've already given an energy or time, and the ability to set them later by opening an item, are unchanged.
