@@ -5,7 +5,7 @@ const LAST_BACKUP_KEY = 'gtd-app:last-backup-at'
 const LAST_BACKUP_FILE_KEY = 'gtd-app:last-backup-file'
 
 /** A backup this old (or none at all) is worth a gentle nudge — it matches the weekly review rhythm. */
-export const BACKUP_DUE_AFTER_DAYS = 7
+export const BACKUP_DUE_AFTER_DAYS = 3
 
 interface BackupPayload {
   version: number

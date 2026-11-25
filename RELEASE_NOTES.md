@@ -4,6 +4,20 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## November 26, 2026
+
+**A Weekly Review that gets to the point, and some fixes from using it**
+- **The look-back at your meetings is front and centre.** The review no longer opens with a "look what you got done" step. That step is still there if you want it, as a small "Look back at what you got done (optional)" link on the first screen. The calendar steps now ask the real question: **"Open your calendar and look back over the past week. Did any meeting or conversation leave something to do, send, or follow up on?"** and **"Look ahead at the next two weeks. Anything to prepare, book, bring, or arrange?"** Each has a box right there to type whatever it triggers, straight into your Inbox.
+- **What a meeting triggers gets sorted right away.** In the Weekly Review's look-back and look-ahead steps, adding something now opens the same Clarify walkthrough as when you sort the Inbox, instead of just dropping it in the Inbox. If you close it without finishing, it stays listed under the box as a link marked "In your Inbox — tap to sort". Tap any item you've added to sort it, or (once it's sorted) to open and edit it. The first "Anything loose in your head?" step stays quick and doesn't interrupt you.
+- **"Waiting For" instead of "Who's gone quiet?"** The step is now titled "Waiting For", with "Who's gone quiet?" as its hint.
+- **A 🌙 Someday button next to Followed up and Snooze** on every Waiting For, for ones you're no longer chasing. It comes with an Undo and the item comes back exactly as it was. It shows on the Waiting For screen, the Weekly Review, and Start My Day's nudge step.
+- **Backups are now automatic every third day.** A slim bar under the capture box says "Last backup: 4 days ago. Save a safe copy now?" with a **Yes, back up now** button and a **Tomorrow** option. It never blocks anything and stays out of the way when your backup is fresh. The backup step is no longer part of the Weekly Review.
+
+**A ★ shows on any list when something is on today's Short List**
+When you scan a list of Next Actions anywhere (the Weekly Review, a project's page, Search, the Calendar), anything that's on today's Short List now shows a ★, so you don't have to wonder. Where you already had the tappable star, nothing changes.
+
+---
+
 ## November 25, 2026
 
 **Capture it already sorted: a priority, a context, or both**

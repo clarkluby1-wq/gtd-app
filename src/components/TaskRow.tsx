@@ -147,6 +147,13 @@ export function TaskRow({
         </button>
       )}
 
+      {/* Where there's no star button to tap, a quiet ★ still says it's on today's Short List, so scanning any list tells you. */}
+      {!showBigThreePin && !done && isOnShortList(action) && (
+        <span title="On today's Short List" aria-label="On today's Short List" className="shrink-0 text-sm text-amber-400">
+          ★
+        </span>
+      )}
+
       <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditing(true)}>
         <div className={`truncate text-sm hover:underline ${done ? 'text-neutral-500 line-through' : 'text-neutral-100'}`}>
           {action.recurringTemplateId && <span title="Recurring">🔁 </span>}

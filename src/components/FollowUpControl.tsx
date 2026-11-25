@@ -1,4 +1,4 @@
-import { logFollowUp, snoozeWaiting, undoLastFollowUp } from '../db/operations'
+import { logFollowUp, restoreAction, sendToSomeday, snoozeWaiting, undoLastFollowUp } from '../db/operations'
 import { formatShortDate } from '../lib/date'
 import { showUndo } from '../lib/undoSnack'
 import { isSnoozed, SNOOZE_CHOICES, snoozeWakeTime, wasFollowedUpToday, type SnoozeChoice } from '../lib/waiting'
@@ -65,6 +65,18 @@ export function FollowUpControl({ action, onLogged }: { action: Action; onLogged
           </option>
         ))}
       </select>
+      <button
+        onClick={() => {
+          // Keep a copy so a wrong tap can be undone: it comes back as the Waiting For it was.
+          const before = { ...action }
+          void sendToSomeday(action.id)
+          showUndo(`Moved “${action.title}” to Someday/Maybe`, () => void restoreAction(before))
+        }}
+        title="Not waiting on this any more, or no longer chasing it: park it in Someday/Maybe"
+        className="shrink-0 rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:border-amber-700 hover:bg-amber-950/30 hover:text-amber-300"
+      >
+        🌙 Someday
+      </button>
     </span>
   )
 }

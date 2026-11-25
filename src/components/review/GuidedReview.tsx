@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { db } from '../../db/db'
-import { getLastBackupAt, isBackupDue } from '../../db/backup'
 import { finishReview, saveGuidedStep, setReviewItemDone } from '../../db/weeklyReview'
 import { celebrate, originOf } from '../../lib/celebrate'
 import { formatShortDate } from '../../lib/date'
@@ -12,7 +11,6 @@ import { StickyNav } from '../StickyNav'
 import type { WeeklyReview } from '../../db/types'
 import {
   AreasStep,
-  BackupStep,
   CollectStep,
   CreativeStep,
   InboxStep,
@@ -30,7 +28,6 @@ const DAY = 24 * 60 * 60 * 1000
 
 type StepKey =
   | 'intro'
-  | 'wins'
   | 'collect'
   | 'inbox-zero'
   | 'gate-clear'
@@ -39,14 +36,13 @@ type StepKey =
   | 'upcoming-calendar'
   | 'waiting-for'
   | 'projects'
-  | 'backup'
   | 'gate-current'
   | 'someday-maybe'
   | 'areas-of-focus'
   | 'creative'
   | 'recap'
 
-type Section = 'start' | 'wins' | ReviewPhase | 'recap'
+type Section = 'start' | ReviewPhase | 'recap'
 
 interface FlowStep {
   key: StepKey
@@ -56,7 +52,6 @@ interface FlowStep {
 /** The walkthrough, in order. The keys that match a checklist item save their progress there. */
 const FLOW: FlowStep[] = [
   { key: 'intro', section: 'start' },
-  { key: 'wins', section: 'wins' },
   { key: 'collect', section: 'clear' },
   { key: 'inbox-zero', section: 'clear' },
   { key: 'gate-clear', section: 'clear' },
@@ -65,7 +60,6 @@ const FLOW: FlowStep[] = [
   { key: 'upcoming-calendar', section: 'current' },
   { key: 'waiting-for', section: 'current' },
   { key: 'projects', section: 'current' },
-  { key: 'backup', section: 'current' },
   { key: 'gate-current', section: 'current' },
   { key: 'someday-maybe', section: 'creative' },
   { key: 'areas-of-focus', section: 'creative' },
@@ -74,7 +68,6 @@ const FLOW: FlowStep[] = [
 ]
 
 const STRIP: { section: Section; label: string }[] = [
-  { section: 'wins', label: 'Wins' },
   { section: 'clear', label: 'Clear' },
   { section: 'current', label: 'Current' },
   { section: 'creative', label: 'Creative' },
@@ -83,7 +76,6 @@ const STRIP: { section: Section; label: string }[] = [
 
 const COPY: Record<StepKey, { question: string; hint?: string; short?: string }> = {
   intro: { question: "Ready to check that you're on track?" },
-  wins: { question: 'First, look what you got done.', hint: 'The last seven days. Give yourself the credit.' },
   collect: {
     question: 'Anything loose in your head or on your desk?',
     hint: "Type it in — don't sort it now. It all goes to your Inbox.",
@@ -106,16 +98,11 @@ const COPY: Record<StepKey, { question: string; hint?: string; short?: string }>
     hint: 'Anything to prepare for? Anything colliding?',
     short: 'Upcoming calendar',
   },
-  'waiting-for': { question: "Who's gone quiet?", hint: 'A nudge now saves a scramble later.', short: 'Waiting For' },
+  'waiting-for': { question: 'Waiting For', hint: "Who's gone quiet? A nudge now saves a scramble later.", short: 'Waiting For' },
   projects: {
     question: 'Does every project have a next step?',
     hint: 'A project with no next action stalls.',
     short: 'Projects',
-  },
-  backup: {
-    question: 'Keep a safe copy.',
-    hint: 'Everything lives in this browser, so a backup is your safety net.',
-    short: 'Backup',
   },
   'gate-current': { question: 'Get Current ✓' },
   'someday-maybe': {
@@ -169,6 +156,7 @@ export function GuidedReview({
   const [finished, setFinished] = useState(false)
   // Set when you jump back to a skipped step from the recap, so finishing it takes you straight back there.
   const [returnToRecap, setReturnToRecap] = useState(false)
+  const [showWins, setShowWins] = useState(false)
   const [openedAt] = useState(() => Date.now())
   const allReviews = useLiveQuery(() => db.weeklyReviews.toArray())
 
@@ -206,7 +194,6 @@ export function GuidedReview({
 
   const next = async () => {
     if (DONE_ON_NEXT.has(step.key)) await setReviewItemDone(weekStart, step.key, true)
-    if (step.key === 'backup' && !isBackupDue(getLastBackupAt())) await setReviewItemDone(weekStart, 'backup', true)
     forward()
   }
 
@@ -218,7 +205,7 @@ export function GuidedReview({
   }
 
   const isGate = step.key === 'gate-clear' || step.key === 'gate-current'
-  const canSkip = !['intro', 'wins', 'recap'].includes(step.key) && !isGate
+  const canSkip = !['intro', 'recap'].includes(step.key) && !isGate
 
   // ---- the finished screen ----
   if (finished) {
@@ -264,7 +251,20 @@ export function GuidedReview({
             This is the part of GTD that keeps everything else trustworthy. One step at a time — nothing to hold in your
             head.
           </p>
-          <p className="mb-6 text-xs text-neutral-500">You can pause whenever you like. Your place is saved.</p>
+          <p className="mb-4 text-xs text-neutral-500">You can pause whenever you like. Your place is saved.</p>
+          <button
+            onClick={() => setShowWins((v) => !v)}
+            aria-expanded={showWins}
+            className="mb-5 text-xs text-neutral-500 hover:text-neutral-300"
+          >
+            {showWins ? '▾' : '▸'} Look back at what you got done (optional)
+          </button>
+          {showWins && (
+            <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+              <p className="mb-3 text-xs text-neutral-500">{winsHint}</p>
+              <WinsStep since={since} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {canResume ? (
               <>
@@ -345,7 +345,7 @@ export function GuidedReview({
               onClick={() => void next()}
               className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
             >
-              {step.key === 'collect' || step.key === 'creative' || step.key === 'wins' || step.key === 'inbox-zero'
+              {step.key === 'collect' || step.key === 'creative' || step.key === 'inbox-zero'
                 ? 'Next →'
                 : 'Looks good — next →'}
             </button>
@@ -358,8 +358,8 @@ export function GuidedReview({
         {inSection.length > 1 && !isRecap ? ` · ${positionInSection} of ${inSection.length}` : ''}
       </div>
       <h1 className="mb-1 text-2xl font-semibold text-neutral-100">{copy.question}</h1>
-      {(step.key === 'wins' ? winsHint : copy.hint) ? (
-        <p className="mb-5 text-sm text-neutral-500">{step.key === 'wins' ? winsHint : copy.hint}</p>
+      {copy.hint ? (
+        <p className="mb-5 text-sm text-neutral-500">{copy.hint}</p>
       ) : (
         <div className="mb-5" />
       )}
@@ -380,8 +380,6 @@ export function GuidedReview({
 
 function sectionName(section: Section): string {
   switch (section) {
-    case 'wins':
-      return 'Your wins'
     case 'clear':
       return 'Get Clear'
     case 'current':
@@ -427,8 +425,6 @@ function StepBody({
   onJumpToItem: (key: string) => void
 }) {
   switch (stepKey) {
-    case 'wins':
-      return <WinsStep since={since} />
     case 'collect':
       return <CollectStep onStartMindSweep={onStartMindSweep} />
     case 'inbox-zero':
@@ -443,8 +439,6 @@ function StepBody({
       return <WaitingStep />
     case 'projects':
       return <ProjectsStep />
-    case 'backup':
-      return <BackupStep weekStart={weekStart} />
     case 'someday-maybe':
       return <SomedayStep />
     case 'areas-of-focus':

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useCompletionToast } from './lib/completionToastContext'
 import { Sidebar, type ViewKey } from './components/Sidebar'
+import { BackupPrompt } from './components/BackupPrompt'
 import { CaptureBar } from './components/CaptureBar'
 import { MobileMoreSheet } from './components/MobileMoreSheet'
 import { MobileTabBar } from './components/MobileTabBar'
@@ -360,6 +361,7 @@ function App() {
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           <CaptureBar />
+          <BackupPrompt />
           {returnTo && view !== 'focus' && (
             <ReturnBar label={RETURN_LABEL[returnTo]} onReturn={goBackToFlow} onDismiss={() => setReturnTo(null)} />
           )}

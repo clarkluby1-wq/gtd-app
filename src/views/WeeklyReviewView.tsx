@@ -1,8 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
-import { backupAgeLabel, createBackup, getLastBackupAt, isBackupDue } from '../db/backup'
-import { setReviewItemDone, toggleReviewItem, toggleReviewSub } from '../db/weeklyReview'
+import { toggleReviewItem, toggleReviewSub } from '../db/weeklyReview'
 import { ageInDays, staleNextActions } from '../lib/staleness'
 import { lastContactAt } from '../lib/waiting'
 import { isProjectStalled } from '../lib/projectHealth'
@@ -61,7 +60,6 @@ export function WeeklyReviewView({
   onStartMindSweep: () => void
 }) {
   const [weekStart] = useState(() => startOfReviewWeek(new Date()))
-  const [lastBackupAt, setLastBackupAt] = useState(getLastBackupAt())
   const [guided, setGuided] = useState(autoStart)
   const [showOverview, setShowOverview] = useState(false)
   const review = useLiveQuery(() => db.weeklyReviews.where('date').equals(weekStart).first(), [weekStart])
@@ -69,13 +67,6 @@ export function WeeklyReviewView({
 
   const toggle = (key: string) => void toggleReviewItem(weekStart, key)
   const toggleSub = (parentKey: string, subKey: string) => void toggleReviewSub(weekStart, parentKey, subKey)
-
-  /** Backing up counts as doing that step, so it ticks itself. */
-  const backUpNow = async () => {
-    await createBackup()
-    setLastBackupAt(getLastBackupAt())
-    await setReviewItemDone(weekStart, 'backup', true)
-  }
 
   const checklist = normalizeChecklist(review?.checklist)
   const doneCount = checklist.filter(isItemDone).length
@@ -128,8 +119,6 @@ export function WeeklyReviewView({
     [activeProjects, allActions],
   )
 
-  const backupDue = isBackupDue(lastBackupAt)
-
   const badges: Record<string, ReactNode> = {
     'next-actions':
       nextActions.length === 0
@@ -145,24 +134,9 @@ export function WeeklyReviewView({
         : stalledProjects.length > 0
           ? `${stalledProjects.length} stalled`
           : `${activeProjects?.length} active, all covered`,
-    backup: (
-      <span className={backupDue ? 'text-amber-400' : undefined}>
-        {lastBackupAt === null ? 'never backed up' : `last backup ${backupAgeLabel(lastBackupAt)}`}
-      </span>
-    ),
   }
 
-  const extras: Record<string, ReactNode> = {
-    backup: (
-      <button
-        type="button"
-        onClick={() => void backUpNow()}
-        className="rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-200 hover:bg-emerald-600 hover:text-white"
-      >
-        Back up now
-      </button>
-    ),
-  }
+  const extras: Record<string, ReactNode> = {}
 
   const subBadges: Record<string, Record<string, ReactNode>> = {
     'inbox-zero': {

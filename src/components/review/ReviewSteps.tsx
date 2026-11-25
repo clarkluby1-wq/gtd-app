@@ -8,8 +8,7 @@ import {
   deleteProject,
   updateProject,
 } from '../../db/operations'
-import { createBackup, backupAgeLabel, getLastBackupAt, isBackupDue } from '../../db/backup'
-import { setReviewItemDone, setReviewSubDone, toggleReviewSub } from '../../db/weeklyReview'
+import { setReviewSubDone, toggleReviewSub } from '../../db/weeklyReview'
 import { getHiddenInboxKeys, setHiddenInboxKeys } from '../../lib/weeklyReviewTemplate'
 import { formatShortDate, startOfToday, startOfWorkday } from '../../lib/date'
 import { isProjectStalled, stalledMessage } from '../../lib/projectHealth'
@@ -19,6 +18,7 @@ import { useSomedayProjectIds } from '../../lib/useSomedayProjectIds'
 import { isSnoozed, needsNudge, waitingStartedAt } from '../../lib/waiting'
 import type { Action, Project, WeeklyReviewChecklistItem } from '../../db/types'
 import { ClarifyModal } from '../ClarifyModal'
+import { EditActionModal } from '../EditActionModal'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { EditProjectModal } from '../EditProjectModal'
 import { ExistingActionPicker } from '../ExistingActionPicker'
@@ -59,27 +59,49 @@ function MoreLink({ onClick, children }: { onClick: () => void; children: ReactN
   )
 }
 
-/** A field for getting things out of your head. Everything goes to the Inbox — sorting comes later. */
-function CaptureBox({ placeholder }: { placeholder: string }) {
-  const [value, setValue] = useState('')
-  const [added, setAdded] = useState<string[]>([])
-  const inputRef = useRef<HTMLInputElement>(null)
+const STATUS_LABEL: Partial<Record<Action['status'], string>> = {
+  inbox: 'In your Inbox — tap to sort',
+  next: 'Next Action',
+  waiting: 'Waiting For',
+  scheduled: 'Scheduled',
+  someday: 'Someday / Maybe',
+  done: 'Done',
+}
 
-  const submit = () => {
+/**
+ * A field for getting things out of your head. Everything goes to the Inbox first. With `clarifyOnAdd`, the same
+ * step-by-step as sorting an Inbox item opens right away, so what a meeting triggered gets sorted while it's fresh.
+ * What you've added stays listed underneath: tap one to sort it (if it's still in the Inbox) or to open it.
+ */
+function CaptureBox({ placeholder, clarifyOnAdd = false }: { placeholder: string; clarifyOnAdd?: boolean }) {
+  const [value, setValue] = useState('')
+  const [addedIds, setAddedIds] = useState<string[]>([])
+  const [clarifying, setClarifying] = useState<Action | null>(null)
+  const [editing, setEditing] = useState<Action | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const items = useLiveQuery(() => db.actions.bulkGet(addedIds), [addedIds])
+  // Something deleted along the way simply drops off the list.
+  const added = (items ?? []).filter((a): a is Action => !!a && a.status !== 'trash')
+
+  const submit = async () => {
     const title = value.trim()
     if (!title) return
     setValue('')
-    setAdded((prev) => [...prev, title])
-    void captureToInbox(title)
-    inputRef.current?.focus()
+    const action = await captureToInbox(title)
+    setAddedIds((prev) => [...prev, action.id])
+    if (clarifyOnAdd) setClarifying(action)
+    else inputRef.current?.focus()
   }
+
+  const open = (a: Action) => (a.status === 'inbox' ? setClarifying(a) : setEditing(a))
+  const stillInInbox = added.filter((a) => a.status === 'inbox').length
 
   return (
     <div>
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          submit()
+          void submit()
         }}
         className="mb-3 flex gap-2"
       >
@@ -100,17 +122,36 @@ function CaptureBox({ placeholder }: { placeholder: string }) {
       </form>
       {added.length > 0 && (
         <div className="flex flex-col gap-1">
-          {added.slice(-6).map((title, i) => (
-            <div key={`${i}-${title}`} className="truncate rounded-md bg-neutral-900 px-3 py-1.5 text-sm text-neutral-300">
-              ✓ {title}
-            </div>
+          {added.slice(-6).map((a) => (
+            <button
+              key={a.id}
+              onClick={() => open(a)}
+              title={a.status === 'inbox' ? 'Sort this one now' : 'Open it'}
+              className="flex items-center justify-between gap-3 rounded-md bg-neutral-900 px-3 py-1.5 text-left text-sm text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+            >
+              <span className="min-w-0 truncate underline-offset-2 hover:underline">✓ {a.title}</span>
+              <span className={`shrink-0 text-xs ${a.status === 'inbox' ? 'text-amber-400/90' : 'text-neutral-500'}`}>
+                {STATUS_LABEL[a.status] ?? ''}
+              </span>
+            </button>
           ))}
           <p className="mt-1 text-xs text-neutral-500">
-            {added.length} added to your Inbox
-            {added.length > 6 ? ` (showing the last 6)` : ''}.
+            {added.length} added
+            {added.length > 6 ? ' (showing the last 6)' : ''}
+            {stillInInbox > 0 ? ` · ${stillInInbox} still in your Inbox` : ' · all sorted ✓'}.
           </p>
         </div>
       )}
+      {clarifying && (
+        <ClarifyModal
+          item={clarifying}
+          onClose={() => {
+            setClarifying(null)
+            inputRef.current?.focus()
+          }}
+        />
+      )}
+      {editing && <EditActionModal action={editing} onClose={() => setEditing(null)} />}
     </div>
   )
 }
@@ -437,17 +478,28 @@ export function PreviousCalendarStep() {
     .filter((a) => dayOf(a) !== undefined && dayOf(a)! < today)
     .sort((a, b) => dayOf(a)! - dayOf(b)!)
 
-  return leftover.length === 0 ? (
-    <Good>Nothing left over from before.</Good>
-  ) : (
+  return (
     <div>
-      <Label tone="text-amber-400">Still open · {leftover.length}</Label>
-      <List>
-        {leftover.map((a) => (
-          <TaskRow key={a.id} action={a} showProject />
-        ))}
-      </List>
-      <p className="mt-3 text-xs text-neutral-500">Tick it off if it happened, or tap it to move it to a new day.</p>
+      <p className="mb-3 text-sm text-neutral-300">
+        Open your calendar and look back over the past week. Did any meeting or conversation leave something to do, send,
+        or follow up on?
+      </p>
+      <CaptureBox placeholder="What did it trigger? Type it in…" clarifyOnAdd />
+      <div className="mt-5">
+        {leftover.length === 0 ? (
+          <Good>Nothing left over from before in this app.</Good>
+        ) : (
+          <div>
+            <Label tone="text-amber-400">Still open · {leftover.length}</Label>
+            <List>
+              {leftover.map((a) => (
+                <TaskRow key={a.id} action={a} showProject />
+              ))}
+            </List>
+            <p className="mt-3 text-xs text-neutral-500">Tick it off if it happened, or tap it to move it to a new day.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -465,8 +517,6 @@ export function UpcomingCalendarStep() {
     .filter((a) => dayOf(a) !== undefined && dayOf(a)! >= today && dayOf(a)! < today + 14 * DAY)
     .sort((a, b) => dayOf(a)! - dayOf(b)!)
 
-  if (upcoming.length === 0) return <Calm>Nothing on the calendar for the next two weeks — open space.</Calm>
-
   const groups = new Map<number, Action[]>()
   for (const a of upcoming) {
     const day = new Date(dayOf(a)!).setHours(0, 0, 0, 0)
@@ -474,18 +524,28 @@ export function UpcomingCalendarStep() {
   }
   return (
     <div>
-      {[...groups.entries()].map(([day, items]) => (
-        <div key={day} className="mb-4">
-          <Label tone="text-sky-400">
-            {new Date(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-          </Label>
-          <List>
-            {items.map((a) => (
-              <TaskRow key={a.id} action={a} showProject />
-            ))}
-          </List>
-        </div>
-      ))}
+      <p className="mb-3 text-sm text-neutral-300">
+        Look ahead at the next two weeks in your calendar. Anything to prepare, book, bring, or arrange?
+      </p>
+      <CaptureBox placeholder="What do you need to do about it? Type it in…" clarifyOnAdd />
+      <div className="mt-5">
+        {upcoming.length === 0 ? (
+          <Calm>Nothing scheduled in this app for the next two weeks — open space.</Calm>
+        ) : (
+          [...groups.entries()].map(([day, items]) => (
+            <div key={day} className="mb-4">
+              <Label tone="text-sky-400">
+                {new Date(day).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+              </Label>
+              <List>
+                {items.map((a) => (
+                  <TaskRow key={a.id} action={a} showProject />
+                ))}
+              </List>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
@@ -693,35 +753,6 @@ function StalledProject({
           )}
         </>
       )}
-    </div>
-  )
-}
-
-export function BackupStep({ weekStart }: { weekStart: number }) {
-  const [last, setLast] = useState(getLastBackupAt())
-  const due = isBackupDue(last)
-
-  const backUp = async () => {
-    await createBackup()
-    setLast(getLastBackupAt())
-    await setReviewItemDone(weekStart, 'backup', true)
-  }
-
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-      <p className={`mb-1 text-sm ${due ? 'text-amber-400' : 'text-emerald-400'}`}>
-        {last === null ? "You haven't backed up yet." : `Last backup: ${backupAgeLabel(last)}.`}
-        {last !== null && !due && ' ✓'}
-      </p>
-      <p className="mb-3 text-xs text-neutral-500">
-        Your browser saves it to your Downloads folder unless you told it to ask where.
-      </p>
-      <button
-        onClick={() => void backUp()}
-        className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-      >
-        Back up now
-      </button>
     </div>
   )
 }

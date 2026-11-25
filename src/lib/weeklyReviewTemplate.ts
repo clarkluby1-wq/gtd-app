@@ -35,7 +35,6 @@ export const TEMPLATE: TemplateItem[] = [
   { key: 'upcoming-calendar', phase: 'current', label: 'Scan the upcoming calendar for prep work or conflicts' },
   { key: 'waiting-for', phase: 'current', label: 'Review Waiting For — follow up on anything overdue, then click "Followed up"' },
   { key: 'projects', phase: 'current', label: 'Review every active Project — does each still have a next action?' },
-  { key: 'backup', phase: 'current', label: 'Back up your data — one click keeps a safe copy' },
   {
     key: 'someday-maybe',
     phase: 'creative',
