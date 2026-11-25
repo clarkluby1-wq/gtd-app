@@ -25,6 +25,30 @@ export async function captureToInbox(title: string) {
   return action
 }
 
+/**
+ * Capture something you've already decided about ("Pick up milk @errands p1"): it skips the Inbox and goes straight
+ * to Next Actions, with its context and, if asked, a star on today's Short List. Counts as a capture like any other.
+ */
+export async function captureAsNextAction(title: string, opts: { star: boolean; contextId?: string }) {
+  const now = Date.now()
+  const action: Action = {
+    id: uuid(),
+    title: title.trim(),
+    status: 'next',
+    createdAt: now,
+    clarifiedAt: now,
+    touchedAt: now,
+    order: now,
+    contextId: opts.contextId,
+    ...(opts.star ? { bigThreeDate: startOfWorkday(), shortListOrder: now } : {}),
+  }
+  await db.transaction('rw', db.actions, db.captureEvents, async () => {
+    await db.actions.add(action)
+    await db.captureEvents.add({ id: uuid(), createdAt: now })
+  })
+  return action
+}
+
 async function nextOrder() {
   return Date.now()
 }

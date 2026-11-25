@@ -4,6 +4,19 @@ What's changed in the GTD app, in plain language — newest first.
 
 ---
 
+## November 25, 2026
+
+**Capture it already sorted: a priority, a context, or both**
+When you already know what something is, say so as you capture it and it skips the Inbox, going straight to Next Actions:
+- **A priority.** End or start the note with "p1" ("Pick up milk p1"), or tap the ☆ beside Capture before you send. It's saved already starred on today's Short List. The "p1" is taken out of the wording, and the ☆ lights up so you can see it registered. Tapping the lit ☆ takes the "p1" back out.
+- **A context.** End or start the note with one of your contexts ("Pick up milk @errands"). It's saved as a Next Action with that context. Type just "@" and your contexts appear as small tap-to-insert buttons, which is handy on a phone.
+- **Both, in any order:** "Pick up milk @errands p1".
+- **A small line under the bar** ("→ Next Action · @errands · ★ Short List") shows what will happen. It floats, so nothing on the page moves.
+
+Only your real contexts count, and only as a separate word at the very start or end, so "email john@gmail.com", "@Sam said hi", "fill out form P1" and a context in the middle of a sentence are all left as ordinary wording. A confirmation with Undo appears after each one. If the Short List is full, the item is still saved as a Next Action and the message says so. Capturing with none of these works exactly as before: instant, into the Inbox.
+
+---
+
 ## November 19, 2026
 
 **Your Short List can now hold up to eight**
